@@ -44,11 +44,11 @@ export default function HomePage() {
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
-                href="/admin/verifications"
+                href="/devenir-fournisseur"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-sm transition-all"
               >
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                Dossier de Vérification (KYB)
+                Devenir Fournisseur Vérifié
               </Link>
             </div>
 
@@ -202,7 +202,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              href="/admin/verifications"
+              href="/devenir-fournisseur"
               className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all"
             >
               Soumettre mon entreprise pour vérification

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Search, Building2, User } from 'lucide-react';
+import { ShieldCheck, Search, Building2, Lock } from 'lucide-react';
 
 export const Navbar = () => {
   return (
@@ -33,28 +33,40 @@ export const Navbar = () => {
               <Search className="w-4 h-4" />
               Catalogue & Sourcing
             </Link>
+
+            <Link
+              href="/devenir-fournisseur"
+              className="flex items-center gap-1.5 hover:text-emerald-600 transition-colors text-emerald-700 font-semibold"
+            >
+              <Building2 className="w-4 h-4 text-emerald-600" />
+              Devenir Fournisseur
+            </Link>
+
             <Link
               href="/#confiance"
               className="flex items-center gap-1.5 hover:text-emerald-600 transition-colors"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              Garantie Vérification (KYB)
-            </Link>
-            <Link
-              href="/admin/verifications"
-              className="hover:text-emerald-600 transition-colors text-slate-500"
-            >
-              Espace Modération
+              Garantie Vérification
             </Link>
           </nav>
 
-          {/* Action CTA */}
+          {/* Action CTA & Admin link */}
           <div className="flex items-center gap-3">
+            <Link
+              href="/admin/verifications"
+              className="hidden lg:inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200 transition-colors"
+              title="Console d'audit réservée à l'équipe interne"
+            >
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              Espace Modérateur
+            </Link>
+
             <Link
               href="/catalogue"
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-all"
             >
-              <Building2 className="w-4 h-4" />
+              <Search className="w-4 h-4" />
               Trouver un Fournisseur
             </Link>
           </div>
