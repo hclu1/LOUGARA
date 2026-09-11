@@ -13,6 +13,8 @@ import {
   Lock,
   Search,
   ExternalLink,
+  Package,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 
@@ -24,6 +26,13 @@ interface PendingVerification {
   sector: string;
   registrationNumber: string;
   submittedAt: string;
+  productSample?: {
+    title: string;
+    imageUrl: string;
+    moq: number;
+    unit: string;
+    price: string;
+  };
   documents: {
     type: string;
     name: string;
@@ -42,6 +51,13 @@ const INITIAL_QUEUE: PendingVerification[] = [
     sector: 'Agroalimentaire & Épices',
     registrationNumber: 'SN-THS-2022-B-991',
     submittedAt: '10 Septembre 2026',
+    productSample: {
+      title: 'Fèves de Cacao Grand Cru Séchées au Soleil',
+      imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
+      moq: 100,
+      unit: 'kg',
+      price: '4.80 €',
+    },
     documents: [
       { type: 'RCCM / Kbis', name: 'Extrait_RCCM_SahelAgro_2026.pdf', size: '1.2 Mo' },
       { type: 'Identité Gérant', name: 'Passeport_DG_Ousmane_Fall.pdf', size: '2.4 Mo' },
@@ -57,6 +73,13 @@ const INITIAL_QUEUE: PendingVerification[] = [
     sector: 'Textile & Mode',
     registrationNumber: 'CI-ABJ-2023-B-4501',
     submittedAt: '11 Septembre 2026',
+    productSample: {
+      title: 'Tissu Wax Authentique 100% Coton (Lot de 50)',
+      imageUrl: 'https://images.unsplash.com/photo-1590736969955-71cc94801759?auto=format&fit=crop&q=80&w=600',
+      moq: 50,
+      unit: 'pièce',
+      price: '16.50 €',
+    },
     documents: [
       { type: 'RCCM / Kbis', name: 'Registre_Commerce_CI_2026.pdf', size: '1.8 Mo' },
       { type: 'Identité Gérante', name: 'CNI_Kouassi_Abla.pdf', size: '1.1 Mo' },
@@ -71,6 +94,13 @@ const INITIAL_QUEUE: PendingVerification[] = [
     sector: 'Cosmétique & Soins',
     registrationNumber: 'SN-DKR-2021-B-1284',
     submittedAt: '08 Septembre 2026',
+    productSample: {
+      title: 'Beurre de Karité Bio Brut Non Raffiné Grade A',
+      imageUrl: 'https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=80&w=600',
+      moq: 4,
+      unit: 'fût (25kg)',
+      price: '8.50 €',
+    },
     documents: [
       { type: 'RCCM / Kbis', name: 'RCCM_AfricaBio_Valide.pdf', size: '920 Ko' },
       { type: 'Identité Gérant', name: 'CNI_Amina_Diop.pdf', size: '1.4 Mo' },
@@ -91,12 +121,12 @@ export default function AdminVerificationsPage() {
         item.id === id ? { ...item, status: 'VERIFIED' } : item
       )
     );
-    setActionNotice(`Dossier validé pour "${name}". Le badge officiel a été activé.`);
+    setActionNotice(`Dossier validé pour "${name}". Le badge officiel et son catalogue ont été activés.`);
     setTimeout(() => setActionNotice(null), 4000);
   };
 
   const handleReject = (id: string, name: string) => {
-    const reason = prompt('Indiquez le motif du refus (ex: RCCM expiré, document illisible) :');
+    const reason = prompt('Indiquez le motif du refus (ex: RCCM expiré, photo produit non conforme) :');
     if (!reason) return;
 
     setQueue((prev) =>
@@ -141,7 +171,7 @@ export default function AdminVerificationsPage() {
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Espace réservé à l&apos;équipe Lougara pour le contrôle légal des fournisseurs avant publication.
+              Contrôle administratif des documents légaux et vérification de conformité des produits fournisseurs.
             </p>
           </div>
         </div>
@@ -150,7 +180,7 @@ export default function AdminVerificationsPage() {
           href="/devenir-fournisseur"
           className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 self-start sm:self-auto"
         >
-          Voir le formulaire public <ExternalLink className="w-3.5 h-3.5" />
+          Formulaire d&apos;onboarding public <ExternalLink className="w-3.5 h-3.5" />
         </Link>
       </div>
 
@@ -252,7 +282,7 @@ export default function AdminVerificationsPage() {
       </div>
 
       {/* Liste des Dossiers */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {filteredItems.length === 0 ? (
           <div className="py-12 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-sm">
             Aucun dossier ne correspond à ce filtre.
@@ -261,8 +291,9 @@ export default function AdminVerificationsPage() {
           filteredItems.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4"
+              className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5"
             >
+              {/* En-tête Dossier */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2">
@@ -286,8 +317,35 @@ export default function AdminVerificationsPage() {
                 <span className="text-xs text-slate-400">Soumis le {item.submittedAt}</span>
               </div>
 
+              {/* Produit Phare Soumis (Nouvel encadré d'inspection) */}
+              {item.productSample && (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-200 border border-slate-300 flex-shrink-0 relative">
+                    <img
+                      src={item.productSample.imageUrl}
+                      alt={item.productSample.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                        Produit Phare Soumis
+                      </span>
+                      <span className="text-xs font-bold text-slate-900">
+                        {item.productSample.title}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 flex items-center gap-3 mt-1">
+                      <span>Prix : <strong className="text-slate-800">{item.productSample.price}</strong> / {item.productSample.unit}</span>
+                      <span>MOQ : <strong className="text-emerald-700">{item.productSample.moq} {item.productSample.unit}s</strong></span>
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Pièces justificatives */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="space-y-2 pt-1 border-t border-slate-100">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Documents légaux téléversés (Bucket privé sécurisé) :
                 </p>
@@ -330,7 +388,7 @@ export default function AdminVerificationsPage() {
                     className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    Valider le dossier & Activer le Badge
+                    Valider le dossier & Publier le Produit
                   </button>
                 </div>
               )}
