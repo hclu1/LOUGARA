@@ -39,6 +39,36 @@ const COUNTRY_MAP: Record<string, string> = {
   bruxelles: 'Belgique',
 };
 
+export function cleanCompanyName(text: string): string {
+  let cleaned = text.trim();
+
+  // 1. Supprimer les préfixes de libellés officiels et leurs altérations OCR fréquentes
+  // (ex: "Dénomination ou raison sociale", "Dénomination où roion soie", "Dénomination :")
+  cleaned = cleaned.replace(
+    /^(?:d[eéè]nominat(?:ion|lon)|d[eéè]nom)\s*(?:ou|o[uùú]|et|&)?\s*(?:raison|roion|raion|roison)?\s*(?:sociale|soie|social|soclale)?\s*[:\-\.]*\s*/i,
+    ''
+  );
+
+  // 2. Nettoyer les résidus restants en tête de chaîne
+  cleaned = cleaned.replace(/^(?:ou|o[uùú])\s+(?:raison|roion|raion|roison)\s+(?:sociale|soie|social|soclale)\s*[:\-\.]*\s*/i, '');
+  cleaned = cleaned.replace(/^(?:raison|roion|raion|roison)\s+(?:sociale|soie|social|soclale)\s*[:\-\.]*\s*/i, '');
+  cleaned = cleaned.replace(/^(?:sociale|soie|social|nom\s*commercial)\s*[:\-\.]*\s*/i, '');
+
+  cleaned = cleaned.trim();
+
+  // 3. Normalisation des noms de sociétés / acronymes (ex: InFONET -> INFONET)
+  // Si le mot est majoritairement composé de majuscules altérées par une minuscule OCR
+  if (/^[A-Za-z0-9\s\-]+$/.test(cleaned)) {
+    const uppercaseLetters = (cleaned.match(/[A-Z]/g) || []).length;
+    const lowercaseLetters = (cleaned.match(/[a-z]/g) || []).length;
+    if (uppercaseLetters >= 2 && uppercaseLetters >= lowercaseLetters) {
+      cleaned = cleaned.toUpperCase();
+    }
+  }
+
+  return cleaned;
+}
+
 export function parseKbisOcrText(rawText: string): ParsedKbisData {
   const lines = rawText.split('\n').map((l) => l.trim()).filter(Boolean);
 
@@ -71,24 +101,26 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Détection motif "Dénomination : XYZ" ou "Dénomination sociale : XYZ"
-    const denomMatch = line.match(/(?:dénomination\s*sociale|dénomination|raison\s*sociale|nom\s*commercial)\s*[:\-]?\s*(.+)/i);
-    if (denomMatch && denomMatch[1]) {
-      const candidate = denomMatch[1].trim();
-      if (candidate.length > 2 && !candidate.toLowerCase().includes('forme')) {
+    // Détection d'une ligne contenant "Dénomination" ou "Raison sociale" (tolérant aux coquilles OCR ex: "où roion soie")
+    if (/(?:d[eéè]nom|raison|roion|nom\s*commercial)/i.test(line)) {
+      const candidate = cleanCompanyName(line);
+      if (candidate && candidate.length > 1 && !candidate.toLowerCase().includes('forme')) {
         companyName = candidate;
         break;
       } else if (i + 1 < lines.length) {
-        // La dénomination est parfois sur la ligne suivante
-        companyName = lines[i + 1].trim();
-        break;
+        // La dénomination est sur la ligne suivante
+        const nextCandidate = cleanCompanyName(lines[i + 1]);
+        if (nextCandidate && nextCandidate.length > 1 && !nextCandidate.toLowerCase().includes('forme')) {
+          companyName = nextCandidate;
+          break;
+        }
       }
     }
 
     // Détection motif direct type "SOCIETE XYZ SARL" ou "XYZ SAS"
     if (!companyName && /\b(SARL|SAS|SASU|SA|SUARL|GIE)\b/i.test(line)) {
       if (!line.toLowerCase().includes('forme') && !line.toLowerCase().includes('statuts') && line.length < 50) {
-        companyName = line;
+        companyName = cleanCompanyName(line);
       }
     }
   }

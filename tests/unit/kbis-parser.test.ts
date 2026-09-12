@@ -50,4 +50,24 @@ Gérant : M. Cheikh Ndiaye
     expect(extracted.sector).toBe('Agroalimentaire & Épices');
     expect(extracted.contactName).toContain('Cheikh Ndiaye');
   });
+
+  it('doit nettoyer les résidus de libellé OCR et extraire uniquement le nom de la société (ex: InFONET)', () => {
+    const rawOcrText1 = `
+EXTRAIT DU REGISTRE DU COMMERCE ET DES SOCIETES
+Dénomination où roion soie InFONET
+Immatriculation : 849 999 111
+Adresse : Paris
+    `;
+    const extracted1 = parseKbisOcrText(rawOcrText1);
+    expect(extracted1.companyName).toBe('INFONET');
+
+    const rawOcrText2 = `
+EXTRAIT DU REGISTRE DU COMMERCE ET DES SOCIETES
+Dénomination ou raison sociale   INFONET
+Immatriculation : 849 999 111
+Adresse : Paris
+    `;
+    const extracted2 = parseKbisOcrText(rawOcrText2);
+    expect(extracted2.companyName).toBe('INFONET');
+  });
 });
