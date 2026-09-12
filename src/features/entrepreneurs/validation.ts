@@ -24,6 +24,9 @@ export const entrepreneurRegistrationSchema = z.object({
     '> 20 000 € / mois',
   ]),
   sourcingNeeds: z.string().optional(),
+  registrationNumber: z.string().optional(),
+  kbisFile: z.string().optional(),
+  kbisFileSize: z.string().optional(),
 });
 
 export type EntrepreneurRegistrationInput = z.infer<typeof entrepreneurRegistrationSchema>;

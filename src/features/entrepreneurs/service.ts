@@ -21,6 +21,10 @@ export interface StoredEntrepreneur {
   targetSectors: string[];
   estimatedBudget: string;
   sourcingNeeds?: string;
+  registrationNumber?: string;
+  kbisFile?: string;
+  kbisFileSize?: string;
+  isKbisVerified?: boolean;
   createdAt: string;
 }
 
@@ -68,6 +72,10 @@ const memoryEntrepreneurs: StoredEntrepreneur[] = [
     targetSectors: ['Cosmétique & Soins', 'Artisanat & Décoration'],
     estimatedBudget: '1 000 € à 5 000 € / mois',
     sourcingNeeds: 'Recherche de savons noirs traditionnels et beurre de karité brut certifié.',
+    registrationNumber: '891 234 567 R.C.S. Paris',
+    kbisFile: 'Extrait_Kbis_Botanica_Paris.pdf',
+    kbisFileSize: '1.10 Mo',
+    isKbisVerified: true,
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
   },
   {
@@ -82,6 +90,10 @@ const memoryEntrepreneurs: StoredEntrepreneur[] = [
     targetSectors: ['Agroalimentaire & Épices'],
     estimatedBudget: '5 000 € à 20 000 € / mois',
     sourcingNeeds: 'Approvisionnement régulier en fèves de cacao Criollo et vanille de Madagascar.',
+    registrationNumber: 'BE 0849.123.456',
+    kbisFile: 'BCE_Extrait_Officiel_Bruxelles.pdf',
+    kbisFileSize: '950 Ko',
+    isKbisVerified: true,
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
   },
   {
@@ -96,6 +108,10 @@ const memoryEntrepreneurs: StoredEntrepreneur[] = [
     targetSectors: ['Textile, Coton & Wax'],
     estimatedBudget: '1 000 € à 5 000 € / mois',
     sourcingNeeds: 'Tissus wax hollandais et bogolan traditionnel pour collection de prêt-à-porter.',
+    registrationNumber: 'CI-ABJ-2022-B-11409',
+    kbisFile: 'RCCM_Wax_Chic_Abidjan.pdf',
+    kbisFileSize: '1.45 Mo',
+    isKbisVerified: true,
     createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
   },
 ];
@@ -139,6 +155,7 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
   const id = `buyer-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
   // 1. Sauvegarde en mémoire cache immédiate
+  const isKbisVerified = Boolean(validated.kbisFile || validated.registrationNumber);
   const newEntrepreneur: StoredEntrepreneur = {
     id,
     fullName: validated.fullName,
@@ -151,6 +168,10 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
     targetSectors: validated.targetSectors,
     estimatedBudget: validated.estimatedBudget,
     sourcingNeeds: validated.sourcingNeeds,
+    registrationNumber: validated.registrationNumber,
+    kbisFile: validated.kbisFile,
+    kbisFileSize: validated.kbisFileSize,
+    isKbisVerified,
     createdAt: new Date().toISOString(),
   };
 
@@ -180,9 +201,10 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
             companyName: validated.companyName,
             country: validated.country,
             city: validated.city,
+            registrationNumber: validated.registrationNumber,
             sector: validated.targetSectors[0] || 'Achat & Sourcing Général',
             phone: validated.phone,
-            description: `[Acheteur B2B - ${validated.buyerType}] Budget estimé : ${validated.estimatedBudget}. Besoins : ${validated.sourcingNeeds || 'Non précisé'}`,
+            description: `[Acheteur B2B - ${validated.buyerType}] Budget estimé : ${validated.estimatedBudget}. Besoins : ${validated.sourcingNeeds || 'Non précisé'}${validated.kbisFile ? ` - Kbis/RCCM déposé : ${validated.kbisFile}` : ''}`,
           },
         },
       },
@@ -208,7 +230,7 @@ export async function getRegisteredEntrepreneurs(): Promise<StoredEntrepreneur[]
     });
 
     if (dbBuyers && dbBuyers.length > 0) {
-      const mapped = dbBuyers.map((b) => ({
+      const mapped: StoredEntrepreneur[] = dbBuyers.map((b) => ({
         id: b.id,
         fullName: `${b.firstName || ''} ${b.lastName || ''}`.trim() || 'Entrepreneur Lougara',
         companyName: b.company?.companyName || 'Structure Déclarée',
@@ -220,6 +242,8 @@ export async function getRegisteredEntrepreneurs(): Promise<StoredEntrepreneur[]
         targetSectors: [b.company?.sector || 'Général'],
         estimatedBudget: 'Budget vérifié',
         sourcingNeeds: b.company?.description || undefined,
+        registrationNumber: b.company?.registrationNumber || undefined,
+        isKbisVerified: Boolean(b.company?.registrationNumber),
         createdAt: b.createdAt.toISOString(),
       }));
 

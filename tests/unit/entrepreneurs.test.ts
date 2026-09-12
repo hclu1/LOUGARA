@@ -80,4 +80,36 @@ describe('Service Entrepreneurs & Sourcing B2B', () => {
     expect(allRequests.length).toBeGreaterThanOrEqual(1);
     expect(allRequests[0].companyName).toBe('Dakar Cosmétiques Naturels');
   });
+
+  it('doit inscrire un entrepreneur avec extrait Kbis analysé par OCR et numéro d\'immatriculation', async () => {
+    const kbisOcrInput = {
+      fullName: 'JULIEN DUPÉ',
+      companyName: 'INFONET WEB GROUP SAS',
+      registrationNumber: '849 123 456 R.C.S. Paris',
+      kbisFile: 'Extrait_Kbis_INFONET.pdf',
+      kbisFileSize: '1.25 Mo',
+      email: 'contact@infonet-buyer.fr',
+      phone: '+33 1 42 68 55 00',
+      country: 'France',
+      city: 'Paris',
+      buyerType: 'Importateur & Distributeur' as const,
+      targetSectors: ['Technologies & IT'],
+      estimatedBudget: '5 000 € à 20 000 € / mois' as const,
+      sourcingNeeds: 'Approvisionnement en matériel et composants.',
+    };
+
+    const registered = await registerEntrepreneur(kbisOcrInput);
+
+    expect(registered).toBeDefined();
+    expect(registered.fullName).toBe('JULIEN DUPÉ');
+    expect(registered.companyName).toBe('INFONET WEB GROUP SAS');
+    expect(registered.registrationNumber).toBe('849 123 456 R.C.S. Paris');
+    expect(registered.kbisFile).toBe('Extrait_Kbis_INFONET.pdf');
+    expect(registered.isKbisVerified).toBe(true);
+
+    const list = await getRegisteredEntrepreneurs();
+    const found = list.find((e) => e.registrationNumber === '849 123 456 R.C.S. Paris');
+    expect(found).toBeDefined();
+    expect(found?.isKbisVerified).toBe(true);
+  });
 });
