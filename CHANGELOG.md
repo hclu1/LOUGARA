@@ -4,6 +4,24 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.3.0] - 2026-09-12
+### Ajouté
+- Nouvelle page dédiée **Tarifs & Abonnements** (`/tarifs`) conforme aux recommandations stratégiques de Lougara (`Doc/Analyse_et_recommandations_Lougara.md`).
+- Grille tarifaire transparente avec les 3 forfaits d'abonnement mensuels sans engagement :
+  - **Standard (99 € / mois)** : 15 mises en relation directes, accès réseau vérifié, support 48h.
+  - **Premium (150 € / mois)** : Mises en relation illimitées, matching prioritaire, badge vérifié Premium, support 24h.
+  - **VIP (250 € / mois)** : Account Manager dédié, hotline WhatsApp 24/7, négociation grands comptes et **Espace Publicitaire Catalogue inclus**.
+- Option **Espace Publicitaire Catalogue** (+49 € / mois ou inclus dans l'offre VIP) pour exposer ses produits ou ses appels d'offres en vitrine publique.
+- Étape d'abonnement et sélection de l'encart publicitaire intégrée dans le tunnel d'onboarding Fournisseurs (`/devenir-fournisseur`).
+- Étape d'abonnement et sélection de l'encart publicitaire intégrée dans le formulaire d'inscription Entrepreneurs (`/entrepreneurs`).
+- Refonte de la page **Catalogue public B2B** (`/catalogue`) :
+  - Règle stricte de visibilité : seuls les fournisseurs et entrepreneurs avec un Espace Publicitaire actif y figurent.
+  - Bannière officielle d'information renvoyant vers la page `/tarifs`.
+  - Double vue par onglets : *Offres Fournisseurs Sponsorisées* et *Appels d'Offres Acheteurs Sponsorisés*.
+  - Badges distinctifs *Espace Publicitaire Partenaire* et niveau d'abonnement sur toutes les fiches.
+  - Modale de réponse commerciale directe pour contacter les acheteurs sponsorisés.
+- Schémas Zod et persistance Prisma/cache mis à jour pour stocker `subscriptionPlan` et `hasCatalogAdSpace`.
+
 ## [0.2.1] - 2026-09-12
 ### Ajouté
 - Intégration de la reconnaissance optique universelle Kbis / RCCM dans l'Espace Entrepreneurs (`/entrepreneurs`) identique au parcours fournisseur.

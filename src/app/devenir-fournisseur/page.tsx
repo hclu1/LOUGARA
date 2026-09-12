@@ -61,6 +61,10 @@ export default function DevenirFournisseurPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
+  // Abonnement & Espace Publicitaire Catalogue
+  const [subscriptionPlan, setSubscriptionPlan] = useState<'STANDARD' | 'PREMIUM' | 'VIP'>('PREMIUM');
+  const [hasCatalogAdSpace, setHasCatalogAdSpace] = useState(true);
+
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Application des données extraites aux champs du formulaire
@@ -244,19 +248,29 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900">
-              Dossier KYB & Produit transmis avec succès !
+              Dossier KYB, Abonnement & Produit transmis !
             </h2>
             <p className="text-sm text-slate-600 leading-relaxed">
               Votre extrait officiel <span className="font-semibold">{kbisFile}</span> a été déposé et vos informations pour{' '}
               <span className="font-semibold">{companyName}</span> sont en cours d&apos;audit sous 48h.
             </p>
-            <div className="pt-4">
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-800 text-left space-y-1">
+              <p className="font-bold">Abonnement sélectionné : Formule {subscriptionPlan} ({subscriptionPlan === 'STANDARD' ? '99 €/mois' : subscriptionPlan === 'PREMIUM' ? '150 €/mois' : '250 €/mois'})</p>
+              <p>Espace Publicitaire Catalogue : {hasCatalogAdSpace || subscriptionPlan === 'VIP' ? '✅ Actif - Vos produits seront visibles dans le catalogue public après validation KYB' : '🔒 Inactif - Profil en réseau privé (hors catalogue public)'}</p>
+            </div>
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/catalogue"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all"
               >
                 Découvrir le catalogue public
                 <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/tarifs"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all"
+              >
+                Consulter les détails des tarifs
               </Link>
             </div>
           </div>
@@ -267,7 +281,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
               <div className="border-b border-slate-100 pb-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                    Étape 1 sur 4 &bull; Reconnaissance Universelle
+                    Étape 1 sur 5 &bull; Reconnaissance Universelle
                   </span>
                   {autoFilled && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 animate-in fade-in">
@@ -514,7 +528,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
             <div className="space-y-4 pt-4 border-t border-slate-100">
               <div className="border-b border-slate-100 pb-3">
                 <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                  Étape 2 sur 4
+                  Étape 2 sur 5 &bull; Produit Phare
                 </span>
                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mt-0.5">
                   <Package className="w-5 h-5 text-emerald-600" />
@@ -652,7 +666,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
             <div className="space-y-4 pt-4 border-t border-slate-100">
               <div className="border-b border-slate-100 pb-3">
                 <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                  Étape 3 sur 4 &bull; Dossier KYB
+                  Étape 3 sur 5 &bull; Dossier KYB
                 </span>
                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mt-0.5">
                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
@@ -736,7 +750,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
               <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                    Étape 4 sur 4
+                    Étape 4 sur 5 &bull; Représentant Officiel
                   </span>
                   <h2 className="text-xl font-bold text-slate-900 mt-0.5">
                     Coordonnées du représentant officiel
@@ -795,6 +809,160 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
               </div>
             </div>
 
+            {/* 5. Abonnement & Espace Publicitaire Catalogue */}
+            <div className="space-y-5 pt-4 border-t border-slate-100">
+              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
+                    Étape 5 sur 5 &bull; Tarification & Présence Catalogue
+                  </span>
+                  <h2 className="text-xl font-bold text-slate-900 mt-0.5">
+                    Choix de l&apos;Abonnement & Espace Publicitaire
+                  </h2>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+                  <span>Total : {subscriptionPlan === 'VIP' ? '250 €' : `${(subscriptionPlan === 'STANDARD' ? 99 : 150) + (hasCatalogAdSpace ? 49 : 0)} €`} HT / mois</span>
+                </div>
+              </div>
+
+              {/* Sélection des 3 Formules */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Standard */}
+                <div
+                  onClick={() => setSubscriptionPlan('STANDARD')}
+                  className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                    subscriptionPlan === 'STANDARD'
+                      ? 'border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold uppercase text-slate-500">Standard</span>
+                    <input
+                      type="radio"
+                      name="plan"
+                      checked={subscriptionPlan === 'STANDARD'}
+                      onChange={() => setSubscriptionPlan('STANDARD')}
+                      className="text-emerald-600 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="text-2xl font-extrabold text-slate-900 mb-1">
+                    99 € <span className="text-xs font-normal text-slate-500">/ mois</span>
+                  </div>
+                  <p className="text-xs text-slate-600 mb-3">
+                    15 contacts directs/mois, audit KYB complet et messagerie sécurisée.
+                  </p>
+                  <p className="text-[11px] text-slate-500">Sans engagement</p>
+                </div>
+
+                {/* Premium */}
+                <div
+                  onClick={() => setSubscriptionPlan('PREMIUM')}
+                  className={`p-5 rounded-2xl border-2 cursor-pointer transition-all relative ${
+                    subscriptionPlan === 'PREMIUM'
+                      ? 'border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <span className="absolute -top-2.5 right-4 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    RECOMMANDÉ
+                  </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold uppercase text-emerald-700">Premium</span>
+                    <input
+                      type="radio"
+                      name="plan"
+                      checked={subscriptionPlan === 'PREMIUM'}
+                      onChange={() => setSubscriptionPlan('PREMIUM')}
+                      className="text-emerald-600 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="text-2xl font-extrabold text-slate-900 mb-1">
+                    150 € <span className="text-xs font-normal text-slate-500">/ mois</span>
+                  </div>
+                  <p className="text-xs text-slate-600 mb-3">
+                    Contacts illimités, matching prioritaire et statistiques avancées.
+                  </p>
+                  <p className="text-[11px] text-emerald-700 font-semibold">Le choix des producteurs actifs</p>
+                </div>
+
+                {/* VIP */}
+                <div
+                  onClick={() => {
+                    setSubscriptionPlan('VIP');
+                    setHasCatalogAdSpace(true);
+                  }}
+                  className={`p-5 rounded-2xl border-2 cursor-pointer transition-all relative ${
+                    subscriptionPlan === 'VIP'
+                      ? 'border-purple-600 bg-purple-50/40 shadow-sm ring-1 ring-purple-600'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <span className="absolute -top-2.5 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    PUB INCLUSE
+                  </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold uppercase text-purple-700">VIP</span>
+                    <input
+                      type="radio"
+                      name="plan"
+                      checked={subscriptionPlan === 'VIP'}
+                      onChange={() => {
+                        setSubscriptionPlan('VIP');
+                        setHasCatalogAdSpace(true);
+                      }}
+                      className="text-purple-600 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div className="text-2xl font-extrabold text-slate-900 mb-1">
+                    250 € <span className="text-xs font-normal text-slate-500">/ mois</span>
+                  </div>
+                  <p className="text-xs text-slate-600 mb-3">
+                    Account Manager dédié, mise en relation grands comptes & <strong>Espace publicitaire catalogue inclus</strong>.
+                  </p>
+                  <p className="text-[11px] text-purple-700 font-semibold">Exposition maximale</p>
+                </div>
+              </div>
+
+              {/* Option Espace Publicitaire Catalogue */}
+              <div className={`p-5 rounded-2xl border-2 transition-all ${
+                hasCatalogAdSpace || subscriptionPlan === 'VIP'
+                  ? 'border-emerald-500 bg-emerald-50/50'
+                  : 'border-slate-200 bg-slate-50/50'
+              }`}>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasCatalogAdSpace || subscriptionPlan === 'VIP'}
+                    disabled={subscriptionPlan === 'VIP'}
+                    onChange={(e) => setHasCatalogAdSpace(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">
+                        Réserver un Espace Publicitaire Catalogue (Vitrine Produit Publique)
+                      </span>
+                      {subscriptionPlan === 'VIP' ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-200 text-purple-900">
+                          Inclus en formule VIP (0 €)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
+                          +49 € / mois
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {hasCatalogAdSpace || subscriptionPlan === 'VIP'
+                        ? "✅ Votre produit phare et votre profil d'entreprise seront mis en avant avec le badge « Espace Publicitaire Partenaire » dans le Catalogue public Lougara."
+                        : "⚠️ Sans espace publicitaire, vos produits et coordonnées resteront en réseau privé et ne seront pas exposés dans le Catalogue public ouvert aux acheteurs."}
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
               <span className="text-xs text-slate-400">
                 * Les données sont extraites directement du document officiel téléversé
@@ -803,7 +971,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                 type="submit"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all"
               >
-                Soumettre mon dossier complet et mon produit
+                Soumettre mon dossier complet, mon abonnement et mon produit
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

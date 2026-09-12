@@ -27,6 +27,8 @@ export const entrepreneurRegistrationSchema = z.object({
   registrationNumber: z.string().optional(),
   kbisFile: z.string().optional(),
   kbisFileSize: z.string().optional(),
+  subscriptionPlan: z.enum(['STANDARD', 'PREMIUM', 'VIP']).default('STANDARD'),
+  hasCatalogAdSpace: z.boolean().default(false),
 });
 
 export type EntrepreneurRegistrationInput = z.infer<typeof entrepreneurRegistrationSchema>;

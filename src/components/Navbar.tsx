@@ -57,6 +57,13 @@ export const Navbar = () => {
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               Garantie Vérification
             </Link>
+
+            <Link
+              href="/tarifs"
+              className="flex items-center gap-1.5 hover:text-emerald-600 transition-colors"
+            >
+              Tarifs & Abonnements
+            </Link>
           </nav>
 
           {/* Action CTA & Admin link */}

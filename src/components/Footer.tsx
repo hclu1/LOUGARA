@@ -45,6 +45,11 @@ export const Footer = () => {
               <li>France &bull; Côte d&apos;Ivoire</li>
               <li>Belgique &bull; Afrique de l&apos;Ouest</li>
               <li>Union Européenne &bull; Zone UEMOA</li>
+              <li className="pt-2 border-t border-slate-800">
+                <Link href="/tarifs" className="text-emerald-400 hover:text-emerald-300 font-semibold">
+                  Grille des Tarifs & Abonnements &rarr;
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

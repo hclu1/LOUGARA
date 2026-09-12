@@ -25,6 +25,8 @@ export interface StoredEntrepreneur {
   kbisFile?: string;
   kbisFileSize?: string;
   isKbisVerified?: boolean;
+  subscriptionPlan?: 'STANDARD' | 'PREMIUM' | 'VIP';
+  hasCatalogAdSpace?: boolean;
   createdAt: string;
 }
 
@@ -76,6 +78,8 @@ const memoryEntrepreneurs: StoredEntrepreneur[] = [
     kbisFile: 'Extrait_Kbis_Botanica_Paris.pdf',
     kbisFileSize: '1.10 Mo',
     isKbisVerified: true,
+    subscriptionPlan: 'PREMIUM',
+    hasCatalogAdSpace: true,
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
   },
   {
@@ -94,6 +98,8 @@ const memoryEntrepreneurs: StoredEntrepreneur[] = [
     kbisFile: 'BCE_Extrait_Officiel_Bruxelles.pdf',
     kbisFileSize: '950 Ko',
     isKbisVerified: true,
+    subscriptionPlan: 'VIP',
+    hasCatalogAdSpace: true,
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
   },
   {
@@ -112,6 +118,8 @@ const memoryEntrepreneurs: StoredEntrepreneur[] = [
     kbisFile: 'RCCM_Wax_Chic_Abidjan.pdf',
     kbisFileSize: '1.45 Mo',
     isKbisVerified: true,
+    subscriptionPlan: 'STANDARD',
+    hasCatalogAdSpace: false,
     createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
   },
 ];
@@ -172,6 +180,8 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
     kbisFile: validated.kbisFile,
     kbisFileSize: validated.kbisFileSize,
     isKbisVerified,
+    subscriptionPlan: validated.subscriptionPlan,
+    hasCatalogAdSpace: validated.hasCatalogAdSpace,
     createdAt: new Date().toISOString(),
   };
 
@@ -204,7 +214,7 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
             registrationNumber: validated.registrationNumber,
             sector: validated.targetSectors[0] || 'Achat & Sourcing Général',
             phone: validated.phone,
-            description: `[Acheteur B2B - ${validated.buyerType}] Budget estimé : ${validated.estimatedBudget}. Besoins : ${validated.sourcingNeeds || 'Non précisé'}${validated.kbisFile ? ` - Kbis/RCCM déposé : ${validated.kbisFile}` : ''}`,
+            description: `[Acheteur B2B - ${validated.buyerType}] Forfait : ${validated.subscriptionPlan} - Espace Publicitaire : ${validated.hasCatalogAdSpace ? 'ACTIF' : 'NON'}. Budget estimé : ${validated.estimatedBudget}. Besoins : ${validated.sourcingNeeds || 'Non précisé'}${validated.kbisFile ? ` - Kbis/RCCM déposé : ${validated.kbisFile}` : ''}`,
           },
         },
       },
@@ -244,6 +254,8 @@ export async function getRegisteredEntrepreneurs(): Promise<StoredEntrepreneur[]
         sourcingNeeds: b.company?.description || undefined,
         registrationNumber: b.company?.registrationNumber || undefined,
         isKbisVerified: Boolean(b.company?.registrationNumber),
+        subscriptionPlan: 'STANDARD',
+        hasCatalogAdSpace: false,
         createdAt: b.createdAt.toISOString(),
       }));
 

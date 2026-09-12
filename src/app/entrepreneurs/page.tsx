@@ -134,6 +134,10 @@ export default function EspaceEntrepreneursPage() {
   const [estimatedBudget, setEstimatedBudget] = useState<string>('1 000 € à 5 000 € / mois');
   const [sourcingNeeds, setSourcingNeeds] = useState('');
 
+  // Formule d'Abonnement & Espace Publicitaire Catalogue
+  const [subscriptionPlan, setSubscriptionPlan] = useState<'STANDARD' | 'PREMIUM' | 'VIP'>('STANDARD');
+  const [hasCatalogAdSpace, setHasCatalogAdSpace] = useState(false);
+
   // Pièce KYB / Kbis & RCCM
   const [kbisFile, setKbisFile] = useState<string | null>(null);
   const [kbisFileSize, setKbisFileSize] = useState<string>('');
@@ -343,6 +347,8 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
           targetSectors,
           estimatedBudget,
           sourcingNeeds,
+          subscriptionPlan,
+          hasCatalogAdSpace: hasCatalogAdSpace || subscriptionPlan === 'VIP',
         }),
       });
 
@@ -537,14 +543,17 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                   enregistré avec succès dans la base de données. Vous pouvez désormais entrer en contact direct 
                   avec tous les producteurs et grossistes vérifiés.
                 </p>
-                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-800 flex items-center justify-between gap-4 text-left">
-                  <div>
+                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-800 space-y-2 text-left">
+                  <div className="flex items-center justify-between">
                     <p className="font-bold">Identifiant Acheteur : {registeredId}</p>
-                    <p className="text-emerald-700 mt-0.5">Secteurs cibles : {targetSectors.join(', ')}</p>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-bold text-[10px]">
+                      Actif en BDD
+                    </span>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-900 font-bold text-[10px]">
-                    Actif en BDD
-                  </span>
+                  <p className="text-emerald-700">Secteurs cibles : {targetSectors.join(', ')}</p>
+                  <p className="pt-1 border-t border-emerald-200/60">
+                    <strong>Abonnement :</strong> Formule {subscriptionPlan} ({subscriptionPlan === 'STANDARD' ? '99 €/m' : subscriptionPlan === 'PREMIUM' ? '150 €/m' : '250 €/m'}) &bull; Espace Publicitaire : {hasCatalogAdSpace || subscriptionPlan === 'VIP' ? '✅ Actif au Catalogue B2B' : '🔒 Réseau Privé uniquement'}
+                  </p>
                 </div>
                 <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
                   <button
@@ -560,6 +569,12 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                   >
                     Publier un Besoin de Sourcing
                   </button>
+                  <Link
+                    href="/tarifs"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all"
+                  >
+                    Voir les Tarifs & Options
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -575,7 +590,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                   <div className="border-b border-slate-100 pb-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                        Étape 1 sur 3 &bull; Reconnaissance Universelle & Données Légales
+                        Étape 1 sur 4 &bull; Reconnaissance Universelle & Données Légales
                       </span>
                       {autoFilled && (
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 animate-in fade-in">
@@ -806,7 +821,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                 <div className="space-y-4 pt-2">
                   <div className="border-b border-slate-100 pb-2">
                     <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                      Étape 2 sur 3
+                      Étape 2 sur 4
                     </span>
                     <h2 className="text-lg font-bold text-slate-900 mt-0.5">
                       Vos Besoins de Sourcing & Produits Recherchés
@@ -881,7 +896,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                 <div className="space-y-4 pt-2">
                   <div className="border-b border-slate-100 pb-2">
                     <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                      Étape 3 sur 3
+                      Étape 3 sur 4 &bull; Représentant Officiel
                     </span>
                     <h2 className="text-lg font-bold text-slate-900 mt-0.5">
                       Coordonnées de l&apos;Entrepreneur Responsable
@@ -940,6 +955,160 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                   </div>
                 </div>
 
+                {/* Étape 4 : Formule d'Abonnement & Espace Publicitaire Catalogue */}
+                <div className="space-y-5 pt-4 border-t border-slate-100">
+                  <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
+                        Étape 4 sur 4 &bull; Tarification & Présence Catalogue
+                      </span>
+                      <h2 className="text-lg font-bold text-slate-900 mt-0.5">
+                        Choix de votre Abonnement & Espace Publicitaire
+                      </h2>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+                      <span>Total : {subscriptionPlan === 'VIP' ? '250 €' : `${(subscriptionPlan === 'STANDARD' ? 99 : 150) + (hasCatalogAdSpace ? 49 : 0)} €`} HT / mois</span>
+                    </div>
+                  </div>
+
+                  {/* 3 Formules d'Abonnement */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Standard */}
+                    <div
+                      onClick={() => setSubscriptionPlan('STANDARD')}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                        subscriptionPlan === 'STANDARD'
+                          ? 'border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-bold uppercase text-slate-500">Standard</span>
+                        <input
+                          type="radio"
+                          name="entPlan"
+                          checked={subscriptionPlan === 'STANDARD'}
+                          onChange={() => setSubscriptionPlan('STANDARD')}
+                          className="text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <div className="text-xl font-extrabold text-slate-900 mb-1">
+                        99 € <span className="text-xs font-normal text-slate-500">/ mois</span>
+                      </div>
+                      <p className="text-xs text-slate-600 mb-2">
+                        15 contacts directs/mois, accès aux fournisseurs vérifiés et messagerie devis.
+                      </p>
+                      <p className="text-[11px] text-slate-500">Sans engagement</p>
+                    </div>
+
+                    {/* Premium */}
+                    <div
+                      onClick={() => setSubscriptionPlan('PREMIUM')}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all relative ${
+                        subscriptionPlan === 'PREMIUM'
+                          ? 'border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <span className="absolute -top-2.5 right-4 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        RECOMMANDÉ
+                      </span>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-bold uppercase text-emerald-700">Premium</span>
+                        <input
+                          type="radio"
+                          name="entPlan"
+                          checked={subscriptionPlan === 'PREMIUM'}
+                          onChange={() => setSubscriptionPlan('PREMIUM')}
+                          className="text-emerald-600 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <div className="text-xl font-extrabold text-slate-900 mb-1">
+                        150 € <span className="text-xs font-normal text-slate-500">/ mois</span>
+                      </div>
+                      <p className="text-xs text-slate-600 mb-2">
+                        Mises en relation illimitées, matching prioritaire et alertes directes.
+                      </p>
+                      <p className="text-[11px] text-emerald-700 font-semibold">Pour acheteurs réguliers</p>
+                    </div>
+
+                    {/* VIP */}
+                    <div
+                      onClick={() => {
+                        setSubscriptionPlan('VIP');
+                        setHasCatalogAdSpace(true);
+                      }}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all relative ${
+                        subscriptionPlan === 'VIP'
+                          ? 'border-purple-600 bg-purple-50/40 shadow-sm ring-1 ring-purple-600'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <span className="absolute -top-2.5 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        PUB INCLUSE
+                      </span>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-bold uppercase text-purple-700">VIP</span>
+                        <input
+                          type="radio"
+                          name="entPlan"
+                          checked={subscriptionPlan === 'VIP'}
+                          onChange={() => {
+                            setSubscriptionPlan('VIP');
+                            setHasCatalogAdSpace(true);
+                          }}
+                          className="text-purple-600 focus:ring-purple-500"
+                        />
+                      </div>
+                      <div className="text-xl font-extrabold text-slate-900 mb-1">
+                        250 € <span className="text-xs font-normal text-slate-500">/ mois</span>
+                      </div>
+                      <p className="text-xs text-slate-600 mb-2">
+                        Account Manager dédié, négociation grands comptes & <strong>Espace publicitaire catalogue offert</strong>.
+                      </p>
+                      <p className="text-[11px] text-purple-700 font-semibold">Visibilité maximale</p>
+                    </div>
+                  </div>
+
+                  {/* Option Espace Publicitaire */}
+                  <div className={`p-4 rounded-2xl border-2 transition-all ${
+                    hasCatalogAdSpace || subscriptionPlan === 'VIP'
+                      ? 'border-emerald-500 bg-emerald-50/50'
+                      : 'border-slate-200 bg-slate-50/50'
+                  }`}>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasCatalogAdSpace || subscriptionPlan === 'VIP'}
+                        disabled={subscriptionPlan === 'VIP'}
+                        onChange={(e) => setHasCatalogAdSpace(e.target.checked)}
+                        className="mt-1 h-4 w-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                      />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs sm:text-sm font-bold text-slate-900">
+                            Réserver un Espace Publicitaire Catalogue (Vitrine Demandes B2B)
+                          </span>
+                          {subscriptionPlan === 'VIP' ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-200 text-purple-900">
+                              Inclus en formule VIP (0 €)
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
+                              +49 € / mois
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          {hasCatalogAdSpace || subscriptionPlan === 'VIP'
+                            ? "✅ Vos appels d'offres et votre structure seront mis en avant avec le badge « Espace Publicitaire Partenaire » dans le Catalogue public Lougara."
+                            : "⚠️ Sans espace publicitaire, vos besoins d'achat ne seront pas visibles dans le catalogue public ouvert aux visiteurs."}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
                   <p className="text-xs text-slate-500">
                     Vos coordonnées sont sécurisées et réservées aux mises en relation avec les fournisseurs agréés.
@@ -949,7 +1118,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                     disabled={isSubmitting}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Enregistrement en cours...' : 'S\'inscrire & Enregistrer en Base de Données'}
+                    {isSubmitting ? 'Enregistrement en cours...' : 'S\'inscrire avec mon abonnement & Enregistrer en BDD'}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>

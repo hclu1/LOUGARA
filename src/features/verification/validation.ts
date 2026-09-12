@@ -23,5 +23,26 @@ export const kybReviewSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const supplierOnboardingSchema = z.object({
+  companyName: z.string().min(2),
+  country: z.string().min(2),
+  city: z.string().min(2),
+  sector: z.string().min(2),
+  activitySummary: z.string().optional(),
+  regNumber: z.string().min(2),
+  kbisFile: z.string().optional(),
+  productTitle: z.string().min(2),
+  productDescription: z.string().optional(),
+  productMoq: z.number().positive(),
+  productUnit: z.string().default('kg'),
+  productPrice: z.string().min(1),
+  contactName: z.string().min(2),
+  email: z.string().email(),
+  phone: z.string().min(6),
+  subscriptionPlan: z.enum(['STANDARD', 'PREMIUM', 'VIP']).default('STANDARD'),
+  hasCatalogAdSpace: z.boolean().default(false),
+});
+
+export type SupplierOnboardingInput = z.infer<typeof supplierOnboardingSchema>;
 export type KybDocumentSubmissionInput = z.infer<typeof kybDocumentSubmissionSchema>;
 export type KybReviewInput = z.infer<typeof kybReviewSchema>;

@@ -112,4 +112,53 @@ describe('Service Entrepreneurs & Sourcing B2B', () => {
     expect(found).toBeDefined();
     expect(found?.isKbisVerified).toBe(true);
   });
+
+  it('doit enregistrer l\'abonnement choisi (Standard 99€, Premium 150€, VIP 250€) et l\'option Espace Publicitaire Catalogue', async () => {
+    const vipInput = {
+      fullName: 'Amina Traoré',
+      companyName: 'Sahel Agro Distribution',
+      email: 'a.traore@sahel-agro.com',
+      phone: '+223 76 54 32 10',
+      country: 'Mali',
+      city: 'Bamako',
+      buyerType: 'Importateur & Distributeur' as const,
+      targetSectors: ['Agroalimentaire & Épices'],
+      estimatedBudget: '> 20 000 € / mois' as const,
+      sourcingNeeds: 'Achat de mangues séchées, épices et fèves de cacao.',
+      subscriptionPlan: 'VIP' as const,
+      hasCatalogAdSpace: true,
+    };
+
+    const registeredVip = await registerEntrepreneur(vipInput);
+
+    expect(registeredVip).toBeDefined();
+    expect(registeredVip.subscriptionPlan).toBe('VIP');
+    expect(registeredVip.hasCatalogAdSpace).toBe(true);
+
+    const standardInput = {
+      fullName: 'Paul Martin',
+      companyName: 'Martin Import Lyon',
+      email: 'paul.martin@martin-lyon.fr',
+      phone: '+33 4 72 00 11 22',
+      country: 'France',
+      city: 'Lyon',
+      buyerType: 'Grossiste & Demi-grossiste' as const,
+      targetSectors: ['Artisanat & Décoration'],
+      estimatedBudget: '5 000 € à 20 000 € / mois' as const,
+      sourcingNeeds: 'Paniers tressés et poteries traditionnelles.',
+      subscriptionPlan: 'STANDARD' as const,
+      hasCatalogAdSpace: false,
+    };
+
+    const registeredStd = await registerEntrepreneur(standardInput);
+    expect(registeredStd.subscriptionPlan).toBe('STANDARD');
+    expect(registeredStd.hasCatalogAdSpace).toBe(false);
+
+    // Vérifier que la liste publique récupère bien ces abonnements et drapeaux publicitaires
+    const allEntrepreneurs = await getRegisteredEntrepreneurs();
+    const foundVip = allEntrepreneurs.find((e) => e.email === 'a.traore@sahel-agro.com');
+    expect(foundVip?.subscriptionPlan).toBe('VIP');
+    expect(foundVip?.hasCatalogAdSpace).toBe(true);
+  });
 });
+
