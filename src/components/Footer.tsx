@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
+import { APP_VERSION_LABEL } from '@/version';
 
 export const Footer = () => {
   return (
@@ -49,7 +50,13 @@ export const Footer = () => {
         </div>
 
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>&copy; {new Date().getFullYear()} Lougara B2B. Tous droits réservés.</p>
+          <div className="flex items-center gap-2">
+            <p>&copy; {new Date().getFullYear()} Lougara B2B. Tous droits réservés.</p>
+            <span className="text-slate-600">&bull;</span>
+            <span className="font-mono text-emerald-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60 font-medium">
+              {APP_VERSION_LABEL}
+            </span>
+          </div>
           <p>Plateforme de sourcing et de mise en relation professionnelle.</p>
         </div>
       </div>
