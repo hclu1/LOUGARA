@@ -79,6 +79,8 @@ export default function DevenirFournisseurPage() {
     if (data.sector) setSector(data.sector);
     if (data.activitySummary) setActivitySummary(data.activitySummary);
     if (data.contactName) setContactName(data.contactName);
+    if (data.email) setEmail(data.email);
+    if (data.phone) setPhone(data.phone);
   };
 
   // Traitement OCR réel et instantané pour TOUT type de fichier (PDF, JPG, PNG, WEBP...)
@@ -731,13 +733,21 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
 
             {/* 4. Coordonnées de Contact */}
             <div className="space-y-4 pt-4 border-t border-slate-100">
-              <div className="border-b border-slate-100 pb-3">
-                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                  Étape 4 sur 4
-                </span>
-                <h2 className="text-xl font-bold text-slate-900 mt-0.5">
-                  Coordonnées du représentant officiel
-                </h2>
+              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
+                    Étape 4 sur 4
+                  </span>
+                  <h2 className="text-xl font-bold text-slate-900 mt-0.5">
+                    Coordonnées du représentant officiel
+                  </h2>
+                </div>
+                {autoFilled && (contactName || email) && (
+                  <div className="inline-flex items-center gap-1.5 text-xs text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Pré-rempli automatiquement via le Kbis</span>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
