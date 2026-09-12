@@ -70,4 +70,45 @@ Adresse : Paris
     const extracted2 = parseKbisOcrText(rawOcrText2);
     expect(extracted2.companyName).toBe('INFONET');
   });
+
+  it('doit extraire précisément l\'activité et le secteur d\'activité depuis test kbis 1 (INFONET / PORTAIL INTERNET)', () => {
+    const rawOcrText = `
+Greffe du Tribunal de Commerce de Paris
+Qu del corse
+75198 Paris Cedex 04
+
+EXTRAIT D'IMMATRICULATION PRINCIPALE AU REGISTRE DU COMMERCE ET DES SOCIÉTÉS
+
+IDENTIFICATION DE LA PERSONNE MORALE
+Imation au RCS, numéro 123456 789RCS Pris
+te dimmatriculation 16/09/2014
+Dénomination où roion soie InFONET
+Forme juridique société par actions simplifiée
+Caphalsoca 1000000 EUROS
+Adresse du siège 75 avenue des Champs-Élysées 75008 Paris
+
+GESTION, DIRECTION, ADMINISTRATION, CONTRÔLE, ASSOCIÉS OÙ MEMBRES
+Gérant
+om, prénoms Juuen oué
+
+RENSEIGNEMENTS RELATIFS À LACTIVITÉ ET À L'ÉTABLISSEMENT PRINCIPAL
+Adresse de l'établissement, 75 avenue des Champs-Élysées 75008 Paris
+om commercial INFONET WEB GROUP
+Act) exercées) PORTAIL INTERNET
+ot de commencement coctvté omios/a014
+Orge du fonds où de cité Création
+Mode exploitation Explotation directe
+    `;
+
+    const parsed = parseKbisOcrText(rawOcrText);
+
+    expect(parsed.companyName).toBe('INFONET');
+    expect(parsed.regNumber).toBe('123 456 789');
+    expect(parsed.sector).toBe('Technologies, Numérique & Télécoms');
+    expect(parsed.activitySummary).toBe('PORTAIL INTERNET');
+    expect(parsed.city).toBe('Paris');
+    expect(parsed.country).toBe('France');
+    expect(parsed.contactName).toBe('Juuen oué');
+  });
 });
+

@@ -31,6 +31,7 @@ export default function DevenirFournisseurPage() {
   const [country, setCountry] = useState('Sénégal');
   const [city, setCity] = useState('');
   const [sector, setSector] = useState('Cosmétique & Soins');
+  const [activitySummary, setActivitySummary] = useState('');
   const [regNumber, setRegNumber] = useState('');
 
   // Pièces KYB
@@ -76,6 +77,7 @@ export default function DevenirFournisseurPage() {
     if (data.country) setCountry(data.country);
     if (data.city) setCity(data.city);
     if (data.sector) setSector(data.sector);
+    if (data.activitySummary) setActivitySummary(data.activitySummary);
     if (data.contactName) setContactName(data.contactName);
   };
 
@@ -471,12 +473,37 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                     onChange={(e) => setSector(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500"
                   >
+                    <option value="Technologies, Numérique & Télécoms">Technologies, Numérique & Télécoms (Portails web, plateformes, logiciels, IT)</option>
+                    <option value="Services & Conseil B2B">Services & Conseil B2B (Audit, juridique, financier, ingénierie)</option>
+                    <option value="Agroalimentaire & Épices">Agroalimentaire & Épices (Cacao, café, vanille, cajou)</option>
                     <option value="Cosmétique & Soins">Cosmétique & Soins (Karité, huiles végétales, savons)</option>
                     <option value="Textile, Coton & Wax">Textile, Coton & Wax (Tissus traditionnels, confection)</option>
-                    <option value="Agroalimentaire & Épices">Agroalimentaire & Épices (Cacao, café, vanille, cajou)</option>
                     <option value="Artisanat & Décoration">Artisanat & Décoration (Bois, poterie, vannerie)</option>
                     <option value="Emballages & Packaging">Emballages & Packaging professionnel</option>
+                    <option value="Négoce & Commerce Général">Négoce & Commerce Général (Import-export, distribution)</option>
+                    <option value="Industrie, Matériaux & BTP">Industrie, Matériaux & BTP</option>
+                    <option value="Santé & Pharmacie">Santé & Pharmacie</option>
+                    {sector && ![
+                      'Technologies, Numérique & Télécoms',
+                      'Services & Conseil B2B',
+                      'Agroalimentaire & Épices',
+                      'Cosmétique & Soins',
+                      'Textile, Coton & Wax',
+                      'Artisanat & Décoration',
+                      'Emballages & Packaging',
+                      'Négoce & Commerce Général',
+                      'Industrie, Matériaux & BTP',
+                      'Santé & Pharmacie'
+                    ].includes(sector) && (
+                      <option value={sector}>{sector}</option>
+                    )}
                   </select>
+                  {activitySummary && (
+                    <div className="mt-2 text-xs text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span><strong>Activité identifiée au document :</strong> « {activitySummary} » (classification automatique)</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

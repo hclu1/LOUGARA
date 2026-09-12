@@ -237,6 +237,10 @@ export default function CataloguePage() {
               <option value="Cosmétique">Cosmétique & Soins</option>
               <option value="Textile">Textile & Mode</option>
               <option value="Agroalimentaire">Agroalimentaire & Épices</option>
+              <option value="Technologies">Technologies & Numérique</option>
+              <option value="Services">Services & Conseil B2B</option>
+              <option value="Artisanat">Artisanat & Décoration</option>
+              <option value="Emballages">Emballages & Packaging</option>
             </select>
           </div>
 

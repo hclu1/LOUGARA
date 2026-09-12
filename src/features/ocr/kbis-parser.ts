@@ -4,6 +4,7 @@ export interface ParsedKbisData {
   country: string;
   city: string;
   sector: string;
+  activitySummary?: string;
   contactName: string;
   rawText: string;
   confidenceScore: number;
@@ -76,7 +77,8 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   let regNumber = '';
   let city = '';
   let country = 'France';
-  let sector = 'Cosmétique & Soins';
+  let sector = 'Négoce & Commerce Général';
+  let activitySummary = '';
   let contactName = '';
 
   // 1. Extraction du numéro légal (SIREN/SIRET ou RCCM)
@@ -85,10 +87,15 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   if (rccmMatch) {
     regNumber = rccmMatch[1].toUpperCase().replace(/\s+/g, '-');
   } else {
-    // Recherche SIREN (9 chiffres) ou SIRET (14 chiffres) ou R.C.S.
-    const rcsMatch = rawText.match(/(?:R\.?C\.?S\.?|numéro|SIREN|SIRET)\s*[:\s]*([0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{3})/i);
+    // Recherche SIREN (9 chiffres) ou SIRET (14 chiffres) ou R.C.S. ou Immatriculation
+    const rcsMatch = rawText.match(/(?:R\.?C\.?S\.?|num[eéè]ro|SIREN|SIRET|Immatriculation|Imation)\s*(?:au\s+R\.?C\.?S\.?,?)?\s*(?:num[eéè]ro)?\s*[:\s]*([0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{3})/i);
     if (rcsMatch) {
-      regNumber = rcsMatch[1].trim();
+      const digits = rcsMatch[1].replace(/[\s\.\-]/g, '');
+      if (digits.length === 9) {
+        regNumber = `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
+      } else {
+        regNumber = rcsMatch[1].trim();
+      }
     } else {
       const genericSirenMatch = rawText.match(/\b(\d{3}\s\d{3}\s\d{3})\b/);
       if (genericSirenMatch) {
@@ -128,19 +135,34 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   // 3. Extraction du Dirigeant / Représentant Légal
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // Ignorer les en-têtes de section sans valeur (ex: "ADMINISTRATEUR / GERANT", "GESTION, DIRECTION")
+    // Ignorer les en-têtes de section sans valeur
     if (/^[A-Z\s\/,]+$/.test(line) && line.includes('/')) continue;
     if (/GESTION|DIRECTION|ADMINISTRATION/i.test(line) && !line.includes(':')) continue;
 
     const leaderMatch = line.match(/(?:président|gérant|directeur\s*général|administrateur|représentant(?:\s*légal)?)\s*[:\-]\s*(.+)/i);
     if (leaderMatch && leaderMatch[1]) {
       let candidate = leaderMatch[1].trim();
-      // Retirer les mentions annexes "né le..."
       candidate = candidate.split(/\s+né\s+le/i)[0].trim();
       if (candidate.length > 2 && !candidate.startsWith('/')) {
         contactName = candidate;
         break;
       }
+    }
+
+    // Si le titre (ex: "Gérant", "Président") est seul sur sa ligne
+    if (/^(?:g[eéè]rant|pr[eéè]sident|directeur\s*g[eéè]n[eéè]ral|administrateur)\s*$/i.test(line)) {
+      for (let j = i + 1; j < Math.min(lines.length, i + 4); j++) {
+        const nextLine = lines[j];
+        const nomMatch = nextLine.match(/(?:[nN]om|[oO]m)[,\s]+pr[eéè]noms?\s*[:\s]*(.+)/i);
+        if (nomMatch && nomMatch[1]) {
+          contactName = nomMatch[1].trim().split(/\s+né\s+le/i)[0].trim();
+          break;
+        } else if (nextLine && !nextLine.toLowerCase().includes('naissance') && nextLine.length > 3 && !nextLine.includes(':')) {
+          contactName = nextLine.trim();
+          break;
+        }
+      }
+      if (contactName) break;
     }
   }
 
@@ -154,7 +176,6 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     }
   }
 
-  // Si pas de ville trouvée dans le dictionnaire, chercher près de "Siège :" ou "R.C.S. [Ville]"
   if (!city) {
     const rcsCityMatch = rawText.match(/R\.?C\.?S\.?\s+([A-Za-zÀ-ÿ]+)/i);
     if (rcsCityMatch) {
@@ -166,23 +187,81 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     }
   }
 
-  // 5. Détection du Secteur d'activité selon les mots-clés du texte
-  if (/coton|tissu|wax|textile|vêtement|confection|mode/i.test(rawText)) {
-    sector = 'Textile, Coton & Wax';
-  } else if (/cacao|café|cajou|épice|vanille|agroalimentaire|fruit|arachide|agricole/i.test(rawText)) {
-    sector = 'Agroalimentaire & Épices';
-  } else if (/artisanat|bois|sculpture|décoration|vannerie/i.test(rawText)) {
-    sector = 'Artisanat & Décoration';
-  } else {
-    sector = 'Cosmétique & Soins';
+  // 5. Extraction précise de l'Activité (Kbis / RCCM) & Classification du Secteur
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Ignorer les en-têtes de section générales
+    if (/renseignements|relatifs\s+[aà]|et\s+à\s+l'établissement/i.test(line)) continue;
+
+    // Détecte les libellés officiels d'activité (ex: "Act) exercées) PORTAIL INTERNET", "Activité(s) exercée(s) : ...")
+    const actMatch = line.match(
+      /^(?:act[\)\s]*exerc[eéè]es?[\)]*|activit[eéè]\(s\)\s*exerc[eéè]e\(s\)|activit[eéè]s?(?:\s*exerc[eéè]es?|\s*principales?)?|objet\s*social)\s*[:\-\)]*\s*(.+)/i
+    );
+    if (actMatch && actMatch[1]) {
+      const candidate = actMatch[1].trim();
+      if (candidate.length > 2 && !/^(?:date|du|au|création)/i.test(candidate)) {
+        activitySummary = candidate;
+        break;
+      }
+    } else if (/^(?:act[\)\s]*exerc[eéè]es?[\)]*|activit[eéè]\(s\)\s*exerc[eéè]e\(s\)|activit[eéè]s?(?:\s*exerc[eéè]es?|\s*principales?)?|objet\s*social)\s*[:\-\)]*$/i.test(line)) {
+      if (i + 1 < lines.length && lines[i + 1].length > 2) {
+        activitySummary = lines[i + 1].trim();
+        break;
+      }
+    }
   }
+
+  // Classification intelligente du secteur basée en priorité sur l'activité réelle déclarée
+  const classifyText = (text: string): string | null => {
+    if (!text) return null;
+    const t = text.toLowerCase();
+
+    if (/internet|web|logiciel|informatique|num[eé]rique|digit|t[eé]l[eé]com|data|donn[eé]es|h[eé]berg|portail|saas|tech|programmeur|syst[eè]me/i.test(t)) {
+      return 'Technologies, Numérique & Télécoms';
+    }
+    if (/karit[eé]|cosm[eé]tique|soin|beaut[eé]|savon|parfum|dermatol|huiles?\s+v[eé]g[eé]t/i.test(t)) {
+      return 'Cosmétique & Soins';
+    }
+    if (/cacao|caf[eé]|cajou|anacarde|epice|[eé]pice|vanille|agroalimentaire|fruit|arachide|agricole|s[eé]same|palme|sucre|boisson|p[eê]che|poisson|f[eé]ves?/i.test(t)) {
+      return 'Agroalimentaire & Épices';
+    }
+    if (/coton|tissu|wax|textile|v[eê]tement|confection|mode|habillement|filature|couture|maroquinerie/i.test(t)) {
+      return 'Textile, Coton & Wax';
+    }
+    if (/artisanat|bois|sculpture|d[eé]coration|vannerie|poterie|c[eé]ramique|bijou/i.test(t)) {
+      return 'Artisanat & Décoration';
+    }
+    if (/emballage|packaging|carton|palette|f[uû]t|conteneur|conditionnement/i.test(t)) {
+      return 'Emballages & Packaging';
+    }
+    if (/sant[eé]|m[eé]dical|pharmacie|m[eé]dicament|clinique|parapharmacie/i.test(t)) {
+      return 'Santé & Pharmacie';
+    }
+    if (/btp|construction|b[aâ]timent|outillage|machine|[eé]quipement|m[eé]tallurgie|quincaillerie/i.test(t)) {
+      return 'Industrie, Matériaux & BTP';
+    }
+    if (/conseil|consulting|audit|expertise\s*comptable|juridique|avocat|ing[eé]nierie|prestations?\s+de\s+services?/i.test(t)) {
+      return 'Services & Conseil B2B';
+    }
+    if (/n[eé]goce|import|export|commerce\s+de\s+gros|distribution/i.test(t)) {
+      return 'Négoce & Commerce Général';
+    }
+    return null;
+  };
+
+  const detectedFromActivity = classifyText(activitySummary);
+  const detectedFromRaw = classifyText(rawText);
+
+  sector = detectedFromActivity || detectedFromRaw || 'Négoce & Commerce Général';
 
   // Score de confiance estimé selon le nombre de champs clés trouvés
   let fieldsCount = 0;
-  if (companyName) fieldsCount += 35;
-  if (regNumber) fieldsCount += 35;
-  if (city) fieldsCount += 15;
-  if (contactName) fieldsCount += 15;
+  if (companyName) fieldsCount += 30;
+  if (regNumber) fieldsCount += 30;
+  if (activitySummary || sector) fieldsCount += 20;
+  if (city) fieldsCount += 10;
+  if (contactName) fieldsCount += 10;
 
   return {
     companyName: companyName || 'Société Identifiée par OCR',
@@ -190,8 +269,10 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     country,
     city,
     sector,
+    activitySummary: activitySummary || undefined,
     contactName: contactName || 'Représentant Légal',
     rawText,
     confidenceScore: Math.min(100, Math.max(50, fieldsCount)),
   };
 }
+
