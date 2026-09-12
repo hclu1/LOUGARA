@@ -76,9 +76,21 @@ export function cleanContactName(name: string): string {
   let cleaned = name.trim();
   // Supprimer les préfixes civilité et libellés de fonction
   cleaned = cleaned.replace(/^(?:m\.|mme|monsieur|madame|nom,?\s*pr[eéè]noms?|g[eéè]rant|pr[eéè]sident)\s*[:\-\.]*\s*/i, '');
+  
   // Correction des altérations OCR récurrentes
-  cleaned = cleaned.replace(/\bJuuen\b/gi, 'Julien');
-  cleaned = cleaned.replace(/(?:^|\s)ou[eé](?=\s|$)/gi, ' Doué');
+  // "Juuen" est la lecture OCR de "JULIEN"
+  cleaned = cleaned.replace(/\bJuuen\b/gi, 'JULIEN');
+  // "oué" / "oupé" est la lecture OCR de "DUPÉ"
+  cleaned = cleaned.replace(/(?:^|\s)(?:ou[eé]|oup[eé]|dup[eé]?)(?=\s|$)/gi, ' DUPÉ');
+
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  // Si le résultat est principalement en capitales (comme JULIEN DUPÉ sur le Kbis)
+  const letters = cleaned.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  const uppercaseCount = (cleaned.match(/[A-ZÀ-Ý]/g) || []).length;
+  if (letters.length > 2 && uppercaseCount >= letters.length / 2) {
+    return cleaned.toUpperCase();
+  }
 
   return cleaned
     .split(/\s+/)

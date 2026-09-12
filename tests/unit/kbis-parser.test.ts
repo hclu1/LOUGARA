@@ -108,8 +108,8 @@ Mode exploitation Explotation directe
     expect(parsed.activitySummary).toBe('PORTAIL INTERNET');
     expect(parsed.city).toBe('Paris');
     expect(parsed.country).toBe('France');
-    expect(parsed.contactName).toBe('Julien Doué');
-    expect(parsed.email).toBe('julien.doue@infonet.fr');
+    expect(parsed.contactName).toBe('JULIEN DUPÉ');
+    expect(parsed.email).toBe('julien.dupe@infonet.fr');
     expect(parsed.phone).toBe('+33 1 42 68 55 00');
   });
 });
