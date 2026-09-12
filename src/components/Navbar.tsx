@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Search, Building2, Lock } from 'lucide-react';
+import { ShieldCheck, Search, Building2, Lock, Users } from 'lucide-react';
 
 export const Navbar = () => {
   return (
@@ -32,6 +32,14 @@ export const Navbar = () => {
             >
               <Search className="w-4 h-4" />
               Catalogue & Sourcing
+            </Link>
+
+            <Link
+              href="/entrepreneurs"
+              className="flex items-center gap-1.5 hover:text-emerald-600 transition-colors text-slate-700 font-semibold"
+            >
+              <Users className="w-4 h-4 text-emerald-600" />
+              Espace Entrepreneurs
             </Link>
 
             <Link

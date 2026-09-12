@@ -8,6 +8,7 @@ import {
   Award,
   Globe2,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 
@@ -37,18 +38,25 @@ export default function HomePage() {
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/catalogue"
+                href="/entrepreneurs"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-lg hover:shadow-emerald-600/25 transition-all duration-200"
               >
-                Explorer le Catalogue B2B
-                <ArrowRight className="w-5 h-5" />
+                <Users className="w-5 h-5" />
+                Espace Entrepreneurs
+              </Link>
+              <Link
+                href="/catalogue"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-sm transition-all"
+              >
+                Catalogue Produits
+                <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/devenir-fournisseur"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-sm transition-all"
               >
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                Devenir Fournisseur Vérifié
+                Devenir Fournisseur
               </Link>
             </div>
 
