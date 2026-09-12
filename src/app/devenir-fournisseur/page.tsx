@@ -742,10 +742,10 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                     Coordonnées du représentant officiel
                   </h2>
                 </div>
-                {autoFilled && (contactName || email) && (
+                {autoFilled && contactName && (
                   <div className="inline-flex items-center gap-1.5 text-xs text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
                     <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Pré-rempli automatiquement via le Kbis</span>
+                    <span>Nom du dirigeant extrait du Kbis</span>
                   </div>
                 )}
               </div>

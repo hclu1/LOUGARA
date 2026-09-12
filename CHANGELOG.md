@@ -4,6 +4,10 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.4] - 2026-09-12
+### Corrigé
+- Suppression de toute génération artificielle d'email ou téléphone : extraction stricte des données réellement présentes sur le document.
+
 ## [0.1.3] - 2026-09-12
 ### Corrigé
 - Correction de la reconnaissance du nom du représentant officiel : extraction exacte de JULIEN DUPÉ (au lieu de Doué).

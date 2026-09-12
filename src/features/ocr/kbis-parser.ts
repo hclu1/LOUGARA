@@ -6,8 +6,8 @@ export interface ParsedKbisData {
   sector: string;
   activitySummary?: string;
   contactName: string;
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   rawText: string;
   confidenceScore: number;
 }
@@ -103,66 +103,6 @@ export function cleanContactName(name: string): string {
     )
     .join(' ')
     .trim();
-}
-
-export function generateProfessionalEmail(companyName: string, contactName: string, country: string): string {
-  const cleanComp = (companyName || 'entreprise')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\b(sarl|sas|sasu|sa|suarl|gie|group|web|import|export)\b/gi, '')
-    .replace(/[^a-z0-9]/g, '')
-    .trim() || 'entreprise';
-
-  const tldMap: Record<string, string> = {
-    france: 'fr',
-    sénégal: 'sn',
-    senegal: 'sn',
-    'côte d\'ivoire': 'ci',
-    'cote d\'ivoire': 'ci',
-    bénin: 'bj',
-    benin: 'bj',
-    togo: 'tg',
-    cameroun: 'cm',
-    mali: 'ml',
-    madagascar: 'mg',
-    belgique: 'be',
-  };
-  const tld = tldMap[(country || '').toLowerCase()] || 'com';
-
-  if (contactName && contactName !== 'Représentant Légal') {
-    const parts = contactName
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s]/g, '')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (parts.length >= 2) {
-      return `${parts[0]}.${parts[parts.length - 1]}@${cleanComp}.${tld}`;
-    }
-  }
-
-  return `contact@${cleanComp}.${tld}`;
-}
-
-export function generateSuggestedPhone(country: string): string {
-  const phoneMap: Record<string, string> = {
-    france: '+33 1 42 68 55 00',
-    sénégal: '+221 77 540 12 34',
-    senegal: '+221 77 540 12 34',
-    'côte d\'ivoire': '+225 07 48 92 11 00',
-    'cote d\'ivoire': '+225 07 48 92 11 00',
-    bénin: '+229 97 21 00 12',
-    benin: '+229 97 21 00 12',
-    togo: '+228 90 14 22 30',
-    cameroun: '+237 6 70 85 41 20',
-    mali: '+223 76 12 34 56',
-    madagascar: '+261 34 00 123 45',
-    belgique: '+32 2 511 00 20',
-  };
-  return phoneMap[(country || '').toLowerCase()] || '+33 1 42 68 55 00';
 }
 
 export function parseKbisOcrText(rawText: string): ParsedKbisData {
@@ -356,27 +296,20 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   }
 
   // 6. Extraction des Coordonnées du Représentant Officiel (Étape 4)
-  // Recherche d'un email explicite dans le document
+  // RÈGLE STRICTE : Ne jamais inventer d'email ni de téléphone. On n'écrit que si cela existe explicitement sur le document.
   const emailRegexMatch = rawText.match(/\b([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/);
-  const email = emailRegexMatch
-    ? emailRegexMatch[1]
-    : generateProfessionalEmail(companyName, contactName, country);
+  const email = emailRegexMatch ? emailRegexMatch[1] : undefined;
 
-  // Recherche d'un téléphone explicite dans le document
   const phoneRegexMatch = rawText.match(/(?:t[eéè]l|t[eéè]l[eéè]phone|mobile|portable|phone|contact)\s*[:\.\-]?\s*(\+?[0-9\s\.\-\(\)]{8,18})/i);
-  const phone = phoneRegexMatch
-    ? phoneRegexMatch[1].trim()
-    : generateSuggestedPhone(country);
+  const phone = phoneRegexMatch ? phoneRegexMatch[1].trim() : undefined;
 
   // Score de confiance estimé selon le nombre de champs clés trouvés
   let fieldsCount = 0;
-  if (companyName) fieldsCount += 25;
-  if (regNumber) fieldsCount += 25;
+  if (companyName) fieldsCount += 30;
+  if (regNumber) fieldsCount += 30;
   if (activitySummary || sector) fieldsCount += 20;
   if (city) fieldsCount += 10;
   if (contactName) fieldsCount += 10;
-  if (email) fieldsCount += 5;
-  if (phone) fieldsCount += 5;
 
   return {
     companyName: companyName || 'Société Identifiée par OCR',

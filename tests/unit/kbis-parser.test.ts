@@ -109,8 +109,26 @@ Mode exploitation Explotation directe
     expect(parsed.city).toBe('Paris');
     expect(parsed.country).toBe('France');
     expect(parsed.contactName).toBe('JULIEN DUPÉ');
-    expect(parsed.email).toBe('julien.dupe@infonet.fr');
-    expect(parsed.phone).toBe('+33 1 42 68 55 00');
+    // RÈGLE : Aucun email ni téléphone inventé s'ils ne sont pas sur le document
+    expect(parsed.email).toBeUndefined();
+    expect(parsed.phone).toBeUndefined();
+  });
+
+  it('doit extraire l\'email et le téléphone UNIQUEMENT s\'ils sont présents dans le document', () => {
+    const rawWithContacts = `
+EXTRAIT DU REGISTRE DU COMMERCE
+Dénomination : SAHEL LOGISTIQUE SAS
+Immatriculation : SN-DKR-2023-B-1234
+Gérant : M. Amadou Ba
+Email : contact@sahel-logistique.sn
+Téléphone : +221 77 123 45 67
+Activité : Transport et fret maritime
+    `;
+
+    const parsed = parseKbisOcrText(rawWithContacts);
+    expect(parsed.contactName).toBe('Amadou Ba');
+    expect(parsed.email).toBe('contact@sahel-logistique.sn');
+    expect(parsed.phone).toBe('+221 77 123 45 67');
   });
 });
 
