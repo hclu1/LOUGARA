@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { VisitorTracker } from '@/components/VisitorTracker';
 
 export const metadata: Metadata = {
   title: 'LOUGARA | Sourcing B2B & Fournisseurs Vérifiés Afrique - Europe',
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="flex flex-col min-h-screen text-slate-900 antialiased selection:bg-emerald-100 selection:text-emerald-900">
+        <VisitorTracker />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

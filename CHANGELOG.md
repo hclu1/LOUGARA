@@ -4,6 +4,18 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.0] - 2026-09-12
+### Ajouté
+- Module d'analyse d'audience et de comptage des visites segmenté par profil métier : **Entrepreneurs**, **Fournisseurs** et **Curieux**.
+- Intégration dans la **Console d'Audit & Espace Modérateur** (`/admin/verifications`) d'un tableau de bord de fréquentation en temps réel :
+  - 4 indicateurs clés (KPI) : Visites Entrepreneurs (avec % d'audience), Visites Fournisseurs, Visites Curieux et Total Visiteurs avec taux de qualification B2B.
+  - Jauge visuelle de répartition proportionnelle des 3 audiences (couleurs distinctives émeraude, bleue et ambre).
+  - Journal horodaté des dernières visites avec indication de la page consultée, du segment et du référent.
+  - Outil de simulation interactif pour tester l'incrémentation en direct de chaque catégorie de visiteur.
+- Composant global [`VisitorTracker`](file:///D:/Aplli/LOUGARA/src/components/VisitorTracker.tsx) monté dans le `RootLayout` pour qualifier automatiquement les visites (`ENTREPRENEUR` sur `/entrepreneurs*`, `FOURNISSEUR` sur `/devenir-fournisseur*`, et `CURIEUX` sur les autres pages vitrines) tout en excluant le trafic interne modérateur.
+- API REST `/api/analytics/visit` (`GET` pour les statistiques agrégées, `POST` pour enregistrer les visites).
+- Suite de tests unitaires dédiée dans `tests/unit/analytics.test.ts`.
+
 ## [0.3.0] - 2026-09-12
 ### Ajouté
 - Nouvelle page dédiée **Tarifs & Abonnements** (`/tarifs`) conforme aux recommandations stratégiques de Lougara (`Doc/Analyse_et_recommandations_Lougara.md`).

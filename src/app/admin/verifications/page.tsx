@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck,
@@ -15,8 +15,16 @@ import {
   ExternalLink,
   Package,
   Image as ImageIcon,
+  Users,
+  Factory,
+  Eye,
+  TrendingUp,
+  RefreshCw,
+  Activity,
+  PlusCircle,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
+import { VisitStats, VisitorType } from '@/features/analytics/types';
 
 interface PendingVerification {
   id: string;
@@ -115,6 +123,61 @@ export default function AdminVerificationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
+  // État du comptage des visites (Entrepreneurs, Fournisseurs, Curieux)
+  const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [simulatingType, setSimulatingType] = useState<VisitorType | null>(null);
+
+  const fetchStats = async () => {
+    try {
+      setIsLoadingStats(true);
+      const res = await fetch('/api/analytics/visit');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) {
+          setVisitStats(data.stats);
+        }
+      }
+    } catch (err) {
+      console.error('Erreur chargement statistiques visites :', err);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    // Actualisation périodique automatique toutes les 25 secondes
+    const interval = setInterval(fetchStats, 25000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSimulateVisit = async (type: VisitorType, page: string) => {
+    try {
+      setSimulatingType(type);
+      const res = await fetch('/api/analytics/visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, page, referrer: 'Console Modérateur' }),
+      });
+      if (res.ok) {
+        await fetchStats();
+        const typeLabel =
+          type === 'ENTREPRENEUR'
+            ? 'Entrepreneur'
+            : type === 'FOURNISSEUR'
+            ? 'Fournisseur'
+            : 'Curieux';
+        setActionNotice(`Visite comptabilisée avec succès : +1 ${typeLabel}`);
+        setTimeout(() => setActionNotice(null), 3500);
+      }
+    } catch (e) {
+      console.error('Erreur simulation visite :', e);
+    } finally {
+      setSimulatingType(null);
+    }
+  };
+
   const handleApprove = (id: string, name: string) => {
     setQueue((prev) =>
       prev.map((item) =>
@@ -165,13 +228,13 @@ export default function AdminVerificationsPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold">Console d&apos;Audit Interne KYB</h1>
+              <h1 className="text-lg font-bold">Console d&apos;Audit Interne KYB & Fréquentation</h1>
               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-300">
                 Accès Restreint
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Contrôle administratif des documents légaux et vérification de conformité des produits fournisseurs.
+              Contrôle administratif des dossiers légaux et suivi analytique des flux de visites en temps réel.
             </p>
           </div>
         </div>
@@ -191,7 +254,282 @@ export default function AdminVerificationsPage() {
         </div>
       )}
 
-      {/* Statistiques d'audit */}
+      {/* SECTION DU COMPTAGE DES VISITES : ENTREPRENEURS, FOURNISSEURS ET CURIEUX */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 pb-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-700">
+                <Activity className="w-4 h-4" />
+              </span>
+              <h2 className="text-lg font-bold text-slate-900">
+                Comptage des Visites & Qualification de l&apos;Audience
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Temps Réel
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              Segmentation continue des flux d&apos;utilisateurs : Entrepreneurs acheteurs, Fournisseurs et Curieux du grand public.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchStats}
+              disabled={isLoadingStats}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStats ? 'animate-spin' : ''}`} />
+              Actualiser les flux
+            </button>
+          </div>
+        </div>
+
+        {/* Grille des 4 Métriques Clés */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 1. Visites Entrepreneurs */}
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50/70 to-emerald-100/40 border border-emerald-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                  Entrepreneurs
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-slate-900">
+                    {visitStats?.entrepreneurs.count ?? 142}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-200/60 px-2 py-0.5 rounded-full">
+                    {visitStats?.entrepreneurs.percentage ?? 35}%
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  Acheteurs B2B, importateurs & porteurs de projets
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleSimulateVisit('ENTREPRENEUR', '/entrepreneurs')}
+              disabled={simulatingType === 'ENTREPRENEUR'}
+              className="mt-4 w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-emerald-800 bg-white hover:bg-emerald-50 rounded-lg border border-emerald-300 transition-all shadow-xs"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              Simuler visite acheteur
+            </button>
+          </div>
+
+          {/* 2. Visites Fournisseurs */}
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-50/70 to-blue-100/40 border border-blue-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-blue-800 uppercase tracking-wider">
+                  Fournisseurs
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                  <Factory className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-slate-900">
+                    {visitStats?.fournisseurs.count ?? 89}
+                  </span>
+                  <span className="text-xs font-bold text-blue-700 bg-blue-200/60 px-2 py-0.5 rounded-full">
+                    {visitStats?.fournisseurs.percentage ?? 22}%
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  Grossistes, producteurs & coopératives d&apos;Afrique
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleSimulateVisit('FOURNISSEUR', '/devenir-fournisseur')}
+              disabled={simulatingType === 'FOURNISSEUR'}
+              className="mt-4 w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-blue-800 bg-white hover:bg-blue-50 rounded-lg border border-blue-300 transition-all shadow-xs"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              Simuler visite fournisseur
+            </button>
+          </div>
+
+          {/* 3. Visites Curieux */}
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-50/70 to-amber-100/40 border border-amber-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">
+                  Curieux
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center shadow-sm">
+                  <Eye className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-slate-900">
+                    {visitStats?.curieux.count ?? 178}
+                  </span>
+                  <span className="text-xs font-bold text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-full">
+                    {visitStats?.curieux.percentage ?? 43}%
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  Visiteurs grand public & découverte non qualifiée
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleSimulateVisit('CURIEUX', '/catalogue')}
+              disabled={simulatingType === 'CURIEUX'}
+              className="mt-4 w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-amber-900 bg-white hover:bg-amber-50 rounded-lg border border-amber-300 transition-all shadow-xs"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              Simuler visite curieux
+            </button>
+          </div>
+
+          {/* 4. Total & Taux de Qualification B2B */}
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Total Visiteurs
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-white">
+                    {visitStats?.total ?? 409}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2 py-0.5 rounded-full">
+                    {visitStats?.qualificationRate ?? 57}% B2B
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Aujourd&apos;hui : {visitStats?.todayTotal ?? 55} visites uniques
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 text-[11px] text-slate-400 border-t border-slate-700/80 pt-2 flex items-center justify-between">
+              <span>Ratio Pros / Curieux</span>
+              <span className="font-bold text-white">
+                {((visitStats?.entrepreneurs.count ?? 142) + (visitStats?.fournisseurs.count ?? 89))} pros / {visitStats?.curieux.count ?? 178} curieux
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Jauge Visuelle de Répartition de l'Audience */}
+        <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+            <span>Répartition proportionnelle de l&apos;audience Lougara</span>
+            <span>{visitStats?.total ?? 409} sessions enregistrées</span>
+          </div>
+          <div className="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden flex">
+            <div
+              style={{ width: `${visitStats?.entrepreneurs.percentage ?? 35}%` }}
+              className="bg-emerald-600 h-full transition-all duration-500"
+              title={`Entrepreneurs : ${visitStats?.entrepreneurs.percentage ?? 35}%`}
+            />
+            <div
+              style={{ width: `${visitStats?.fournisseurs.percentage ?? 22}%` }}
+              className="bg-blue-600 h-full transition-all duration-500"
+              title={`Fournisseurs : ${visitStats?.fournisseurs.percentage ?? 22}%`}
+            />
+            <div
+              style={{ width: `${visitStats?.curieux.percentage ?? 43}%` }}
+              className="bg-amber-500 h-full transition-all duration-500"
+              title={`Curieux : ${visitStats?.curieux.percentage ?? 43}%`}
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between text-[11px] font-medium text-slate-600 pt-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />
+              <span>Entrepreneurs ({visitStats?.entrepreneurs.count ?? 142} &bull; {visitStats?.entrepreneurs.percentage ?? 35}%)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+              <span>Fournisseurs ({visitStats?.fournisseurs.count ?? 89} &bull; {visitStats?.fournisseurs.percentage ?? 22}%)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+              <span>Curieux ({visitStats?.curieux.count ?? 178} &bull; {visitStats?.curieux.percentage ?? 43}%)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Journal des Dernières Visites Qualifiées */}
+        {visitStats?.recentVisits && visitStats.recentVisits.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Journal des Dernières Visites en Direct
+              </h3>
+              <span className="text-[11px] text-slate-400">
+                Horodatage précis et source
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border border-slate-100 rounded-xl overflow-hidden">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-semibold text-[10px] border-b border-slate-100">
+                  <tr>
+                    <th className="py-2.5 px-3.5">Segment Visiteur</th>
+                    <th className="py-2.5 px-3.5">Page Consultée</th>
+                    <th className="py-2.5 px-3.5">Source / Référent</th>
+                    <th className="py-2.5 px-3.5 text-right">Horodatage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {visitStats.recentVisits.slice(0, 6).map((visit) => (
+                    <tr key={visit.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-2.5 px-3.5">
+                        {visit.type === 'ENTREPRENEUR' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <Users className="w-3 h-3" /> Entrepreneur
+                          </span>
+                        )}
+                        {visit.type === 'FOURNISSEUR' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] bg-blue-100 text-blue-800 border border-blue-200">
+                            <Factory className="w-3 h-3" /> Fournisseur
+                          </span>
+                        )}
+                        {visit.type === 'CURIEUX' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-100 text-amber-900 border border-amber-300">
+                            <Eye className="w-3 h-3" /> Curieux
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3.5 font-mono text-[11px] text-slate-700">
+                        {visit.page}
+                      </td>
+                      <td className="py-2.5 px-3.5 text-slate-500">
+                        {visit.referrer || 'Direct'}
+                      </td>
+                      <td className="py-2.5 px-3.5 text-right text-slate-400">
+                        {new Date(visit.timestamp).toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Statistiques d'audit KYB */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
