@@ -4,6 +4,12 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.2] - 2026-09-15
+### Corrigé
+- Prise en charge de la génération automatique du client Prisma sur Vercel lors du build :
+  - Mise à jour du script `build` dans [`package.json`](file:///d:/Aplli/LOUGARA/package.json) vers `"prisma generate && next build"`.
+  - Ajout du script `"postinstall": "prisma generate"`.
+
 ## [0.4.1] - 2026-09-15
 ### Amélioré
 - Refonte complète de l'**Étape 2 sur 4** (*Besoins de Sourcing & Cahier des Charges*) du formulaire d'inscription Entrepreneurs ([`page.tsx`](file:///d:/Aplli/LOUGARA/src/app/entrepreneurs/page.tsx)) :
