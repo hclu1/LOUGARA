@@ -4,6 +4,10 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.3] - 2026-09-15
+### Sécurité
+- Mise à niveau de Next.js vers `^15.1.7` dans [`package.json`](file:///d:/Aplli/LOUGARA/package.json) pour éliminer l'avertissement de vulnérabilité de sécurité CVE-2025-66478 lors du déploiement Vercel.
+
 ## [0.4.2] - 2026-09-15
 ### Corrigé
 - Prise en charge de la génération automatique du client Prisma sur Vercel lors du build :
