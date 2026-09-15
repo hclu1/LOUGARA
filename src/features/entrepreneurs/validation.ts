@@ -24,6 +24,9 @@ export const entrepreneurRegistrationSchema = z.object({
     '> 20 000 € / mois',
   ]),
   sourcingNeeds: z.string().optional(),
+  targetQuantity: z.string().optional(),
+  sourcingTimeline: z.string().optional(),
+  requiredCertifications: z.string().optional(),
   registrationNumber: z.string().optional(),
   kbisFile: z.string().optional(),
   kbisFileSize: z.string().optional(),
@@ -31,7 +34,7 @@ export const entrepreneurRegistrationSchema = z.object({
   hasCatalogAdSpace: z.boolean().default(false),
 });
 
-export type EntrepreneurRegistrationInput = z.infer<typeof entrepreneurRegistrationSchema>;
+export type EntrepreneurRegistrationInput = z.input<typeof entrepreneurRegistrationSchema>;
 
 export const contactSupplierSchema = z.object({
   entrepreneurName: z.string().min(2),

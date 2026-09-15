@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.1] - 2026-09-15
+### Amélioré
+- Refonte complète de l'**Étape 2 sur 4** (*Besoins de Sourcing & Cahier des Charges*) du formulaire d'inscription Entrepreneurs ([`page.tsx`](file:///d:/Aplli/LOUGARA/src/app/entrepreneurs/page.tsx)) :
+  - Remplacement du champ texte simple par un **Descriptif détaillé des besoins & Cahier des charges** (`<textarea>` multi-lignes obligatoires) pour décrire les produits cibles, qualités, emballages et contraintes.
+  - Ajout du sélecteur d'**Échéance d'approvisionnement souhaitée** (Immédiat <30j, Court terme 1-3 mois, Moyen terme, Projet annuel).
+  - Ajout des champs optionnels **Quantités & Volumes cibles** et **Normes & Certifications requises** (Bio, Ecocert, ISO, CE...).
+- Mise à jour des schémas de validation Zod ([`validation.ts`](file:///d:/Aplli/LOUGARA/src/features/entrepreneurs/validation.ts)) et du service d'enregistrement ([`service.ts`](file:///d:/Aplli/LOUGARA/src/features/entrepreneurs/service.ts)) pour intégrer et persister les nouveaux champs de sourcing.
+
 ## [0.4.0] - 2026-09-12
 ### Ajouté
 - Module d'analyse d'audience et de comptage des visites segmenté par profil métier : **Entrepreneurs**, **Fournisseurs** et **Curieux**.

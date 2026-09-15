@@ -1,10 +1,10 @@
 import { prisma } from '../../lib/prisma';
 import {
   kybReviewSchema,
-  KybReviewInput,
   kybDocumentSubmissionSchema,
-  KybDocumentSubmissionInput,
 } from './validation';
+import type { KybReviewInput, KybDocumentSubmissionInput } from './validation';
+export type { KybReviewInput, KybDocumentSubmissionInput };
 import { VerificationStatus } from '@prisma/client';
 
 export async function submitKybDocument(input: KybDocumentSubmissionInput) {

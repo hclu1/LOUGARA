@@ -133,6 +133,9 @@ export default function EspaceEntrepreneursPage() {
   const [targetSectors, setTargetSectors] = useState<string[]>(['Cosmétique & Soins']);
   const [estimatedBudget, setEstimatedBudget] = useState<string>('1 000 € à 5 000 € / mois');
   const [sourcingNeeds, setSourcingNeeds] = useState('');
+  const [targetQuantity, setTargetQuantity] = useState('');
+  const [sourcingTimeline, setSourcingTimeline] = useState<string>('Court terme (1 à 3 mois)');
+  const [requiredCertifications, setRequiredCertifications] = useState('');
 
   // Formule d'Abonnement & Espace Publicitaire Catalogue
   const [subscriptionPlan, setSubscriptionPlan] = useState<'STANDARD' | 'PREMIUM' | 'VIP'>('STANDARD');
@@ -347,6 +350,9 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
           targetSectors,
           estimatedBudget,
           sourcingNeeds,
+          targetQuantity: targetQuantity || undefined,
+          sourcingTimeline: sourcingTimeline || undefined,
+          requiredCertifications: requiredCertifications || undefined,
           subscriptionPlan,
           hasCatalogAdSpace: hasCatalogAdSpace || subscriptionPlan === 'VIP',
         }),
@@ -817,15 +823,18 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                   </div>
                 </div>
 
-                {/* Étape 2 : Besoins de Sourcing */}
+                {/* Étape 2 : Besoins de Sourcing & Cahier des Charges */}
                 <div className="space-y-4 pt-2">
                   <div className="border-b border-slate-100 pb-2">
                     <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
                       Étape 2 sur 4
                     </span>
                     <h2 className="text-lg font-bold text-slate-900 mt-0.5">
-                      Vos Besoins de Sourcing & Produits Recherchés
+                      Vos Besoins de Sourcing & Cahier des Charges
                     </h2>
+                    <p className="text-xs text-slate-500">
+                      Précisez vos critères d&apos;approvisionnement pour recevoir des offres directement ciblées des fournisseurs vérifiés.
+                    </p>
                   </div>
 
                   <div>
@@ -863,7 +872,7 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Budget d&apos;achat mensuel estimé *
+                        Budget d&apos;achat estimé *
                       </label>
                       <select
                         value={estimatedBudget}
@@ -879,16 +888,61 @@ Président : Mme Amina Diop née le 15/09/1984 à Dakar
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Produits cibles ou spécifications particulières
+                        Échéance d&apos;approvisionnement souhaitée
+                      </label>
+                      <select
+                        value={sourcingTimeline}
+                        onChange={(e) => setSourcingTimeline(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="Immédiat (< 30 jours)">Immédiat (&lt; 30 jours)</option>
+                        <option value="Court terme (1 à 3 mois)">Court terme (1 à 3 mois)</option>
+                        <option value="Moyen terme (3 à 6 mois)">Moyen terme (3 à 6 mois)</option>
+                        <option value="Projet annuel / Récurrent">Projet annuel / Approvisionnement récurrent</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Quantités & Volumes cibles (optionnel)
                       </label>
                       <input
                         type="text"
-                        value={sourcingNeeds}
-                        onChange={(e) => setSourcingNeeds(e.target.value)}
-                        placeholder="Ex: Karité brut Grade A fûts 25kg, Wax 6 yards, Cajou W320..."
+                        value={targetQuantity}
+                        onChange={(e) => setTargetQuantity(e.target.value)}
+                        placeholder="Ex: 500 kg/mois, 200 pièces, 1 conteneur 20ft..."
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Normes & Certifications requises (optionnel)
+                      </label>
+                      <input
+                        type="text"
+                        value={requiredCertifications}
+                        onChange={(e) => setRequiredCertifications(e.target.value)}
+                        placeholder="Ex: Certifié Bio, Ecocert, Commerce Équitable, ISO 22000, CE..."
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Descriptif détaillé des besoins & Cahier des charges *
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={sourcingNeeds}
+                      onChange={(e) => setSourcingNeeds(e.target.value)}
+                      placeholder="Décrivez ici vos produits cibles, qualités recherchées (grade, pureté), type d'emballage, contraintes de livraison..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    />
                   </div>
                 </div>
 

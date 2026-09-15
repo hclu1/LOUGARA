@@ -21,6 +21,9 @@ export interface StoredEntrepreneur {
   targetSectors: string[];
   estimatedBudget: string;
   sourcingNeeds?: string;
+  targetQuantity?: string;
+  sourcingTimeline?: string;
+  requiredCertifications?: string;
   registrationNumber?: string;
   kbisFile?: string;
   kbisFileSize?: string;
@@ -176,6 +179,9 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
     targetSectors: validated.targetSectors,
     estimatedBudget: validated.estimatedBudget,
     sourcingNeeds: validated.sourcingNeeds,
+    targetQuantity: validated.targetQuantity,
+    sourcingTimeline: validated.sourcingTimeline,
+    requiredCertifications: validated.requiredCertifications,
     registrationNumber: validated.registrationNumber,
     kbisFile: validated.kbisFile,
     kbisFileSize: validated.kbisFileSize,
