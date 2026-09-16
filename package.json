@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "NEXT_DISABLE_SWC=1 prisma generate && NEXT_DISABLE_SWC=1 next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
