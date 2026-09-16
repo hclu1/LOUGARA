@@ -38,5 +38,9 @@
     "typescript": "^5.6.3",
     "vitest": "^2.1.5",
     "@next/swc-wasm-nodejs": "15.1.7"
+  },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "15.1.7",
+    "@next/swc-linux-x64-musl": "15.1.7"
   }
 }
