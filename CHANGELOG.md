@@ -4,6 +4,10 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.5] - 2026-09-17
+### Corrigé
+- Suppression du fichier de configuration `.babelrc` obsolète pour rétablir la compilation native Next.js SWC et corriger l'erreur de build Vercel `@babel/runtime/regenerator`.
+
 ## [0.4.4] - 2026-09-15
 ### Corrigé
 - Synchronisation de [`package-lock.json`](file:///d:/Aplli/LOUGARA/package-lock.json) avec Next.js `15.1.7` pour forcer Vercel à utiliser la version sécurisée sans se baser sur l'ancien lockfile.
