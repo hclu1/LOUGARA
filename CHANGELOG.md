@@ -4,6 +4,10 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.6] - 2026-09-17
+### Sécurité & Build
+- Mise à niveau de Next.js vers `15.1.7` dans [`package.json`](file:///d:/Aplli/LOUGARA/package.json) pour corriger la vulnérabilité CVE-2025-66478 exigée par Vercel.
+
 ## [0.5.5] - 2026-09-17
 ### Corrigé
 - Suppression du fichier de configuration `.babelrc` obsolète pour rétablir la compilation native Next.js SWC et corriger l'erreur de build Vercel `@babel/runtime/regenerator`.
