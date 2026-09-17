@@ -4,6 +4,11 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.7] - 2026-09-17
+### Sécurité & Build
+- Correction complète des vulnérabilités Next.js avec mise à jour vers Next.js `16.3.5` et verrouillage de Node.js vers `22.x` (`engines`).
+- Compilation locale et génération des pages statiques 100% validées.
+
 ## [0.5.6] - 2026-09-17
 ### Sécurité & Build
 - Mise à niveau de Next.js vers `15.1.7` dans [`package.json`](file:///d:/Aplli/LOUGARA/package.json) pour corriger la vulnérabilité CVE-2025-66478 exigée par Vercel.
