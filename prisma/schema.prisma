@@ -1,0 +1,136 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  BUYER
+  SUPPLIER
+  ADMIN
+}
+
+enum VerificationStatus {
+  NOT_SUBMITTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DocumentType {
+  COMMERCIAL_REGISTER // Kbis / RCCM
+  TAX_ID_CERTIFICATE  // NINEA / NIF
+  IDENTITY_DOCUMENT   // Passeport / CNI Gérant
+  UTILITY_BILL        // Justificatif de domicile pro
+}
+
+model User {
+  id             String          @id @default(cuid())
+  supabaseUid    String          @unique
+  email          String          @unique
+  role           UserRole        @default(BUYER)
+  firstName      String?
+  lastName       String?
+  avatarUrl      String?
+  company        CompanyProfile?
+  sentMessages   Message[]       @relation("SentMessages")
+  conversations  Conversation[]  @relation("BuyerConversations")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model CompanyProfile {
+  id                 String               @id @default(cuid())
+  userId             String               @unique
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName        String
+  country            String
+  city               String
+  registrationNumber String?
+  sector             String               // Ex: Cosmétique, Textile, Agroalimentaire
+  description        String?
+  website            String?
+  phone              String?
+  logoUrl            String?
+  isPublished        Boolean              @default(false)
+  verificationStatus VerificationStatus   @default(NOT_SUBMITTED)
+  verificationNotes  String?
+  verifiedAt         DateTime?
+  documents          VerificationDocument[]
+  products           Product[]
+  receivedConvs      Conversation[]       @relation("SupplierConversations")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+}
+
+model VerificationDocument {
+  id                String         @id @default(cuid())
+  companyId         String
+  company           CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  documentType      DocumentType
+  filePath          String         // Chemin dans le bucket Supabase sécurisé
+  fileName          String
+  fileSize          Int
+  mimeType          String
+  status            DocumentStatus @default(PENDING)
+  notes             String?
+  issuingAuthority  String?        // Greffe, Tribunal de Commerce, Direction Impôts
+  signatureVerified Boolean        @default(false) // Contrôle du sceau / signature officielle du greffe
+  locationVerified  Boolean        @default(false) // Validation de l'adresse physique du siège social
+  uploadedAt        DateTime       @default(now())
+}
+
+model Product {
+  id            String         @id @default(cuid())
+  companyId     String
+  company       CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title         String
+  slug          String         @unique
+  description   String
+  category      String
+  priceMin      Decimal?
+  priceMax      Decimal?
+  currency      String         @default("EUR")
+  moq           Int            @default(1)
+  unit          String         @default("pièce")
+  originCountry String
+  images        String[]
+  isPublished   Boolean        @default(true)
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Conversation {
+  id         String         @id @default(cuid())
+  buyerId    String
+  buyer      User           @relation("BuyerConversations", fields: [buyerId], references: [id])
+  supplierId String
+  supplier   CompanyProfile @relation("SupplierConversations", fields: [supplierId], references: [id])
+  productId  String?
+  product    Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  subject    String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  messages   Message[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}

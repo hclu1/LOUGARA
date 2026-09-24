@@ -1,0 +1,164 @@
+import { describe, it, expect } from 'vitest';
+import {
+  registerEntrepreneur,
+  getRegisteredEntrepreneurs,
+  contactSupplier,
+  submitSourcingRequest,
+  getSourcingRequests,
+} from '../../src/features/entrepreneurs/service';
+
+describe('Service Entrepreneurs & Sourcing B2B', () => {
+  it('doit inscrire un entrepreneur et l\'enregistrer dans la base de données', async () => {
+    const input = {
+      fullName: 'Yacine Diallo',
+      companyName: 'Dakar Cosmétiques Naturels',
+      email: 'yacine.diallo@dakar-cosmetics.sn',
+      phone: '+221 77 987 65 43',
+      country: 'Sénégal',
+      city: 'Dakar',
+      buyerType: 'E-commerce & Vente en ligne' as const,
+      targetSectors: ['Cosmétique & Soins'],
+      estimatedBudget: '1 000 € à 5 000 € / mois' as const,
+      sourcingNeeds: 'Recherche de 10 fûts de karité bio et huiles pures.',
+    };
+
+    const entrepreneur = await registerEntrepreneur(input);
+
+    expect(entrepreneur).toBeDefined();
+    expect(entrepreneur.id).toBeDefined();
+    expect(entrepreneur.fullName).toBe('Yacine Diallo');
+    expect(entrepreneur.companyName).toBe('Dakar Cosmétiques Naturels');
+    expect(entrepreneur.email).toBe('yacine.diallo@dakar-cosmetics.sn');
+    expect(entrepreneur.buyerType).toBe('E-commerce & Vente en ligne');
+
+    const allEntrepreneurs = await getRegisteredEntrepreneurs();
+    const found = allEntrepreneurs.find((e) => e.email === 'yacine.diallo@dakar-cosmetics.sn');
+    expect(found).toBeDefined();
+    expect(found?.companyName).toBe('Dakar Cosmétiques Naturels');
+  });
+
+  it('doit permettre à un entrepreneur de se mettre en relation directe avec un fournisseur vérifié', async () => {
+    const contactInput = {
+      entrepreneurName: 'Yacine Diallo',
+      entrepreneurEmail: 'yacine.diallo@dakar-cosmetics.sn',
+      entrepreneurPhone: '+221 77 987 65 43',
+      supplierId: 'supp-1',
+      supplierName: 'Africa Bio Extracts SARL',
+      quantity: '10 fûts de 25 kg',
+      targetDestination: 'Port de Dakar',
+      message: 'Bonjour, nous souhaitons passer commande pour 10 fûts de beurre de karité Grade A. Pouvez-vous nous envoyer un devis avec délai de mise à disposition ?',
+    };
+
+    const inquiry = await contactSupplier(contactInput);
+
+    expect(inquiry).toBeDefined();
+    expect(inquiry.id).toBeDefined();
+    expect(inquiry.supplierName).toBe('Africa Bio Extracts SARL');
+    expect(inquiry.quantity).toBe('10 fûts de 25 kg');
+    expect(inquiry.status).toBe('CONNECTED');
+  });
+
+  it('doit permettre de publier un appel d\'offres / besoin de sourcing', async () => {
+    const tenderInput = {
+      entrepreneurName: 'Yacine Diallo',
+      entrepreneurEmail: 'yacine.diallo@dakar-cosmetics.sn',
+      companyName: 'Dakar Cosmétiques Naturels',
+      sector: 'Cosmétique & Soins',
+      title: 'Recherche producteur certifié de beurre de karité bio',
+      description: 'Nous cherchons un approvisionnement continu de 250 kg par mois avec certificats de conformité.',
+      targetQuantity: '250 kg / mois',
+      targetBudget: '1 500 € - 2 500 € / mois',
+      destinationCountry: 'Sénégal',
+    };
+
+    const request = await submitSourcingRequest(tenderInput);
+
+    expect(request).toBeDefined();
+    expect(request.title).toBe('Recherche producteur certifié de beurre de karité bio');
+
+    const allRequests = await getSourcingRequests();
+    expect(allRequests.length).toBeGreaterThanOrEqual(1);
+    expect(allRequests[0].companyName).toBe('Dakar Cosmétiques Naturels');
+  });
+
+  it('doit inscrire un entrepreneur avec extrait Kbis analysé par OCR et numéro d\'immatriculation', async () => {
+    const kbisOcrInput = {
+      fullName: 'JULIEN DUPÉ',
+      companyName: 'INFONET WEB GROUP SAS',
+      registrationNumber: '849 123 456 R.C.S. Paris',
+      kbisFile: 'Extrait_Kbis_INFONET.pdf',
+      kbisFileSize: '1.25 Mo',
+      email: 'contact@infonet-buyer.fr',
+      phone: '+33 1 42 68 55 00',
+      country: 'France',
+      city: 'Paris',
+      buyerType: 'Importateur & Distributeur' as const,
+      targetSectors: ['Technologies & IT'],
+      estimatedBudget: '5 000 € à 20 000 € / mois' as const,
+      sourcingNeeds: 'Approvisionnement en matériel et composants.',
+    };
+
+    const registered = await registerEntrepreneur(kbisOcrInput);
+
+    expect(registered).toBeDefined();
+    expect(registered.fullName).toBe('JULIEN DUPÉ');
+    expect(registered.companyName).toBe('INFONET WEB GROUP SAS');
+    expect(registered.registrationNumber).toBe('849 123 456 R.C.S. Paris');
+    expect(registered.kbisFile).toBe('Extrait_Kbis_INFONET.pdf');
+    expect(registered.isKbisVerified).toBe(true);
+
+    const list = await getRegisteredEntrepreneurs();
+    const found = list.find((e) => e.registrationNumber === '849 123 456 R.C.S. Paris');
+    expect(found).toBeDefined();
+    expect(found?.isKbisVerified).toBe(true);
+  });
+
+  it('doit enregistrer l\'abonnement choisi (Standard 99€, Premium 150€, VIP 250€) et l\'option Espace Publicitaire Catalogue', async () => {
+    const vipInput = {
+      fullName: 'Amina Traoré',
+      companyName: 'Sahel Agro Distribution',
+      email: 'a.traore@sahel-agro.com',
+      phone: '+223 76 54 32 10',
+      country: 'Mali',
+      city: 'Bamako',
+      buyerType: 'Importateur & Distributeur' as const,
+      targetSectors: ['Agroalimentaire & Épices'],
+      estimatedBudget: '> 20 000 € / mois' as const,
+      sourcingNeeds: 'Achat de mangues séchées, épices et fèves de cacao.',
+      subscriptionPlan: 'VIP' as const,
+      hasCatalogAdSpace: true,
+    };
+
+    const registeredVip = await registerEntrepreneur(vipInput);
+
+    expect(registeredVip).toBeDefined();
+    expect(registeredVip.subscriptionPlan).toBe('VIP');
+    expect(registeredVip.hasCatalogAdSpace).toBe(true);
+
+    const standardInput = {
+      fullName: 'Paul Martin',
+      companyName: 'Martin Import Lyon',
+      email: 'paul.martin@martin-lyon.fr',
+      phone: '+33 4 72 00 11 22',
+      country: 'France',
+      city: 'Lyon',
+      buyerType: 'Grossiste & Demi-grossiste' as const,
+      targetSectors: ['Artisanat & Décoration'],
+      estimatedBudget: '5 000 € à 20 000 € / mois' as const,
+      sourcingNeeds: 'Paniers tressés et poteries traditionnelles.',
+      subscriptionPlan: 'STANDARD' as const,
+      hasCatalogAdSpace: false,
+    };
+
+    const registeredStd = await registerEntrepreneur(standardInput);
+    expect(registeredStd.subscriptionPlan).toBe('STANDARD');
+    expect(registeredStd.hasCatalogAdSpace).toBe(false);
+
+    // Vérifier que la liste publique récupère bien ces abonnements et drapeaux publicitaires
+    const allEntrepreneurs = await getRegisteredEntrepreneurs();
+    const foundVip = allEntrepreneurs.find((e) => e.email === 'a.traore@sahel-agro.com');
+    expect(foundVip?.subscriptionPlan).toBe('VIP');
+    expect(foundVip?.hasCatalogAdSpace).toBe(true);
+  });
+});
+

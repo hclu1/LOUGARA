@@ -1,0 +1,28 @@
+🔑 1. Les clés d'API (sur l'écran actuel)
+NEXT_PUBLIC_SUPABASE_ANON_KEY :
+
+C'est la Publishable key (la première section).
+Cliquez sur la petite icône de copie à droite de sb_publishable_qPUajzTYLcG2wYmZ3Gi9bA_51u38....
+SUPABASE_SERVICE_ROLE_KEY :
+
+C'est la Secret key (la deuxième section).
+Cliquez sur la petite icône en forme d'œil 👁️ pour afficher la clé complète (commence par sb_secret_YsnV0...), puis cliquez sur l'icône de copie.
+🌐 2. Pour obtenir NEXT_PUBLIC_SUPABASE_URL et DATABASE_URL
+Depuis cet écran, vous avez deux options simples :
+
+Option A (La plus rapide) : Le bouton 🟢 Connect en haut
+Tout en haut de votre écran, à côté de main (PRODUCTION), vous avez un bouton vert  Connect :
+
+Cliquez dessus.
+Vous y trouverez directement l'URL du projet (NEXT_PUBLIC_SUPABASE_URL) ainsi que la Chaîne de connexion PostgreSQL (DATABASE_URL).
+Option B : Via le menu de gauche
+Pour NEXT_PUBLIC_SUPABASE_URL : Cliquez sur Data API dans le menu de gauche (sous la section INTEGRATIONS). L'URL du projet y est affichée en haut.
+Pour DATABASE_URL : Cliquez sur Infrastructure dans le menu de gauche (sous la section CONFIGURATION), vous y trouverez les paramètres de connexion à la base de données.
+📋 Résumé pour Vercel / votre .env :
+env
+
+
+DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[VOTRE_MOT_DE_PASSE]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"
+NEXT_PUBLIC_SUPABASE_URL="https://pjrqfdidqpnsquuhcolh.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_qPUajzTYLcG2wYmZ3Gi9bA_51u38..."
+SUPABASE_SERVICE_ROLE_KEY="sb_secret_YsnV0..."
