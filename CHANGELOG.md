@@ -4,6 +4,17 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.9.1] - 2026-09-25
+### Corrigé — Transformation des Cartes de Métriques en Boutons de Filtrage Interactifs
+- **Interactivité des 4 Cartes de Métriques dans l'Espace Modérateur ([`page.tsx`](file:///d:/Aplli/LOUGARA/src/app/admin/verifications/page.tsx))** :
+  - Conversion des 4 conteneurs statiques en boutons cliquables avec retours visuels et surbrillance active (`ring-2`, ombre colorée, badge "Filtre Actif").
+  - Clic sur **« Total Inscrits »** -> filtre tous les dossiers (`ALL`).
+  - Clic sur **« À Vérifier »** -> filtre uniquement les dossiers en attente (`PENDING`).
+  - Clic sur **« Vérifiés Lougara »** -> filtre uniquement les dossiers validés (`VERIFIED`).
+  - Clic sur **« Non Conformes »** -> filtre uniquement les dossiers rejetés (`REJECTED`).
+- **Gestion des Versions (SemVer v0.9.1)** :
+  - Synchronisation de `v0.9.1` sur `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.9.0] - 2026-09-25
 ### Ajouté & Modifié — Contrôle d'Accès Strict & Restriction de l'Espace Modérateur
 - **Attribution des Droits & Restriction aux 2 Adresses Modérateurs** :

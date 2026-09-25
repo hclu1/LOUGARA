@@ -570,24 +570,71 @@ export default function AdminVerificationsPage() {
           </div>
         )}
 
-        {/* METRIQUES DE MODÉRATION */}
+        {/* METRIQUES DE MODÉRATION INTERACTIVES (FILTRES DYNAMIQUES) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Inscrits</span>
+          <button
+            type="button"
+            onClick={() => setFilterTab('ALL')}
+            className={`glass-card p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5 space-y-1 ${
+              filterTab === 'ALL'
+                ? 'border-[#D4AF37] bg-slate-900/90 shadow-[0_0_20px_rgba(212,175,55,0.3)] ring-2 ring-[#D4AF37]/50'
+                : 'border-slate-800 hover:border-slate-700 bg-slate-900/50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Total Inscrits</span>
+              {filterTab === 'ALL' && <span className="text-[10px] bg-[#D4AF37]/20 text-[#E5A93C] px-2 py-0.5 rounded font-black">Filtre Actif</span>}
+            </div>
             <p className="text-3xl font-black text-white">{totalCount}</p>
-          </div>
-          <div className="glass-card p-5 rounded-2xl border border-amber-500/30 space-y-1">
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">À Vérifier</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterTab('PENDING')}
+            className={`glass-card p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5 space-y-1 ${
+              filterTab === 'PENDING'
+                ? 'border-amber-400 bg-amber-950/40 shadow-[0_0_20px_rgba(245,158,11,0.35)] ring-2 ring-amber-400/60'
+                : 'border-amber-500/30 hover:border-amber-500/60 bg-slate-900/50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-amber-400 uppercase tracking-widest">À Vérifier</span>
+              {filterTab === 'PENDING' && <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-black">Filtre Actif</span>}
+            </div>
             <p className="text-3xl font-black text-amber-300">{pendingCount}</p>
-          </div>
-          <div className="glass-card p-5 rounded-2xl border border-emerald-500/30 space-y-1">
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Vérifiés Lougara</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterTab('VERIFIED')}
+            className={`glass-card p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5 space-y-1 ${
+              filterTab === 'VERIFIED'
+                ? 'border-emerald-400 bg-emerald-950/40 shadow-[0_0_20px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/60'
+                : 'border-emerald-500/30 hover:border-emerald-500/60 bg-slate-900/50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-widest">Vérifiés Lougara</span>
+              {filterTab === 'VERIFIED' && <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-black">Filtre Actif</span>}
+            </div>
             <p className="text-3xl font-black text-emerald-400">{verifiedCount}</p>
-          </div>
-          <div className="glass-card p-5 rounded-2xl border border-rose-500/30 space-y-1">
-            <span className="text-xs font-bold text-rose-400 uppercase tracking-widest">Non Conformes</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterTab('REJECTED')}
+            className={`glass-card p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5 space-y-1 ${
+              filterTab === 'REJECTED'
+                ? 'border-rose-400 bg-rose-950/40 shadow-[0_0_20px_rgba(244,63,94,0.35)] ring-2 ring-rose-400/60'
+                : 'border-rose-500/30 hover:border-rose-500/60 bg-slate-900/50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-rose-400 uppercase tracking-widest">Non Conformes</span>
+              {filterTab === 'REJECTED' && <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-black">Filtre Actif</span>}
+            </div>
             <p className="text-3xl font-black text-rose-400">{rejectedCount}</p>
-          </div>
+          </button>
         </div>
 
         {/* LISTE DES DOSSIERS À VÉRIFIER */}
