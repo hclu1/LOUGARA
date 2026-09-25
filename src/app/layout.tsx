@@ -22,7 +22,41 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: 'LOUGARA | Sourcing B2B & Fournisseurs Vérifiés Afrique - Europe',
   description:
-    'Mise en relation d\'affaires de confiance entre entrepreneurs et grossistes d\'Afrique et d\'Europe. Statut Fournisseur Vérifié, catalogue certifié, devis directs.',
+    'Plateforme B2B de mise en relation de confiance entre entrepreneurs et grossistes certifiés d\'Afrique et d\'Europe. Statut Fournisseur Vérifié sur pièces KYB, catalogue produits, devis directs.',
+  keywords: [
+    'sourcing B2B Afrique',
+    'fournisseurs vérifiés',
+    'grossistes Afrique de l\'Ouest',
+    'import export Afrique Europe',
+    'catalogue grossiste certifié',
+    'contrôle KYB Kbis',
+    'négoce international B2B',
+  ],
+  authors: [{ name: 'LOUGARA' }],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lougara.com'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'LOUGARA | Sourcing B2B & Fournisseurs Vérifiés Afrique - Europe',
+    description:
+      'Mise en relation de confiance entre entrepreneurs et grossistes d\'Afrique et d\'Europe. Fournisseurs vérifiés sur pièces, catalogues certifiés et devis directs.',
+    url: 'https://lougara.com',
+    siteName: 'LOUGARA Sourcing B2B',
+    locale: 'fr_FR',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({

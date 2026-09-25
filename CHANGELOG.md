@@ -4,6 +4,17 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.10.0] - 2026-09-25
+### Ajouté — Infrastructure d'Indexation & Référencement Naturel Google / Bing (SEO B2B)
+- **Génération Dynamique de `sitemap.xml` ([`sitemap.ts`](file:///d:/Aplli/LOUGARA/src/app/sitemap.ts))** :
+  - Indexation automatique des routes publiques stratégiques (`/`, `/catalogue`, `/entrepreneurs`, `/devenir-fournisseur`, `/verification`, `/tarifs`).
+- **Configuration des Robots de Recherche ([`robots.ts`](file:///d:/Aplli/LOUGARA/src/app/robots.ts))** :
+  - Autorisation explicite de l'indexation par GoogleBot et BingBot sur les pages publiques et masquage des routes privées de modération (`/admin/*`, `/moderation/*`).
+- **Métadonnées Next.js 16 (Metadata API) ([`layout.tsx`](file:///d:/Aplli/LOUGARA/src/app/layout.tsx))** :
+  - Intégration de balises enrichies OpenGraph, de mots-clés cibles du sourcing B2B transfrontalier, de balises canoniques et de directives de prévisualisation d'images haute définition.
+- **Gestion des Versions (SemVer v0.10.0)** :
+  - Synchronisation de `v0.10.0` sur `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.9.1] - 2026-09-25
 ### Corrigé — Transformation des Cartes de Métriques en Boutons de Filtrage Interactifs
 - **Interactivité des 4 Cartes de Métriques dans l'Espace Modérateur ([`page.tsx`](file:///d:/Aplli/LOUGARA/src/app/admin/verifications/page.tsx))** :
