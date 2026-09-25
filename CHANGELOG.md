@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.10.1] - 2026-09-25
+### Corrigé — Restauration du Thème Sombre Obsidian D'origine & Suppression du Sélecteur Clair/Sombre
+- **Restauration de la Charte Graphique D'origine** :
+  - Annulation intégrale du composant de basculement de thème (`ThemeToggle.tsx`) et du contexte (`ThemeContext.tsx`).
+  - Restauration des styles CSS et des couleurs originales Midnight Obsidian Navy & Gold Métallique dans [`Navbar.tsx`](file:///d:/Aplli/LOUGARA/src/components/Navbar.tsx) et [`globals.css`](file:///d:/Aplli/LOUGARA/src/app/globals.css).
+- **Gestion des Versions (SemVer v0.10.1)** :
+  - Synchronisation de la version `v0.10.1` dans `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.10.0] - 2026-09-25
 ### Ajouté — Infrastructure d'Indexation & Référencement Naturel Google / Bing (SEO B2B)
 - **Génération Dynamique de `sitemap.xml` ([`sitemap.ts`](file:///d:/Aplli/LOUGARA/src/app/sitemap.ts))** :

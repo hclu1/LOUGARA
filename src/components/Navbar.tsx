@@ -4,13 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { ShieldCheck, Search, Building2, Lock, Users, Award, LogOut, UserCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const Navbar = () => {
   const { user, isModerator, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0B132B]/85 dark:bg-[#0B132B]/85 light:bg-white/90 backdrop-blur-xl border-b border-[#D4AF37]/20 light:border-slate-200 shadow-2xl transition-colors duration-300">
+    <header className="sticky top-0 z-50 bg-[#0B132B]/85 backdrop-blur-xl border-b border-[#D4AF37]/20 shadow-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Brand Logo & Tagline */}
@@ -37,7 +36,7 @@ export const Navbar = () => {
           </div>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700">
+          <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-300">
             <Link
               href="/catalogue"
               className="flex items-center gap-1.5 hover:text-[#E5A93C] transition-colors py-1"
@@ -79,11 +78,8 @@ export const Navbar = () => {
             </Link>
           </nav>
 
-          {/* Action CTA, Theme Toggle & Conditional Admin/Moderator Link */}
+          {/* Action CTA & Conditional Admin/Moderator Link */}
           <div className="flex items-center gap-3">
-            {/* Bouton de basculement Mode Clair / Mode Foncé */}
-            <ThemeToggle />
-
             {/* L'onglet Espace Modérateur s'affiche UNIQUEMENT pour asherilla4@gmail.com et champagcrypt@gmail.com */}
             {isModerator && (
               <Link
@@ -99,14 +95,14 @@ export const Navbar = () => {
 
             {/* User Session Info / Connexion */}
             {user ? (
-              <div className="flex items-center gap-2 bg-slate-900/90 dark:bg-slate-900/90 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-xl px-3 py-1.5 text-xs">
+              <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-1.5 text-xs">
                 <div className="flex flex-col text-right">
-                  <span className="font-bold text-white dark:text-white light:text-slate-900 max-w-[130px] truncate">{user.email}</span>
+                  <span className="font-bold text-white max-w-[130px] truncate">{user.email}</span>
                   <span className="text-[10px] uppercase font-mono text-amber-400 font-extrabold">{user.role}</span>
                 </div>
                 <button
                   onClick={logout}
-                  className="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 light:hover:bg-slate-200 transition-colors"
+                  className="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
                   title="Se déconnecter"
                 >
                   <LogOut className="w-4 h-4" />
@@ -115,7 +111,7 @@ export const Navbar = () => {
             ) : (
               <Link
                 href="/connexion"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white px-3 py-2 rounded-xl bg-slate-800/80 dark:bg-slate-800/80 light:bg-slate-100 hover:bg-slate-800 light:hover:bg-slate-200 border border-slate-700 light:border-slate-300 transition-all"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700 transition-all"
               >
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Se connecter</span>
