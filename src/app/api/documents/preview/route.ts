@@ -72,12 +72,12 @@ export async function GET(req: NextRequest) {
       path.join(process.cwd(), 'public', 'uploads', fileNameOnly),
       path.join(process.cwd(), 'public', 'uploads', sanitizedPath),
       path.join(process.cwd(), 'public', sanitizedPath),
-      path.join(process.cwd(), sanitizedPath),
+      path.join(/*turbopackIgnore: true*/ process.cwd(), sanitizedPath),
     ];
 
     for (const targetPath of possibleLocalPaths) {
-      if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
-        const fileBuffer = fs.readFileSync(targetPath);
+      if (fs.existsSync(/*turbopackIgnore: true*/ targetPath) && fs.statSync(/*turbopackIgnore: true*/ targetPath).isFile()) {
+        const fileBuffer = fs.readFileSync(/*turbopackIgnore: true*/ targetPath);
         return serveFileBuffer(fileBuffer, targetPath);
       }
     }

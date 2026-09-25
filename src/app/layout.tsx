@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Plus_Jakarta_Sans, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { VisitorTracker } from '@/components/VisitorTracker';
+import { AuthProvider } from '@/context/AuthContext';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -31,10 +33,16 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${jakarta.variable} ${dmSans.variable}`}>
       <body className="flex flex-col min-h-screen bg-[#0B132B] text-slate-100 font-sans antialiased selection:bg-amber-500/30 selection:text-amber-200">
-        <VisitorTracker />
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <AuthProvider>
+          <Suspense fallback={null}>
+            <VisitorTracker />
+          </Suspense>
+          <Suspense fallback={null}>
+            <Navbar />
+          </Suspense>
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

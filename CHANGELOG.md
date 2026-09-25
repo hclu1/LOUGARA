@@ -4,6 +4,20 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.9.0] - 2026-09-25
+### Ajouté & Modifié — Contrôle d'Accès Strict & Restriction de l'Espace Modérateur
+- **Attribution des Droits & Restriction aux 2 Adresses Modérateurs** :
+  - Octroi exclusif des droits d'accès à l'Espace Modérateur pour `asherilla4@gmail.com` (Modérateur) et `champagcrypt@gmail.com` (Super Administrateur).
+  - Masquage intégral et automatique de l'onglet **« Espace Modérateur »** dans la barre de navigation ([`Navbar.tsx`](file:///d:/Aplli/LOUGARA/src/components/Navbar.tsx)) pour tous les autres utilisateurs (visiteurs, entrepreneurs, fournisseurs, et autres adresses e-mail).
+- **Protection Côté Serveur & Composants Protégés** :
+  - Création du contexte global d'authentification ([`AuthContext.tsx`](file:///d:/Aplli/LOUGARA/src/context/AuthContext.tsx)) pour gérer les rôles (`visitor`, `entrepreneur`, `supplier`, `moderator`, `super_admin`).
+  - Protection des routes `/admin/verifications` et `/moderation` avec affichage d'un écran d'accès refusé si la session active ne correspond pas aux deux adresses autorisées.
+- **Formulaires & Portail de Connexion Modérateur** :
+  - Création de la page de connexion globale ([`/connexion`](file:///d:/Aplli/LOUGARA/src/app/connexion/page.tsx)) et du portail dédié modérateur ([`/moderation/login`](file:///d:/Aplli/LOUGARA/src/app/moderation/login/page.tsx)).
+  - Intégration du tableau de bord complet de modération ([`/moderation`](file:///d:/Aplli/LOUGARA/src/app/moderation/page.tsx)) avec 5 volets : Audits KYB, Gestion des Utilisateurs, Modération des Catalogues & Anonymat, Configuration des Tarifs & Limites, et Journal des Actions.
+- **Gestion des Versions (SemVer v0.9.0)** :
+  - Synchronisation de la version `v0.9.0` sur `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.8.0] - 2026-09-23
 ### Modifié — Refonte Visuelle & UX Ultra-Premium Corporate Tech (Landing V1)
 - **Système de Design & Thème Sombre Obsidian** :
