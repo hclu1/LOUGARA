@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.11.2] - 2026-09-28
+### Modifié — Remplacement du Logo Emblématique par l'Image du Logo Officiel Lougara
+- **Intégration du Logo Officiel (`/logo.png`)** :
+  - Copie de l'image de marque `D:\Aplli\Lougara\docs\Logo\logo lougara.png` dans le répertoire public de l'application (`d:\Aplli\LOUGARA\public\logo.png`).
+  - Remplacement de l'ancien pictogramme textuel « L » dans la barre de navigation ([`Navbar.tsx`](file:///d:/Aplli/LOUGARA/src/components/Navbar.tsx)) et le pied de page ([`Footer.tsx`](file:///d:/Aplli/LOUGARA/src/components/Footer.tsx)) par la balise image du logo officiel.
+- **Gestion des Versions (SemVer v0.11.2)** :
+  - Synchronisation de `v0.11.2` dans `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.11.1] - 2026-09-28
 ### Ajouté — Documentation & Fichier de Présentation Globale (`PRESENTATION.md`)
 - **Création du Fichier de Présentation ([`PRESENTATION.md`](file:///d:/Aplli/LOUGARA/PRESENTATION.md))** :

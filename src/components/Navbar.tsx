@@ -15,10 +15,12 @@ export const Navbar = () => {
           {/* Brand Logo & Tagline */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 group">
-              {/* Metallic Gold Emblem Logo */}
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#D4AF37] via-[#E5A93C] to-[#B8860B] flex items-center justify-center text-slate-950 font-black text-2xl shadow-[0_0_20px_rgba(212,175,55,0.4)] group-hover:scale-105 transition-transform duration-300 border border-amber-200/50">
-                L
-              </div>
+              {/* Official Logo Image */}
+              <img
+                src="/logo.png"
+                alt="Logo LOUGARA"
+                className="h-11 w-auto object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.35)] group-hover:scale-105 transition-transform duration-300"
+              />
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-2xl tracking-tight text-white group-hover:text-amber-300 transition-colors">

@@ -14,9 +14,11 @@ export const Footer = () => {
           {/* Col 1 & 2: Brand & Verification Charter */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] via-[#E5A93C] to-[#B8860B] flex items-center justify-center text-slate-950 font-black text-xl shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                L
-              </div>
+              <img
+                src="/logo.png"
+                alt="Logo LOUGARA"
+                className="h-10 w-auto object-contain drop-shadow-[0_0_12px_rgba(212,175,55,0.3)]"
+              />
               <div>
                 <span className="text-2xl font-black text-white tracking-tight">LOUGARA</span>
                 <span className="ml-2 text-xs font-extrabold text-[#E5A93C] uppercase tracking-widest bg-[#D4AF37]/10 px-2 py-0.5 rounded border border-[#D4AF37]/30">
