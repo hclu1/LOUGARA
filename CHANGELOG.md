@@ -4,6 +4,19 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.11.0] - 2026-09-28
+### Ajouté & Modifié — Architecture SEO Modulaire & Optimisation Longue Traîne par Intention
+- **Refonte des Métadonnées & Nettoyage SEO (Règle « 1 Page = 1 Intention »)** :
+  - Nettoyage des balises meta : suppression intégrale des fautes volontaires et des mots-clés trop génériques pour prévenir tout risque de pénalité algorithmique (*keyword stuffing*).
+  - Création de fichiers de sous-layout dédiés avec métadonnées uniques pour chaque route :
+    - [`catalogue/layout.tsx`](file:///d:/Aplli/LOUGARA/src/app/catalogue/layout.tsx) : Mots-clés de longue traîne sectoriels (beurre de karité Sénégal, tissu wax export, cosmétiques bio, agroalimentaire).
+    - [`entrepreneurs/layout.tsx`](file:///d:/Aplli/LOUGARA/src/app/entrepreneurs/layout.tsx) : Mots-clés ciblés sur le sourcing sécurisé et la mise en relation direct grossiste-acheteur.
+    - [`devenir-fournisseur/layout.tsx`](file:///d:/Aplli/LOUGARA/src/app/devenir-fournisseur/layout.tsx) : Acquisition de grossistes certifiés et valorisation du badge KYB.
+    - [`verification/layout.tsx`](file:///d:/Aplli/LOUGARA/src/app/verification/layout.tsx) : Réassurance légale, audit RCCM / Kbis et lutte contre la fraude B2B.
+    - [`tarifs/layout.tsx`](file:///d:/Aplli/LOUGARA/src/app/tarifs/layout.tsx) : Référencement des offres et abonnements.
+- **Gestion des Versions (SemVer v0.11.0)** :
+  - Synchronisation de `v0.11.0` dans `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.10.1] - 2026-09-25
 ### Corrigé — Restauration du Thème Sombre Obsidian D'origine & Suppression du Sélecteur Clair/Sombre
 - **Restauration de la Charte Graphique D'origine** :

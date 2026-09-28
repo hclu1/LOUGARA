@@ -20,17 +20,27 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'LOUGARA | Sourcing B2B & Fournisseurs Vérifiés Afrique - Europe',
+  title: {
+    default: 'LOUGARA | Sourcing B2B & Fournisseurs Vérifiés Afrique - Europe',
+    template: '%s | LOUGARA Sourcing B2B',
+  },
   description:
-    'Plateforme B2B de mise en relation de confiance entre entrepreneurs et grossistes certifiés d\'Afrique et d\'Europe. Statut Fournisseur Vérifié sur pièces KYB, catalogue produits, devis directs.',
+    'Plateforme B2B de mise en relation de confiance entre entrepreneurs et grossistes certifiés d\'Afrique et d\'Europe. Statut Fournisseur Vérifié sur audit KYB, RCCM et Kbis.',
   keywords: [
-    'sourcing B2B Afrique',
-    'fournisseurs vérifiés',
-    'grossistes Afrique de l\'Ouest',
-    'import export Afrique Europe',
-    'catalogue grossiste certifié',
-    'contrôle KYB Kbis',
-    'négoce international B2B',
+    // Marque
+    'Lougara',
+    'Lougara sourcing B2B',
+    'Lougara.com',
+    // Longue traîne FR
+    'fournisseur vérifié Afrique Europe',
+    'grossiste certifié Afrique de l\'Ouest',
+    'plateforme négoce B2B Afrique',
+    'sourcing sécurisé Afrique Kbis RCCM',
+    'mise en relation grossiste acheteur B2B',
+    // Longue traîne EN
+    'verified supplier Africa Europe',
+    'certified African wholesaler',
+    'Africa B2B trade sourcing platform',
   ],
   authors: [{ name: 'LOUGARA' }],
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lougara.com'),
