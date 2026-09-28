@@ -43,6 +43,17 @@ export const metadata: Metadata = {
     'Africa B2B trade sourcing platform',
   ],
   authors: [{ name: 'LOUGARA' }],
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png' },
+      { url: '/logo.png', type: 'image/png' },
+    ],
+    shortcut: ['/favicon.ico'],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lougara.com'),
   alternates: {
     canonical: '/',

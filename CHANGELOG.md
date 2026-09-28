@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.11.5] - 2026-09-28
+### Ajouté — Configuration des Icônes de Marque & Favicon Google (`favicon.ico`, `icon.png`, `apple-icon.png`)
+- **Intégration du Favicon Officiel pour Google & les Navigateurs** :
+  - Génération et placement des fichiers d'icônes de marque (`favicon.ico`, `icon.png`, `apple-touch-icon.png`) dans `public/` et `src/app/`.
+  - Déclaration de l'objet `icons` dans la fonction `metadata` de [`layout.tsx`](file:///d:/Aplli/LOUGARA/src/app/layout.tsx#L45-L56) pour que le robot Google (`Googlebot-Image`) remplace l'icône de mappemonde bleue générique par le logo officiel **LOUGARA**.
+- **Gestion des Versions (SemVer v0.11.5)** :
+  - Synchronisation de `v0.11.5` dans `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.11.4] - 2026-09-28
 ### Corrigé — Dimensionnement & Affichage du Logo Officiel Lougara (`Capture.PNG`)
 - **Restructuration de l'Affichage de l'Image de Marque** :
