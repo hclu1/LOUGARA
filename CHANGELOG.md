@@ -4,6 +4,13 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.11.1] - 2026-09-28
+### Ajouté — Documentation & Fichier de Présentation Globale (`PRESENTATION.md`)
+- **Création du Fichier de Présentation ([`PRESENTATION.md`](file:///d:/Aplli/LOUGARA/PRESENTATION.md))** :
+  - Rédaction d'un document complet structuré présentant la vision, le modèle d'affaires, l'audit KYB (OCR Kbis/RCCM), le catalogue B2B, les rôles utilisateurs, la stack technique (Next.js 16, TypeScript, Prisma, Vitest) et l'architecture SEO de la plateforme.
+- **Gestion des Versions (SemVer v0.11.1)** :
+  - Synchronisation de `v0.11.1` dans `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.11.0] - 2026-09-28
 ### Ajouté & Modifié — Architecture SEO Modulaire & Optimisation Longue Traîne par Intention
 - **Refonte des Métadonnées & Nettoyage SEO (Règle « 1 Page = 1 Intention »)** :
