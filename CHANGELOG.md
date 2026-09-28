@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.11.4] - 2026-09-28
+### Corrigé — Dimensionnement & Affichage du Logo Officiel Lougara (`Capture.PNG`)
+- **Restructuration de l'Affichage de l'Image de Marque** :
+  - Suppression du texte dupliqué et augmentation de la hauteur du logo (`h-12 sm:h-14`) pour afficher l'image du logo officiel (`Capture.PNG`) dans toute sa hauteur et largeur originale sans déformation ni effet de capsule étroite.
+  - Intégration dans la barre de navigation ([`Navbar.tsx`](file:///d:/Aplli/LOUGARA/src/components/Navbar.tsx)) et le pied de page ([`Footer.tsx`](file:///d:/Aplli/LOUGARA/src/components/Footer.tsx)).
+- **Gestion des Versions (SemVer v0.11.4)** :
+  - Synchronisation de `v0.11.4` dans `package.json`, `VERSION`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.11.3] - 2026-09-28
 ### Corrigé — Définition de l'Orientation Horizontale du Logo Officiel Lougara (`Capture.PNG`)
 - **Remplacement de l'Image du Logo par la Version Horizontale Orientée (`Capture.PNG`)** :

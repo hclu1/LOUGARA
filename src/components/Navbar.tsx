@@ -15,23 +15,18 @@ export const Navbar = () => {
           {/* Brand Logo & Tagline */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 group">
-              {/* Official Logo Image Container */}
-              <div className="bg-white p-1.5 rounded-xl border border-amber-400/50 shadow-[0_0_20px_rgba(212,175,55,0.35)] group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
+              {/* Official Logo Image Container (Capture.PNG) */}
+              <div className="bg-white px-3 py-1.5 rounded-2xl border border-amber-400/50 shadow-[0_0_25px_rgba(212,175,55,0.4)] group-hover:scale-105 transition-all duration-300 flex items-center justify-center">
                 <img
                   src="/logo.png"
-                  alt="Logo LOUGARA"
-                  className="h-9 w-auto object-contain"
+                  alt="LOUGARA Sourcing B2B"
+                  className="h-12 sm:h-14 w-auto object-contain max-w-[180px] sm:max-w-[220px]"
                 />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-2xl tracking-tight text-white group-hover:text-amber-300 transition-colors">
-                    LOUGARA
-                  </span>
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#D4AF37]/15 text-[#E5A93C] border border-[#D4AF37]/30">
-                    Sourcing B2B
-                  </span>
-                </div>
+              <div className="hidden lg:flex flex-col gap-1">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#D4AF37]/15 text-[#E5A93C] border border-[#D4AF37]/30 w-fit">
+                  Sourcing B2B
+                </span>
                 <p className="text-[11px] font-medium text-slate-400">
                   Corridor Afrique &bull; Europe &bull; Certifié KYB
                 </p>
