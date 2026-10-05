@@ -555,12 +555,21 @@ export default function AdminVerificationsPage() {
             </div>
           </div>
 
-          <Link
-            href="/devenir-fournisseur"
-            className="text-xs font-bold text-[#E5A93C] hover:text-amber-200 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700"
-          >
-            Formulaire Public <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/settings"
+              className="text-xs font-bold text-slate-200 hover:text-white flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all"
+            >
+              <span>Monétisation & Stripe</span>
+            </Link>
+
+            <Link
+              href="/devenir-fournisseur"
+              className="text-xs font-bold text-[#E5A93C] hover:text-amber-200 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700"
+            >
+              Formulaire Public <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         {actionNotice && (

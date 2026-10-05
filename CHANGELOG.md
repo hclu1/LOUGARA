@@ -4,6 +4,25 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.12.0] - 2026-10-05
+### Ajouté — Infrastructure d'Abonnements Stripe, Interrupteur Super Admin & Procedure d'Activation dans Docs
+- **Pré-installation des SDKs Stripe** :
+  - Ajout des dépendances `stripe` et `@stripe/stripe-js` dans `package.json`.
+  - Support optionnel et conditionnel des variables `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` et `STRIPE_WEBHOOK_SECRET` dans `src/env.ts`.
+- **Évolution Base de Données (Prisma Schema)** :
+  - Nouveaux modèles `SubscriptionPlan`, `UserSubscription`, `SubscriptionStatus` et `PlatformSettings`.
+- **Espace de Gestion Super Admin ([`/admin/settings`](file:///d:/Aplli/LOUGARA/src/app/admin/settings/page.tsx))** :
+  - Création de la console Super Admin avec interrupteur à bascule pour l'activation globale de Stripe.
+  - Détection en temps réel de la présence des clés API Stripe dans l'environnement.
+  - Éditeur interactif pour associer les `stripePriceId` et ajuster les quotas par forfait.
+- **Service de Quotas & Endpoints API avec Fallback Lancement Gratuit** :
+  - API Routes `/api/admin/settings`, `/api/stripe/checkout`, `/api/stripe/portal` et `/api/webhooks/stripe`.
+  - Gestion du mode dégradé : tant que Stripe est inactif, le site reste en mode gratuit avec quota de lancement.
+- **Documentation d'Activation Pas-à-Pas ([`docs/PROCEDURE_ACTIVATION_STRIPE.md`](file:///d:/Aplli/LOUGARA/docs/PROCEDURE_ACTIVATION_STRIPE.md))** :
+  - Guide complet pour créer le compte Stripe, configurer les produits/tarifs, installer le Webhook et activer la bascule Super Admin.
+- **Gestion des Versions (SemVer v0.12.0)** :
+  - Synchronisation de `v0.12.0` dans `package.json`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.11.5] - 2026-09-28
 ### Ajouté — Configuration des Icônes de Marque & Favicon Google (`favicon.ico`, `icon.png`, `apple-icon.png`)
 - **Intégration du Favicon Officiel pour Google & les Navigateurs** :

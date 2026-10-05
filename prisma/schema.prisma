@@ -33,6 +33,14 @@ enum DocumentType {
   UTILITY_BILL        // Justificatif de domicile pro
 }
 
+enum SubscriptionStatus {
+  INACTIVE
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
 model User {
   id             String          @id @default(cuid())
   supabaseUid    String          @unique
@@ -68,6 +76,7 @@ model CompanyProfile {
   documents          VerificationDocument[]
   products           Product[]
   receivedConvs      Conversation[]       @relation("SupplierConversations")
+  subscription       UserSubscription?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 }
@@ -134,3 +143,49 @@ model Message {
   isRead         Boolean      @default(false)
   createdAt      DateTime     @default(now())
 }
+
+model SubscriptionPlan {
+  id                  String             @id @default(cuid())
+  code                String             @unique // FREE, STANDARD, PREMIUM, VIP
+  name                String
+  description         String?
+  priceMonthly        Decimal            @default(0)
+  currency            String             @default("EUR")
+  stripePriceId       String?            // Identifiant Stripe Price une fois l'inscription effectuée
+  maxProducts         Int                @default(5) // -1 pour illimité
+  maxContactsPerMonth Int                @default(5) // -1 pour illimité
+  hasBadge            Boolean            @default(false)
+  hasPriorityMatching Boolean            @default(false)
+  hasAnalytics        Boolean            @default(false)
+  isPublicCatalogInverted Boolean        @default(false)
+  isPublished         Boolean            @default(true)
+  subscriptions       UserSubscription[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model UserSubscription {
+  id                   String             @id @default(cuid())
+  companyId            String             @unique
+  company              CompanyProfile     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planId               String
+  plan                 SubscriptionPlan   @relation(fields: [planId], references: [id])
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
+  status               SubscriptionStatus @default(INACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+model PlatformSettings {
+  id                   String   @id @default("default")
+  isStripeEnabled      Boolean  @default(false) // Interrupteur Super Admin
+  allowFreeCatalogLimit Int     @default(5)     // Quota gratuit par défaut
+  currency             String   @default("EUR")
+  contactEmail         String   @default("contact@lougara.com")
+  updatedAt            DateTime @updatedAt
+}
+
