@@ -4,6 +4,15 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.12.1] - 2026-10-05
+### Corrigé — Compatibilité de Compilation Vercel & Correction des Types Stripe SDK
+- **Correctifs de Typage Stripe (SDK v16+)** :
+  - Suppression de la propriété obsolète `payment_method_types` sur la création de session Checkout ([`checkout/route.ts`](file:///d:/Aplli/LOUGARA/src/app/api/stripe/checkout/route.ts#L50-L55)).
+  - Ajustement du type de la propriété `subscription` dans l'écouteur de webhooks ([`webhooks/stripe/route.ts`](file:///d:/Aplli/LOUGARA/src/app/api/webhooks/stripe/route.ts#L75-L82)).
+  - Ajout de la balise `<head>` dans [`global-error.tsx`](file:///d:/Aplli/LOUGARA/src/app/global-error.tsx) pour prévenir l'erreur de prerendering Turbopack Next.js 16.
+- **Gestion des Versions (SemVer v0.12.1)** :
+  - Synchronisation de `v0.12.1` dans `package.json`, `src/version.ts` et `CHANGELOG.md`.
+
 ## [0.12.0] - 2026-10-05
 ### Ajouté — Infrastructure d'Abonnements Stripe, Interrupteur Super Admin & Procedure d'Activation dans Docs
 - **Pré-installation des SDKs Stripe** :
