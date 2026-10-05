@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 export default function GlobalError({
   error,
   reset,
@@ -9,12 +11,16 @@ export default function GlobalError({
 }) {
   return (
     <html lang="fr">
+      <head>
+        <title>Erreur système | Lougara B2B</title>
+      </head>
       <body style={{ backgroundColor: '#0B132B', color: '#ffffff', fontFamily: 'sans-serif', padding: '3rem', textAlign: 'center' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Une erreur inattendue est survenue</h2>
         <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.5rem' }}>
           {error?.message || "Erreur système globale"}
         </p>
         <button
+          type="button"
           onClick={() => reset()}
           style={{ marginTop: '1.5rem', padding: '0.5rem 1.5rem', backgroundColor: '#D4AF37', color: '#090d16', border: 'none', borderRadius: '0.5rem', fontWeight: 'bold', cursor: 'pointer' }}
         >
