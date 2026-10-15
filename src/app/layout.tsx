@@ -6,6 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { VisitorTracker } from '@/components/VisitorTracker';
 import { AuthProvider } from '@/context/AuthContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -88,16 +89,18 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${jakarta.variable} ${dmSans.variable}`}>
       <body className="flex flex-col min-h-screen bg-[#0B132B] text-slate-100 font-sans antialiased selection:bg-amber-500/30 selection:text-amber-200">
-        <AuthProvider>
-          <Suspense fallback={null}>
-            <VisitorTracker />
-          </Suspense>
-          <Suspense fallback={null}>
-            <Navbar />
-          </Suspense>
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <Suspense fallback={null}>
+              <VisitorTracker />
+            </Suspense>
+            <Suspense fallback={null}>
+              <Navbar />
+            </Suspense>
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

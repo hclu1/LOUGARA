@@ -4,6 +4,28 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.13.0] - 2026-10-15
+### Ajouté — Support Bilingue (FR/EN), Sélecteur Multidevises Dynamique & Refonte Tarifs B2B
+- **Architecture d'Internationalisation (i18n)** :
+  - Création du système de dictionnaire bilingue (`src/locales/fr.ts`, `src/locales/en.ts`).
+  - Provider React `LanguageContext` avec persistance multi-supports (`localStorage` et cookies `NEXT_LOCALE`, `NEXT_CURRENCY`).
+  - Sélecteur de langue interactif permanent (FR / EN) dans l'en-tête de navigation (`Navbar`).
+- **Moteur Multidevises avec Prix Locaux Fixes & PPP** :
+  - Support natif des devises : Euro (EUR), Dollar US (USD), Franc CFA BCEAO (XOF), Franc CFA BEAC (XAF), Franc Guinéen (GNF), Dirham Marocain (MAD), Naira Nigérian (NGN).
+  - Définition d'une table de prix locaux fixes arrondis par devise évitant les frais de conversion bancaires prohibitifs.
+  - Sélecteur déroulant de devise en direct dans la barre de navigation avec drapeaux et symboles monétaires.
+- **Refonte Complète de la Page Tarifs ([`/tarifs`](file:///d:/Aplli/LOUGARA/src/app/tarifs/page.tsx))** :
+  - 3 onglets dédiés : **Fournisseurs** (4 forfaits : Gratuit, Essentiel 20 prod, Pro 50 prod certifié, Premium 100+ prod), **Entrepreneurs** (4 forfaits : Consultation gratuite, Essentiel 3 contacts/m, Pro 15 contacts/m, VIP 50 contacts/m), et **Packs de Crédits** (Flash 1 contact, Croissance 5 contacts, Volume 15 contacts).
+  - Commutateur de cycle de facturation Mensuel / Annuel avec réduction automatique de 20% (2 mois offerts).
+  - Affichage instantané des prix dans la devise sélectionnée avec formatage monétaire adapté.
+- **Extension Schéma Base de Données (Prisma)** :
+  - Ajout des modèles non régressifs `SubscriptionPlanV2`, `PlanPrice`, `ContactCredit`, `ContactRequest`, et `BillingEvent`.
+  - Relations bidirectionnelles avec `User`, `CompanyProfile` et `Product`.
+- **Suite de Tests Élargie** :
+  - Ajout de `tests/unit/i18n-currencies.test.ts` (37 tests unitaires passés avec succès).
+- **Gestion des Versions (SemVer v0.13.0)** :
+  - Synchronisation de `0.13.0` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.12.1] - 2026-10-05
 ### Corrigé — Compatibilité de Compilation Vercel & Correction des Types Stripe SDK
 - **Correctifs de Typage Stripe (SDK v16+)** :

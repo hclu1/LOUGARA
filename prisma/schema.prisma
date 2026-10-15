@@ -52,6 +52,9 @@ model User {
   company        CompanyProfile?
   sentMessages   Message[]       @relation("SentMessages")
   conversations  Conversation[]  @relation("BuyerConversations")
+  contactCredits ContactCredit[]
+  contactRequests ContactRequest[] @relation("BuyerContactRequests")
+  billingEvents  BillingEvent[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -76,6 +79,7 @@ model CompanyProfile {
   documents          VerificationDocument[]
   products           Product[]
   receivedConvs      Conversation[]       @relation("SupplierConversations")
+  receivedContactRequests ContactRequest[] @relation("CompanyContactRequests")
   subscription       UserSubscription?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
@@ -115,6 +119,7 @@ model Product {
   images        String[]
   isPublished   Boolean        @default(true)
   conversations Conversation[]
+  contactRequests ContactRequest[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -188,4 +193,85 @@ model PlatformSettings {
   contactEmail         String   @default("contact@lougara.com")
   updatedAt            DateTime @updatedAt
 }
+
+model SubscriptionPlanV2 {
+  id                   String      @id @default(cuid())
+  code                 String      @unique // SUPPLIER_FREE, SUPPLIER_ESSENTIAL, etc.
+  target               String      // SUPPLIER ou BUYER
+  nameFr               String
+  nameEn               String
+  descriptionFr        String?
+  descriptionEn        String?
+  priceMonthlyEur      Decimal     @default(0)
+  priceAnnualEur       Decimal     @default(0)
+  maxProducts          Int         @default(4)
+  maxContactsPerMonth  Int         @default(0)
+  relationValidityDays Int         @default(30)
+  hasVerifiedBadge     Boolean     @default(false)
+  hasPriorityRanking   Boolean     @default(false)
+  isActive             Boolean     @default(true)
+  displayOrder         Int         @default(0)
+  prices               PlanPrice[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+}
+
+model PlanPrice {
+  id           String             @id @default(cuid())
+  planId       String
+  plan         SubscriptionPlanV2 @relation(fields: [planId], references: [id], onDelete: Cascade)
+  currency     String             // EUR, USD, XOF, XAF, GNF, MAD, NGN
+  priceMonthly Decimal
+  priceAnnual  Decimal
+  pricingMode  String             @default("FIXED_LOCAL")
+  isActive     Boolean            @default(true)
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([planId, currency])
+}
+
+model ContactCredit {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int       @default(0)
+  currency  String    @default("EUR")
+  source    String    @default("PURCHASE")
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model ContactRequest {
+  id              String         @id @default(cuid())
+  buyerId         String
+  buyer           User           @relation("BuyerContactRequests", fields: [buyerId], references: [id], onDelete: Cascade)
+  companyId       String
+  company         CompanyProfile @relation("CompanyContactRequests", fields: [companyId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  requestType     String         @default("QUOTE")
+  message         String
+  preferredLocale String         @default("fr")
+  status          String         @default("SENT")
+  creditsDeducted Int            @default(1)
+  validUntil      DateTime
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model BillingEvent {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType             String   // PAYMENT, RENEWAL, REFUND, CREDIT_CONSUMED
+  amount                Decimal
+  currency              String
+  amountEurEquivalent   Decimal?
+  provider              String   // STRIPE, ORANGE_MONEY, WAVE, MTN_MOMO
+  providerTransactionId String?
+  metadataJson          String?
+  createdAt             DateTime @default(now())
+}
+
 
