@@ -4,6 +4,24 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.13.2] - 2026-10-15
+### Corrigé & Enrichi — Traduction Bilingue Intégrale des Catalogues, Vitrines, Filtres & Modales
+- **Internationalisation Complète de la Vue Catalogue (`/catalogue`)** :
+  - **Filtres & Corridors** : Libellé du corridor (« Sélection du Corridor : » / « Trade Corridor: »), option pays (« Tous pays » / « All countries »), liste déroulante des pays traduits dynamiquement (Sénégal/Senegal, Côte d'Ivoire/Ivory Coast, Cameroun/Cameroon, Maroc/Morocco, RDC/DRC, etc.), et case à cocher (« Vérifiés seuls » / « Verified only »).
+  - **Vitrines Fournisseurs (Showcase Cards)** : Badge (« Vitrine Catalogue » / « Company Showcase »), disponibilité (« X / 10 produits dispo » / « X / 10 products avail. »), statut d'audit (« Vérification en cours » / « Verification in progress »), libellé de gamme (« Gamme : » / « Range: »), secteurs traduits (Industrie, Agroalimentaire, Cosmétique, etc.) et bouton (« Voir le catalogue complet » / « View full catalog »).
+  - **Offres Produits B2B** : Prix indicatif, unités (« drum », « liter », « bag », « piece », « kg »), quantité minimale MOQ, pays d'origine et bouton (« Demander un devis au grossiste » / « Request wholesale quote »).
+  - **Appels d'Offres Acheteurs (RFQs)** : Badge sponsorisé (« Espace Publicitaire Acheteur » / « Sponsored Buyer Space »), libellé du besoin (« Besoin de sourcing / Appel d'offres » / « Sourcing Request / RFQ »), budget et bouton de proposition.
+  - **Modales d'Interaction** :
+    - Modale Vitrine Catalogue complète : badge officiel, localisation, titre et description des produits, prix et bouton de devis bilingues.
+    - Modale Demande de Devis (RFQ) : formulaires, quantités, labels et confirmation de soumission traduits.
+    - Modale Proposition Fournisseur vers Acheteur : interface complète de contact commercial avec notifications d'envoi.
+  - **Résilience Graphique** : Gestionnaire `onError` sur toutes les images de couvertures et produits pour éviter l'affichage de textes alternatifs dégradés sur les images distantes.
+- **Espace Acheteurs & Entrepreneurs (`/entrepreneurs`)** :
+  - Traduction intégrale du formulaire d'inscription acheteur (Kbis/RCCM dropzone, champs de formulaire, générateur de demande RFQ).
+  - Boutons de redirection vers le catalogue traduits (« Voir catalogue → » / « View catalog → »).
+- **Gestion des Versions (SemVer v0.13.2)** :
+  - Synchronisation de `0.13.2` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.13.1] - 2026-10-15
 ### Ajouté — Internationalisation Intégrale FR / EN sur l'Ensemble de l'Application
 - **Généralisation du Support Bilingue Multi-Pages** :

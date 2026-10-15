@@ -11,3 +11,4 @@ export const translations = {
 export type TranslationSchema = typeof fr;
 
 export * from './currencies';
+export * from './catalog-translations';

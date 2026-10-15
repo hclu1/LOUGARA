@@ -328,7 +328,7 @@ export default function EspaceEntrepreneursPage() {
                 activeTab === 'register' ? 'border-[#D4AF37] text-[#E5A93C]' : 'border-transparent text-slate-400'
               }`}
             >
-              {locale === 'fr' ? '1. Inscription Acheteur & OCR Kbis' : '1. Buyer Registration & OCR'}
+              {t.entrepreneurs.step1Title}
             </button>
             <button
               onClick={() => setActiveTab('suppliers')}
@@ -336,7 +336,7 @@ export default function EspaceEntrepreneursPage() {
                 activeTab === 'suppliers' ? 'border-[#D4AF37] text-[#E5A93C]' : 'border-transparent text-slate-400'
               }`}
             >
-              {locale === 'fr' ? `2. Fournisseurs Vérifiés (${suppliersList.length})` : `2. Verified Suppliers (${suppliersList.length})`}
+              {t.entrepreneurs.step2Title} ({suppliersList.length})
             </button>
           </div>
 
@@ -347,9 +347,9 @@ export default function EspaceEntrepreneursPage() {
                   <div className="w-16 h-16 rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                     <CheckCircle2 className="w-10 h-10" />
                   </div>
-                  <h3 className="text-2xl font-black text-white">Inscription Validée !</h3>
+                  <h3 className="text-2xl font-black text-white">{t.entrepreneurs.regSuccessTitle}</h3>
                   <p className="text-sm text-slate-300">
-                    Votre profil acheteur pour <span className="font-bold text-amber-300">{companyName}</span> est désormais actif sur Lougara.
+                    {t.entrepreneurs.regSuccessDesc} (<span className="font-bold text-amber-300">{companyName}</span>)
                   </p>
                 </div>
               ) : (
@@ -357,11 +357,11 @@ export default function EspaceEntrepreneursPage() {
                   {/* Step 1: Kbis Dropzone */}
                   <div className="space-y-4 border-b border-slate-800 pb-6">
                     <span className="text-xs font-black uppercase text-[#D4AF37] tracking-wider">
-                      Étape 1 &bull; Dépôt Kbis & Reconnaissance OCR Instantanée
+                      {t.entrepreneurs.stepKbisTitle}
                     </span>
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                       <Scan className="w-5 h-5 text-emerald-400" />
-                      Analyse Légale Automatique (Kbis / RCCM)
+                      {t.entrepreneurs.stepKbisHeading}
                     </h2>
 
                     <label className="border-2 border-dashed border-slate-700 hover:border-[#D4AF37] rounded-2xl p-6 text-center cursor-pointer transition-colors block bg-slate-900/60">
@@ -373,10 +373,10 @@ export default function EspaceEntrepreneursPage() {
                       />
                       <Upload className="w-8 h-8 text-[#D4AF37] mx-auto mb-2" />
                       <p className="text-sm font-bold text-white">
-                        {kbisFile ? `Document sélectionné : ${kbisFile}` : 'Déposez votre Extrait Kbis / RCCM'}
+                        {kbisFile ? `${t.entrepreneurs.dropzoneActive} ${kbisFile}` : t.entrepreneurs.dropzoneDefault}
                       </p>
                       <p className="text-xs text-slate-400 mt-1">
-                        PDF, PNG, JPG &bull; OCR WebAssembly local ultra-rapide
+                        {t.entrepreneurs.dropzoneSubtext}
                       </p>
                     </label>
                   </div>
@@ -384,7 +384,7 @@ export default function EspaceEntrepreneursPage() {
                   {/* Form inputs */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Raison Sociale *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">{t.entrepreneurs.companyNameLabel}</label>
                       <input
                         type="text"
                         required
@@ -395,7 +395,7 @@ export default function EspaceEntrepreneursPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Numéro SIREN / RCCM</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">{t.entrepreneurs.registrationNumberLabel}</label>
                       <input
                         type="text"
                         value={registrationNumber}
@@ -405,7 +405,7 @@ export default function EspaceEntrepreneursPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Nom du Dirigeant *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">{t.entrepreneurs.directorNameLabel}</label>
                       <input
                         type="text"
                         required
@@ -416,7 +416,7 @@ export default function EspaceEntrepreneursPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">E-mail Professionnel *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">{t.entrepreneurs.proEmailLabel}</label>
                       <input
                         type="email"
                         required
@@ -431,18 +431,18 @@ export default function EspaceEntrepreneursPage() {
                   <div className="space-y-4 pt-4 border-t border-slate-800">
                     <h3 className="text-base font-bold text-[#E5A93C] flex items-center gap-2">
                       <Package className="w-5 h-5 text-emerald-400" />
-                      Générateur de Demande de Cotation (RFQ)
+                      {t.entrepreneurs.rfqGeneratorHeading}
                     </h3>
 
                     <div className="space-y-3">
                       <label className="block text-xs font-bold text-slate-300">
-                        Description de vos besoins d&apos;approvisionnement
+                        {t.entrepreneurs.rfqDescriptionLabel}
                       </label>
                       <textarea
                         rows={3}
                         value={sourcingNeeds}
                         onChange={(e) => setSourcingNeeds(e.target.value)}
-                        placeholder="Ex: Recherche de 500 kg de beurre de karité bio brut pour livraison trimestrielle en France..."
+                        placeholder={t.entrepreneurs.rfqDescriptionPlaceholder}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37]"
                       />
                     </div>
@@ -453,7 +453,7 @@ export default function EspaceEntrepreneursPage() {
                     disabled={isSubmitting}
                     className="w-full py-4 rounded-xl text-sm font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)]"
                   >
-                    Valider mon profil & Générer mon Pass Acheteur
+                    {t.entrepreneurs.submitBuyerBtn}
                   </button>
                 </form>
               )}
@@ -477,7 +477,7 @@ export default function EspaceEntrepreneursPage() {
                   <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
                     <span className="text-amber-400 font-bold">{supp.moqSummary}</span>
                     <Link href="/catalogue" className="text-emerald-400 font-bold hover:underline">
-                      Voir catalogue &rarr;
+                      {t.entrepreneurs.viewCatalogBtn} &rarr;
                     </Link>
                   </div>
                 </div>

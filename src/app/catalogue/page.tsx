@@ -27,6 +27,13 @@ import {
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { useLanguage } from '@/context/LanguageContext';
+import {
+  getLocalizedCountry,
+  getLocalizedSector,
+  getLocalizedProductTitle,
+  getLocalizedProductDesc,
+  getLocalizedProductUnit,
+} from '@/locales';
 
 interface MockProduct {
   id: string;
@@ -504,7 +511,7 @@ export default function CataloguePage() {
         <div className="glass-card p-4 rounded-2xl border border-[#D4AF37]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs font-extrabold text-[#E5A93C] uppercase tracking-wider shrink-0">
             <ArrowRightLeft className="w-4 h-4 text-[#D4AF37]" />
-            <span>{locale === 'fr' ? 'Sélection du Corridor :' : 'Trade Corridor:'}</span>
+            <span>{t.catalogue.filterCorridorLabel}</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full">
@@ -516,7 +523,7 @@ export default function CataloguePage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              {locale === 'fr' ? 'Tous les Corridors' : 'All Corridors'}
+              {t.catalogue.allCorridors}
             </button>
             <button
               onClick={() => setSelectedCorridor('sn-fr')}
@@ -526,7 +533,7 @@ export default function CataloguePage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              🇸🇳 {locale === 'fr' ? 'Sénégal' : 'Senegal'} ➔ 🇫🇷 France
+              🇸🇳 {getLocalizedCountry('Sénégal', locale)} ➔ 🇫🇷 France
             </button>
             <button
               onClick={() => setSelectedCorridor('ci-be')}
@@ -536,7 +543,7 @@ export default function CataloguePage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              🇨🇮 {locale === 'fr' ? "Côte d'Ivoire" : 'Ivory Coast'} ➔ 🇧🇪 {locale === 'fr' ? 'Belgique' : 'Belgium'}
+              🇨🇮 {getLocalizedCountry("Côte d'Ivoire", locale)} ➔ 🇧🇪 {getLocalizedCountry('Belgique', locale)}
             </button>
             <button
               onClick={() => setSelectedCorridor('cm-ue')}
@@ -546,7 +553,7 @@ export default function CataloguePage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              🇨🇲 {locale === 'fr' ? 'Cameroun' : 'Cameroon'} ➔ 🇪🇺 Europe
+              🇨🇲 {getLocalizedCountry('Cameroun', locale)} ➔ 🇪🇺 Europe
             </button>
           </div>
         </div>
@@ -562,7 +569,7 @@ export default function CataloguePage() {
             }`}
           >
             <Building2 className="w-4 h-4 text-[#D4AF37]" />
-            <span>{locale === 'fr' ? 'Vitrines Fournisseurs' : 'Supplier Showcases'}</span>
+            <span>{t.catalogue.tabShowcases}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               activeTab === 'catalogues' ? 'bg-[#D4AF37]/20 text-[#E5A93C]' : 'bg-slate-800 text-slate-400'
             }`}>
@@ -579,7 +586,7 @@ export default function CataloguePage() {
             }`}
           >
             <Package className="w-4 h-4 text-emerald-400" />
-            <span>{locale === 'fr' ? 'Tous les Produits B2B' : 'All B2B Products'}</span>
+            <span>{t.catalogue.tabAllProducts}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               activeTab === 'products' ? 'bg-[#D4AF37]/20 text-[#E5A93C]' : 'bg-slate-800 text-slate-400'
             }`}>
@@ -596,7 +603,7 @@ export default function CataloguePage() {
             }`}
           >
             <Briefcase className="w-4 h-4 text-amber-400" />
-            <span>{locale === 'fr' ? 'Appels d\'Offres Acheteurs' : 'Buyer Sourcing RFQs'}</span>
+            <span>{t.catalogue.tabBuyerRfqs}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               activeTab === 'buyers' ? 'bg-[#D4AF37]/20 text-[#E5A93C]' : 'bg-slate-800 text-slate-400'
             }`}>
@@ -657,13 +664,15 @@ export default function CataloguePage() {
                 onChange={(e) => setSelectedCountry(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-slate-200 focus:ring-2 focus:ring-[#D4AF37]"
               >
-                <option value="all">Tous pays</option>
-                <option value="Sénégal">Sénégal</option>
-                <option value="Côte d'Ivoire">Côte d&apos;Ivoire</option>
-                <option value="Cameroun">Cameroun</option>
-                <option value="France">France</option>
-                <option value="Belgique">Belgique</option>
-                <option value="Madagascar">Madagascar</option>
+                <option value="all">{t.catalogue.filterAllCountries}</option>
+                <option value="Sénégal">{getLocalizedCountry('Sénégal', locale)}</option>
+                <option value="Côte d'Ivoire">{getLocalizedCountry("Côte d'Ivoire", locale)}</option>
+                <option value="Cameroun">{getLocalizedCountry('Cameroun', locale)}</option>
+                <option value="Maroc">{getLocalizedCountry('Maroc', locale)}</option>
+                <option value="RDC">{getLocalizedCountry('RDC', locale)}</option>
+                <option value="France">{getLocalizedCountry('France', locale)}</option>
+                <option value="Belgique">{getLocalizedCountry('Belgique', locale)}</option>
+                <option value="Madagascar">{getLocalizedCountry('Madagascar', locale)}</option>
               </select>
             </div>
 
@@ -676,7 +685,7 @@ export default function CataloguePage() {
                   onChange={(e) => setOnlyVerified(e.target.checked)}
                   className="rounded text-emerald-500 focus:ring-emerald-500 h-4 w-4 bg-slate-950 border-slate-700"
                 />
-                <span>Vérifiés seuls</span>
+                <span>{t.catalogue.filterVerifiedOnly}</span>
               </label>
             </div>
           </div>
@@ -696,32 +705,41 @@ export default function CataloguePage() {
                 >
                   <img
                     src={cat.coverImage}
-                    alt={`Catalogue ${cat.companyName}`}
+                    alt={cat.companyName}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800';
+                    }}
                     className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 opacity-80 group-hover/img:opacity-100"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0B132B] via-[#0B132B]/30 to-transparent" />
                   
                   <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
                     <span className="px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] text-slate-950 shadow-md">
-                      <Sparkles className="w-3.5 h-3.5 inline mr-1" /> Vitrine Catalogue
+                      <Sparkles className="w-3.5 h-3.5 inline mr-1" /> {t.catalogue.showcaseBadge}
                     </span>
                     {cat.isVerified ? (
                       <BadgeVerified />
                     ) : (
                       <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-950/80 text-amber-300 border border-amber-500/30">
-                        Vérification en cours
+                        {t.catalogue.verificationInProgress}
                       </span>
                     )}
                   </div>
 
                   <div className="absolute top-3 right-3 bg-emerald-950/90 text-emerald-300 font-extrabold px-3 py-1 rounded-xl text-xs shadow-md flex items-center gap-1.5 border border-emerald-500/40">
                     <Package className="w-4 h-4 text-emerald-400" />
-                    <span>{cat.productsCount} / 10 produits dispo</span>
+                    <span>
+                      {cat.productsCount} / 10{' '}
+                      {cat.productsCount > 1
+                        ? t.catalogue.productsAvailable
+                        : t.catalogue.productsAvailableSingular}
+                    </span>
                   </div>
 
                   <div className="absolute bottom-3 left-4 right-4 text-white">
                     <span className="text-[11px] uppercase tracking-widest font-black text-[#E5A93C] bg-slate-950/80 px-2.5 py-0.5 rounded border border-[#D4AF37]/30">
-                      {cat.sector}
+                      {getLocalizedSector(cat.sector, locale)}
                     </span>
                     <h3 className="text-lg font-black text-white mt-1 group-hover:text-amber-300 transition-colors">
                       {cat.companyName}
@@ -733,12 +751,12 @@ export default function CataloguePage() {
                   <div className="space-y-2 text-xs text-slate-300">
                     <div className="flex items-center gap-2 font-semibold text-emerald-400">
                       <MapPin className="w-4 h-4 shrink-0" />
-                      <span>{cat.city ? `${cat.city}, ` : ''}{cat.country}</span>
+                      <span>{cat.city ? `${cat.city}, ` : ''}{getLocalizedCountry(cat.country, locale)}</span>
                     </div>
                     <p className="text-slate-400 leading-relaxed line-clamp-2">
                       {cat.products.length > 0
-                        ? `Gamme : ${cat.products.map(p => p.title).join(', ')}`
-                        : 'Catalogue B2B disponible avec offres tarifaires grossiste.'}
+                        ? `${t.catalogue.offeringsPrefix} ${cat.products.map(p => getLocalizedProductTitle(p.title, locale)).join(', ')}`
+                        : t.catalogue.defaultCatalogDesc}
                     </p>
                   </div>
 
@@ -748,7 +766,8 @@ export default function CataloguePage() {
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
                     >
                       <BookOpen className="w-4 h-4 text-slate-950" />
-                      Voir le catalogue complet ({cat.productsCount} produits)
+                      {t.catalogue.viewFullCatalog} ({cat.productsCount}{' '}
+                      {cat.productsCount > 1 ? t.catalogue.productUnit : t.catalogue.productUnitSingular})
                     </button>
                   </div>
                 </div>
@@ -769,6 +788,10 @@ export default function CataloguePage() {
                   <img
                     src={prod.images[0]}
                     alt={prod.title}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800';
+                    }}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
                   />
                   <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
@@ -776,12 +799,12 @@ export default function CataloguePage() {
                       <BadgeVerified />
                     ) : (
                       <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-950 text-amber-300 border border-amber-500/30">
-                        Vérification en cours
+                        {t.catalogue.verificationInProgress}
                       </span>
                     )}
                   </div>
                   <div className="absolute bottom-3 right-3 bg-slate-950/90 text-slate-300 px-2.5 py-1 rounded-md text-xs font-bold border border-slate-700">
-                    Origine : {prod.originCountry}
+                    {t.catalogue.originLabel} {getLocalizedCountry(prod.originCountry, locale)}
                   </div>
                 </div>
 
@@ -789,7 +812,7 @@ export default function CataloguePage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-extrabold text-amber-400 bg-amber-950/60 px-2.5 py-0.5 rounded border border-amber-500/30">
-                        {prod.category}
+                        {getLocalizedSector(prod.category, locale)}
                       </span>
                       <span className="font-semibold text-slate-300">
                         {prod.company.companyName}
@@ -797,11 +820,11 @@ export default function CataloguePage() {
                     </div>
 
                     <h3 className="text-base font-black text-white line-clamp-2 group-hover:text-amber-300 transition-colors">
-                      {prod.title}
+                      {getLocalizedProductTitle(prod.title, locale)}
                     </h3>
 
                     <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                      {prod.description}
+                      {getLocalizedProductDesc(prod.description, prod.title, locale)}
                     </p>
                   </div>
 
@@ -809,20 +832,20 @@ export default function CataloguePage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                          Prix Indicatif B2B
+                          {t.catalogue.indicativeB2bPrice}
                         </p>
                         <p className="text-base font-black text-white">
                           {prod.priceMin.toFixed(2)} - {prod.priceMax.toFixed(2)} {prod.currency}
-                          <span className="text-xs font-normal text-slate-400"> / {prod.unit}</span>
+                          <span className="text-xs font-normal text-slate-400"> / {getLocalizedProductUnit(prod.unit, prod.title, locale)}</span>
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                          Commande Min. (MOQ)
+                          {t.catalogue.minOrderMoq}
                         </p>
                         <p className="text-xs font-bold text-emerald-400 flex items-center gap-1 justify-end bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
                           <Package className="w-3.5 h-3.5" />
-                          {prod.moq} {prod.unit}s
+                          {prod.moq} {getLocalizedProductUnit(prod.unit, prod.title, locale)}s
                         </p>
                       </div>
                     </div>
@@ -835,7 +858,7 @@ export default function CataloguePage() {
                       className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
                     >
                       <Send className="w-3.5 h-3.5 text-slate-950" />
-                      Demander un devis au grossiste
+                      {t.catalogue.requestWholesaleQuote}
                     </button>
                   </div>
                 </div>
@@ -857,14 +880,14 @@ export default function CataloguePage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#D4AF37] text-slate-950 flex items-center gap-1 shadow-sm">
-                          <Sparkles className="w-3 h-3" /> Espace Publicitaire Acheteur
+                          <Sparkles className="w-3 h-3" /> {t.catalogue.buyerAdSpace}
                         </span>
                       </div>
                       <h3 className="text-lg font-black text-white mt-2 flex items-center gap-2">
                         {buyer.companyName}
                       </h3>
                       <p className="text-xs text-slate-400">
-                        {buyer.buyerType} &bull; {buyer.city}, {buyer.country}
+                        {buyer.buyerType} &bull; {buyer.city}, {getLocalizedCountry(buyer.country, locale)}
                       </p>
                     </div>
                     {buyer.isKbisVerified && (
@@ -875,28 +898,28 @@ export default function CataloguePage() {
                   <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-700/80 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-[#E5A93C] uppercase text-[10px] tracking-wider">
-                        Besoin de sourcing / Appel d&apos;offres
+                        {t.catalogue.buyerRfqTitle}
                       </span>
                       <span className="font-extrabold text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded border border-emerald-500/30">
-                        Budget : {buyer.estimatedBudget}
+                        {t.catalogue.budgetLabel} {buyer.estimatedBudget}
                       </span>
                     </div>
                     <p className="text-sm text-slate-200 leading-relaxed font-medium">
-                      &ldquo;{buyer.sourcingNeeds || 'Recherche de fournisseurs fiables et partenaires grossistes.'}&rdquo;
+                      &ldquo;{buyer.sourcingNeeds || t.catalogue.defaultBuyerNeeds}&rdquo;
                     </p>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
                   <div className="text-xs text-slate-400">
-                    Contact certifié : <span className="font-bold text-white">{buyer.fullName}</span>
+                    {t.catalogue.certifiedContact} <span className="font-bold text-white">{buyer.fullName}</span>
                   </div>
                   <button
                     onClick={() => setSelectedBuyerForProposal(buyer)}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
                   >
                     <Send className="w-3.5 h-3.5 text-slate-950" />
-                    Proposer mon catalogue
+                    {t.catalogue.proposeCatalog}
                   </button>
                 </div>
               </div>
@@ -919,7 +942,7 @@ export default function CataloguePage() {
             <div className="border-b border-slate-800 pb-5 mb-6 pr-10">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] text-slate-950 flex items-center gap-1 shadow-sm">
-                  <Sparkles className="w-3.5 h-3.5" /> Vitrine Catalogue Officielle
+                  <Sparkles className="w-3.5 h-3.5" /> {t.catalogue.officialShowcase}
                 </span>
                 {selectedSupplierCatalog.isVerified && (
                   <BadgeVerified />
@@ -931,16 +954,16 @@ export default function CataloguePage() {
               </h2>
               <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-emerald-400" />
-                <span>{selectedSupplierCatalog.city ? `${selectedSupplierCatalog.city}, ` : ''}{selectedSupplierCatalog.country}</span>
+                <span>{selectedSupplierCatalog.city ? `${selectedSupplierCatalog.city}, ` : ''}{getLocalizedCountry(selectedSupplierCatalog.country, locale)}</span>
                 <span className="text-slate-600">&bull;</span>
-                <span className="font-semibold text-amber-300">{selectedSupplierCatalog.sector}</span>
+                <span className="font-semibold text-amber-300">{getLocalizedSector(selectedSupplierCatalog.sector, locale)}</span>
               </p>
             </div>
 
             {selectedSupplierCatalog.products.length === 0 ? (
               <div className="py-12 text-center text-slate-400 bg-slate-900/60 rounded-2xl border border-slate-800">
                 <Package className="w-10 h-10 text-slate-500 mx-auto mb-2" />
-                <p className="font-medium text-sm">Ce fournisseur n&apos;a pas encore ajouté d&apos;articles à son catalogue.</p>
+                <p className="font-medium text-sm">{t.catalogue.emptySupplierCatalog}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-h-[60vh] overflow-y-auto pr-1">
@@ -953,23 +976,27 @@ export default function CataloguePage() {
                       <img
                         src={p.images[0]}
                         alt={p.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800';
+                        }}
                         className="w-full h-full object-cover"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <h4 className="font-black text-sm text-white line-clamp-1">{p.title}</h4>
-                      <p className="text-xs text-slate-400 line-clamp-2">{p.description}</p>
+                      <h4 className="font-black text-sm text-white line-clamp-1">{getLocalizedProductTitle(p.title, locale)}</h4>
+                      <p className="text-xs text-slate-400 line-clamp-2">{getLocalizedProductDesc(p.description, p.title, locale)}</p>
                     </div>
 
                     <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
                       <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Prix B2B</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">{t.catalogue.b2bPrice}</span>
                         <span className="font-black text-white">{p.priceMin} - {p.priceMax} {p.currency}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-slate-400 uppercase font-bold block">MOQ</span>
-                        <span className="font-bold text-emerald-400">{p.moq} {p.unit}s</span>
+                        <span className="font-bold text-emerald-400">{p.moq} {getLocalizedProductUnit(p.unit, p.title, locale)}s</span>
                       </div>
                     </div>
 
@@ -981,7 +1008,7 @@ export default function CataloguePage() {
                       className="w-full py-2 px-3 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Send className="w-3.5 h-3.5 text-slate-950" />
-                      Demander un devis
+                      {t.catalogue.requestQuoteBtn}
                     </button>
                   </div>
                 ))}
@@ -1007,9 +1034,9 @@ export default function CataloguePage() {
                 <div className="w-16 h-16 bg-emerald-950 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Demande de devis transmise !</h3>
+                <h3 className="text-xl font-bold text-white">{t.catalogue.quoteSentSuccessTitle}</h3>
                 <p className="text-sm text-slate-300 max-w-sm mx-auto">
-                  Votre demande a été envoyée directement au fournisseur{' '}
+                  {t.catalogue.quoteSentSuccessDesc}{' '}
                   <span className="font-bold text-amber-300">{selectedProductForQuote.company.companyName}</span>.
                 </p>
               </div>
@@ -1017,16 +1044,16 @@ export default function CataloguePage() {
               <form onSubmit={handleSendQuote} className="space-y-4">
                 <div className="border-b border-slate-800 pb-3">
                   <span className="text-xs font-extrabold text-[#E5A93C] uppercase tracking-wider">
-                    Mise en Relation B2B
+                    {t.catalogue.b2bConnectionBadge}
                   </span>
                   <h3 className="text-lg font-black text-white mt-1">
-                    Demander un devis : {selectedProductForQuote.title}
+                    {t.catalogue.requestQuoteFor} {getLocalizedProductTitle(selectedProductForQuote.title, locale)}
                   </h3>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Quantité souhaitée ({selectedProductForQuote.unit}s) &bull; MOQ : {selectedProductForQuote.moq}
+                    {t.catalogue.desiredQuantity} ({getLocalizedProductUnit(selectedProductForQuote.unit, selectedProductForQuote.title, locale)}s) &bull; MOQ : {selectedProductForQuote.moq}
                   </label>
                   <input
                     type="number"
@@ -1040,14 +1067,14 @@ export default function CataloguePage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Message & Spécifications de livraison
+                    {t.catalogue.messageAndSpecs}
                   </label>
                   <textarea
                     rows={4}
                     value={quoteMessage}
                     onChange={(e) => setQuoteMessage(e.target.value)}
                     required
-                    placeholder="Précisez votre port de livraison, vos besoins en certificat phytosanitaire..."
+                    placeholder={t.catalogue.quoteMessagePlaceholder}
                     className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37]"
                   />
                 </div>
@@ -1058,14 +1085,82 @@ export default function CataloguePage() {
                     onClick={() => setSelectedProductForQuote(null)}
                     className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
                   >
-                    Annuler
+                    {t.catalogue.cancelBtn}
                   </button>
                   <button
                     type="submit"
                     className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] rounded-xl shadow-md transition-all"
                   >
                     <Send className="w-3.5 h-3.5 text-slate-950" />
-                    Envoyer ma demande sécurisée
+                    {t.catalogue.sendSecureRequestBtn}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODALE DE PROPOSITION CATALOGUE POUR UN ACHETEUR */}
+      {selectedBuyerForProposal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="glass-card rounded-3xl max-w-lg w-full p-6 border border-[#D4AF37]/40 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setSelectedBuyerForProposal(null)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {proposalSuccess ? (
+              <div className="py-8 text-center space-y-4">
+                <div className="w-16 h-16 bg-emerald-950 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-10 h-10" />
+                </div>
+                <h3 className="text-xl font-bold text-white">{t.catalogue.proposalSentSuccessTitle}</h3>
+                <p className="text-sm text-slate-300 max-w-sm mx-auto">
+                  {t.catalogue.proposalSentSuccessDesc}
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSendProposal} className="space-y-4">
+                <div className="border-b border-slate-800 pb-3">
+                  <span className="text-xs font-extrabold text-[#E5A93C] uppercase tracking-wider">
+                    {t.catalogue.b2bConnectionBadge}
+                  </span>
+                  <h3 className="text-lg font-black text-white mt-1">
+                    {t.catalogue.proposalModalTitle} : {selectedBuyerForProposal.companyName}
+                  </h3>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    {t.catalogue.proposalMessageLabel}
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={proposalMessage}
+                    onChange={(e) => setProposalMessage(e.target.value)}
+                    required
+                    placeholder={t.catalogue.proposalPlaceholder}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBuyerForProposal(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  >
+                    {t.catalogue.cancelBtn}
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] rounded-xl shadow-md transition-all"
+                  >
+                    <Send className="w-3.5 h-3.5 text-slate-950" />
+                    {t.catalogue.sendProposalBtn}
                   </button>
                 </div>
               </form>
