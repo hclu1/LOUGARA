@@ -22,6 +22,112 @@ export const en = {
     selectCurrency: 'Select currency',
   },
 
+  // Page d'Accueil (Landing Page)
+  home: {
+    badge: 'Secure Africa • Europe B2B Platform',
+    h1Main: 'Trusted B2B Sourcing.',
+    h1Gold: 'Suppliers verified on official records.',
+    heroDesc: 'Lougara eliminates cross-border trade risks by manually auditing company registration, legal signatures, and tax compliance for every single supplier.',
+    ctaBuyers: 'Entrepreneurs Space',
+    ctaExplore: 'Explore Catalog',
+    statsControlled: 'Controlled companies',
+    statsFake: 'Fake profiles tolerated',
+    statsCorridor: 'France • West Africa',
+    statsDirect: 'RFQs & direct messaging',
+    lastAudited: 'Latest Audited Company',
+    viewProof: 'Official administrative audit verified',
+    productsCount: 'products available in catalog',
+    sectorsTitle: 'Leading Industry Sectors',
+    sectorsSubtitle: 'Flagship sectors audited on official records for solid, long-term commercial partnerships.',
+    howItWorksTitle: 'How Does Lougara B2B Work?',
+    howItWorksSubtitle: 'A transparent trade corridor, secured end-to-end through upfront document verification.',
+    step1Title: '1. Legal Registration & KYB Audit',
+    step1Desc: 'Each supplier submits their official trade register (Kbis or RCCM) and tax certificate, manually checked within 24h.',
+    step2Title: '2. Free Catalog Browsing',
+    step2Desc: 'Buyers openly explore certified products, origins, MOQs, specifications, and wholesale prices.',
+    step3Title: '3. Secure Direct Connection',
+    step3Desc: 'Unlock official supplier contacts, chat directly, and negotiate verified quotes.',
+    bannerKybTitle: 'Are you a wholesaler, producer, or exporter?',
+    bannerKybDesc: 'Join the verified Lougara network, earn your Verified Supplier badge, and grow your international clientele.',
+    bannerKybCta: 'Submit supplier application',
+  },
+
+  // Catalogue
+  catalogue: {
+    title: 'B2B Catalog & Certified Sourcing',
+    subtitle: 'Discover verified wholesalers and manufacturers across Africa and Europe. Technical specs, MOQs, and direct RFQs.',
+    searchPlaceholder: 'Search for a product, ingredient, raw material...',
+    filterAllCategories: 'All categories',
+    filterOrigin: 'Country of origin',
+    filterMoq: 'Minimum Order Quantity (MOQ)',
+    resultsCount: 'products found',
+    noResults: 'No products match your search criteria.',
+    viewDetails: 'View details',
+    requestQuote: 'Request verified quote',
+    verifiedSupplier: 'KYB Verified Supplier',
+    sponsoredBuyerBadge: 'Verified B2B Buyer',
+    buyerNeeds: 'Sourcing needs:',
+    origin: 'Origin:',
+    moqLabel: 'MOQ:',
+  },
+
+  // Entrepreneurs
+  entrepreneurs: {
+    title: 'Entrepreneurs & B2B Sourcing Space',
+    subtitle: 'Access the directory of companies audited on official proof and submit direct quotation requests.',
+    searchSuppliersPlaceholder: 'Filter by company, sector, or city...',
+    verifiedDirectory: 'Directory of Verified Suppliers',
+    requestQuoteModalTitle: 'Request a verified quote',
+    messagePlaceholder: 'Please describe your desired volumes, destination port, and expected lead times...',
+    sendRequest: 'Submit my request',
+    sectorsBadge: 'Sector',
+    regNumBadge: 'Registration No.',
+    directContactBtn: 'Connect with this supplier',
+  },
+
+  // Devenir Fournisseur
+  becomeSupplier: {
+    title: 'Become a Lougara Verified Supplier',
+    subtitle: 'Join the trusted trade corridor and showcase your products to professional buyers across Africa and Europe.',
+    companyName: 'Official company name',
+    registrationNumber: 'Legal ID (RCCM / SIRET / NINEA)',
+    country: 'Headquarters country',
+    city: 'City of operations',
+    sector: 'Primary business sector',
+    uploadKbis: 'Upload official company extract (Kbis / RCCM in PDF or scan)',
+    submitApplication: 'Submit audit application',
+    successTitle: 'Application submitted successfully',
+    successMsg: 'Your file is being reviewed by our compliance team. You will receive an update within 24 business hours.',
+  },
+
+  // Garantie Vérification
+  verification: {
+    title: 'Audit Protocol & KYB Verification Guarantee',
+    subtitle: 'How Lougara secures cross-border transactions through a strict 4-point administrative audit.',
+    pillar1Title: '1. Active Legal Existence',
+    pillar1Desc: 'Systematic check against the official national commercial register (French Greffe Kbis, OHADA RCCM in West Africa).',
+    pillar2Title: '2. Legal Representative Authority',
+    pillar2Desc: 'Strict match between the registered corporate officer and official government-issued photo ID.',
+    pillar3Title: '3. Fiscal & Banking Compliance',
+    pillar3Desc: 'Verification of national tax identification (NIF, NINEA, EU VAT number) and verified business address.',
+    pillar4Title: '4. Physical Operational Capacity',
+    pillar4Desc: 'Review of actual processing facilities, warehouses, production volume capabilities, and direct corporate contacts.',
+    acceptedDocs: 'Accepted legal documents: Recent commercial register extract (< 3 months), OHADA RCCM, Tax certificate, Manager Passport/ID.',
+    whyKyb: 'Why is KYB auditing crucial in B2B? It eliminates 100% of shell companies and guarantees safe advance payments.',
+  },
+
+  // Connexion
+  connexion: {
+    title: 'Sign in to your Lougara space',
+    subtitle: 'Access your secure supplier or entrepreneur dashboard.',
+    emailLabel: 'Professional email address',
+    roleLabel: 'I am a:',
+    roleBuyer: 'Entrepreneur / Buyer',
+    roleSupplier: 'Supplier / Vendor',
+    submitBtn: 'Sign In to Lougara',
+    quickDemoNotice: 'Instant secure login without complex passwords for authorized user accounts.',
+  },
+
   // Tarifs
   pricing: {
     badge: 'Official Pricing • No Commitment • Cancel Anytime',
@@ -156,8 +262,21 @@ export const en = {
 
   // Footer
   footer: {
-    tagline: 'The trusted B2B marketplace bridging verified suppliers and ambitious entrepreneurs across Africa and Europe.',
-    rights: 'All rights reserved.',
-    securityNote: 'Rigorous KYB checks, official RCCM/Kbis company registries audited on official proof.',
+    brandDesc: 'The trusted B2B sourcing platform bridging ambitious entrepreneurs and verified wholesalers across Africa and Europe. Rigorous document auditing, officially registered companies checked on verified legal records.',
+    auditCharter: 'Strict Administrative KYB Audit Charter (RCCM / Kbis / Tax ID / Photo ID)',
+    sectorsHeading: 'Pilot Sectors',
+    corridorsHeading: 'Strategic Corridors',
+    auditGuideLink: 'Audit Protocol Guide →',
+    pricingLink: 'Pricing & Subscription Plans →',
+    copyright: 'All rights reserved.',
+    platformSub: 'Verified B2B sourcing & business matchmaking platform.',
+    sectorCosmetic: 'Cosmetics & Natural Beauty',
+    sectorTextile: 'Textile, Cotton & Wax Fabrics',
+    sectorAgro: 'Agri-food & Noble Spices',
+    sectorCraft: 'Artisanal Craft & African Art Deco',
+    corridor1: 'Senegal • France',
+    corridor2: 'Ivory Coast • Belgium',
+    corridor3: 'Cameroon • European Union',
+    corridor4: 'WAEMU Zone • Central Europe',
   },
 };

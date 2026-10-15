@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, ShieldCheck, UserCheck, ArrowRight, Sparkles, Building2, Users, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth, MODERATOR_EMAILS, SUPER_ADMIN_EMAIL } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function ConnexionPage() {
   const router = useRouter();
   const { user, login, logout, isModerator } = useAuth();
+  const { t, locale } = useLanguage();
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export default function ConnexionPage() {
     setSuccessNotice(null);
 
     if (!emailInput.trim()) {
-      setErrorNotice('Veuillez saisir une adresse e-mail valide.');
+      setErrorNotice(locale === 'fr' ? 'Veuillez saisir une adresse e-mail valide.' : 'Please enter a valid email address.');
       return;
     }
 
@@ -28,12 +30,20 @@ export default function ConnexionPage() {
     await login(cleanEmail);
 
     if (MODERATOR_EMAILS.includes(cleanEmail)) {
-      setSuccessNotice(`Connexion réussie en tant que Modérateur avec ${cleanEmail}. Redirection vers l'Espace Modérateur...`);
+      setSuccessNotice(
+        locale === 'fr'
+          ? `Connexion réussie en tant que Modérateur avec ${cleanEmail}. Redirection vers l'Espace Modérateur...`
+          : `Signed in as Moderator with ${cleanEmail}. Redirecting to Moderator Space...`
+      );
       setTimeout(() => {
         router.push('/moderation');
       }, 1200);
     } else {
-      setSuccessNotice(`Bienvenue ! Vous êtes connecté sous ${cleanEmail}.`);
+      setSuccessNotice(
+        locale === 'fr'
+          ? `Bienvenue ! Vous êtes connecté sous ${cleanEmail}.`
+          : `Welcome! You are signed in as ${cleanEmail}.`
+      );
     }
   };
 
@@ -41,12 +51,20 @@ export default function ConnexionPage() {
     setEmailInput(email);
     await login(email);
     if (MODERATOR_EMAILS.includes(email.toLowerCase())) {
-      setSuccessNotice(`Accréditations modérateur validées pour ${email}. Redirection...`);
+      setSuccessNotice(
+        locale === 'fr'
+          ? `Accréditations modérateur validées pour ${email}. Redirection...`
+          : `Moderator credentials verified for ${email}. Redirecting...`
+      );
       setTimeout(() => {
         router.push('/moderation');
       }, 1000);
     } else {
-      setSuccessNotice(`Bienvenue ! Connecté sous ${email}.`);
+      setSuccessNotice(
+        locale === 'fr'
+          ? `Bienvenue ! Connecté sous ${email}.`
+          : `Welcome! Signed in as ${email}.`
+      );
     }
   };
 
@@ -58,9 +76,9 @@ export default function ConnexionPage() {
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#D4AF37] via-[#E5A93C] to-[#B8860B] flex items-center justify-center text-slate-950 font-black text-3xl mx-auto shadow-[0_0_25px_rgba(212,175,55,0.4)] border border-amber-200/50">
             L
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Connexion & Accès</h1>
+          <h1 className="text-3xl font-black text-white tracking-tight">{t.connexion.title}</h1>
           <p className="text-xs text-slate-400">
-            Connectez-vous à votre espace Entrepreneur, Fournisseur ou Modérateur LOUGARA.
+            {t.connexion.subtitle}
           </p>
         </div>
 
@@ -71,22 +89,28 @@ export default function ConnexionPage() {
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white">Vous êtes actuellement connecté</h2>
+              <h2 className="text-lg font-black text-white">
+                {locale === 'fr' ? 'Vous êtes actuellement connecté' : 'You are currently signed in'}
+              </h2>
               <p className="text-sm text-amber-300 font-bold mt-1">{user.email}</p>
               <p className="text-xs text-slate-400 mt-0.5 uppercase tracking-wider font-mono">
-                Rôle : {user.role}
+                {locale === 'fr' ? 'Rôle :' : 'Role:'} {user.role}
               </p>
             </div>
 
             {isModerator && (
               <div className="p-3 bg-amber-950/60 rounded-2xl border border-amber-500/40 text-xs text-amber-200 font-bold space-y-2">
-                <p>✨ Votre compte dispose d&apos;un accès complet à l&apos;Espace Modérateur.</p>
+                <p>
+                  {locale === 'fr'
+                    ? '✨ Votre compte dispose d\'un accès complet à l\'Espace Modérateur.'
+                    : '✨ Your account has full access to the Moderator Space.'}
+                </p>
                 <Link
                   href="/moderation"
                   className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] shadow-md"
                 >
                   <Lock className="w-4 h-4 text-slate-950" />
-                  Accéder à l&apos;Espace Modérateur
+                  <span>{t.nav.moderator}</span>
                 </Link>
               </div>
             )}
@@ -96,7 +120,7 @@ export default function ConnexionPage() {
                 onClick={logout}
                 className="w-full py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-300 bg-slate-900 border border-slate-700 transition-colors"
               >
-                Se déconnecter
+                {t.nav.logout}
               </button>
             </div>
           </div>
@@ -119,13 +143,13 @@ export default function ConnexionPage() {
 
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Adresse E-mail *</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">{t.connexion.emailLabel} *</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
                     type="email"
                     required
-                    placeholder="votre-email@exemple.com"
+                    placeholder="contact@entreprise.com"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37]"
@@ -134,7 +158,9 @@ export default function ConnexionPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Mot de passe</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  {locale === 'fr' ? 'Mot de passe (optionnel pour la démo)' : 'Password (optional for demo)'}
+                </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
@@ -151,14 +177,14 @@ export default function ConnexionPage() {
                 type="submit"
                 className="w-full py-3.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
               >
-                Se Connecter
+                {t.connexion.submitBtn}
               </button>
             </form>
 
             {/* QUICK ACCESS FOR AUTHORIZED MODERATOR ACCOUNTS */}
             <div className="pt-4 border-t border-slate-800 space-y-3">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#E5A93C] block text-center">
-                Accès Rapide Comptes Modérateurs Agréés :
+                {locale === 'fr' ? 'Accès Rapide Comptes Modérateurs Agréés :' : 'Quick Access Authorized Moderator Accounts:'}
               </span>
               <div className="grid grid-cols-1 gap-2">
                 <button
@@ -171,7 +197,7 @@ export default function ConnexionPage() {
                     asherilla4@gmail.com
                   </span>
                   <span className="text-[10px] bg-amber-950 px-2 py-0.5 rounded text-amber-300 border border-amber-500/30">
-                    Modérateur
+                    {locale === 'fr' ? 'Modérateur' : 'Moderator'}
                   </span>
                 </button>
 
@@ -185,7 +211,7 @@ export default function ConnexionPage() {
                     champagcrypt@gmail.com
                   </span>
                   <span className="text-[10px] bg-emerald-950 px-2 py-0.5 rounded text-emerald-300 border border-emerald-500/30">
-                    Super Admin
+                    {locale === 'fr' ? 'Super Admin' : 'Super Admin'}
                   </span>
                 </button>
               </div>

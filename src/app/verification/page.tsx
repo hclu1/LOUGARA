@@ -19,8 +19,11 @@ import {
   Scan,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function VerificationPage() {
+  const { t, locale } = useLanguage();
+
   return (
     <div className="min-h-screen bg-[#0B132B] text-slate-100 py-12 px-4 sm:px-6 lg:px-8 space-y-16">
       <div className="max-w-7xl mx-auto space-y-16">
@@ -28,16 +31,15 @@ export default function VerificationPage() {
         <section className="text-center max-w-3xl mx-auto space-y-6 pt-6">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-extrabold bg-[#D4AF37]/10 text-[#E5A93C] border border-[#D4AF37]/30 shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             <Award className="w-4 h-4 text-[#D4AF37]" />
-            <span>Charte d&apos;Audit Administratif & Audit Physique Rigoureux</span>
+            <span>{locale === 'fr' ? 'Charte d\'Audit Administratif & Audit Physique Rigoureux' : 'Rigorous KYB Administrative & Physical Audit Protocol'}</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-            La Garantie Vérification <span className="text-gold-gradient">Lougara B2B</span>
+            {t.verification.title}
           </h1>
 
           <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
-            La confiance ne s&apos;accorde pas sur parole : elle se prouve par une procédure d&apos;audit en 4 piliers. Chaque fournisseur portant le badge{' '}
-            <BadgeVerified className="ml-1 inline-flex" /> a fait l&apos;objet d&apos;un contrôle rigoureux de ses documents légaux et de ses capacités d&apos;exportation.
+            {t.verification.subtitle}
           </p>
 
           <div className="flex flex-wrap justify-center gap-4 pt-2">
@@ -46,7 +48,7 @@ export default function VerificationPage() {
               className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] rounded-xl shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all"
             >
               <Search className="w-4 h-4" />
-              Consulter le Catalogue Vérifié
+              <span>{locale === 'fr' ? 'Consulter le Catalogue Vérifié' : 'Browse Verified Catalog'}</span>
             </Link>
 
             <Link
@@ -54,7 +56,7 @@ export default function VerificationPage() {
               className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-extrabold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)]"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Soumettre mon Entreprise pour Audit
+              <span>{locale === 'fr' ? 'Soumettre mon Entreprise pour Audit' : 'Submit Company for Audit'}</span>
             </Link>
           </div>
         </section>
@@ -63,13 +65,15 @@ export default function VerificationPage() {
         <section className="space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">
-              Protocoles de Sécurisation Transfrontalière
+              {locale === 'fr' ? 'Protocoles de Sécurisation Transfrontalière' : 'Cross-border Security Protocols'}
             </span>
             <h2 className="text-3xl font-extrabold text-white">
-              Les 4 Piliers de l&apos;Audit de Conformité
+              {locale === 'fr' ? 'Les 4 Piliers de l\'Audit de Conformité' : 'The 4 Pillars of Compliance Audit'}
             </h2>
             <p className="text-slate-400 text-sm">
-              Découvrez la méthodologie systématique appliquée par les auditeurs Lougara avant l&apos;octroi du statut officiel.
+              {locale === 'fr'
+                ? 'Découvrez la méthodologie systématique appliquée par les auditeurs Lougara avant l\'octroi du statut officiel.'
+                : 'Discover the systematic methodology executed by Lougara compliance auditors before granting official status.'}
             </p>
           </div>
 
@@ -81,30 +85,30 @@ export default function VerificationPage() {
                   <FileCheck2 className="w-6 h-6" />
                 </div>
                 <span className="text-xs font-mono font-extrabold text-[#D4AF37] bg-amber-950/60 border border-amber-500/30 px-3 py-1 rounded-full">
-                  Pilier 01
+                  {locale === 'fr' ? 'Pilier 01' : 'Pillar 01'}
                 </span>
               </div>
 
               <h3 className="text-xl font-bold text-white">
-                1. Registre du Commerce & Greffe Officiel (RCCM / Kbis)
+                {t.verification.pillar1Title}
               </h3>
 
               <p className="text-sm text-slate-300 leading-relaxed">
-                Contrôle de l&apos;immatriculation légale active auprès des tribunaux de commerce (Kbis en France / RCCM dans la zone OHADA & UEMOA). Nous vérifions l&apos;existence juridique, la forme de la société et l&apos;absence de procédure collective d&apos;apurement.
+                {t.verification.pillar1Desc}
               </p>
 
               <div className="pt-2 space-y-2 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Validation du Numéro SIREN / SIRET / RCCM</span>
+                  <span>{locale === 'fr' ? 'Validation du Numéro SIREN / SIRET / RCCM' : 'Validation of SIREN / SIRET / RCCM legal ID'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Vérification du rôle légal du gérant ou mandataire</span>
+                  <span>{locale === 'fr' ? 'Vérification du rôle légal du gérant ou mandataire' : 'Verification of legal representative authority'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Conformité de l&apos;objet social avec le secteur déclaré</span>
+                  <span>{locale === 'fr' ? 'Conformité de l\'objet social avec le secteur déclaré' : 'Corporate purpose match with declared trade sector'}</span>
                 </div>
               </div>
             </div>
@@ -116,30 +120,30 @@ export default function VerificationPage() {
                   <Stamp className="w-6 h-6" />
                 </div>
                 <span className="text-xs font-mono font-extrabold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full">
-                  Pilier 02
+                  {locale === 'fr' ? 'Pilier 02' : 'Pillar 02'}
                 </span>
               </div>
 
               <h3 className="text-xl font-bold text-white">
-                2. Analyse des Signatures, Sceaux & Tampons Officiels
+                {t.verification.pillar2Title}
               </h3>
 
               <p className="text-sm text-slate-300 leading-relaxed">
-                Reconnaissance et examen approfondi des tampons officiels, des sceaux de greffes et des signatures des représentants légaux. Notre outil d&apos;inspection intègre un grossissement optique 2.5x pour détecter la falsification documentaire.
+                {t.verification.pillar2Desc}
               </p>
 
               <div className="pt-2 space-y-2 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Authentification optique des tampons et sceaux du greffe</span>
+                  <span>{locale === 'fr' ? 'Authentification optique des tampons et sceaux officiels' : 'Optical authentication of official clerk seals'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Concordance CNI / Passeport du représentant légal</span>
+                  <span>{locale === 'fr' ? 'Concordance CNI / Passeport du représentant légal' : 'Photo ID / Passport match with authorized signatory'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Contrôle anti-usurpation d&apos;identité d&apos;entreprise</span>
+                  <span>{locale === 'fr' ? 'Contrôle anti-usurpation d\'identité d\'entreprise' : 'Strict corporate anti-impersonation filter'}</span>
                 </div>
               </div>
             </div>
@@ -151,30 +155,30 @@ export default function VerificationPage() {
                   <Receipt className="w-6 h-6" />
                 </div>
                 <span className="text-xs font-mono font-extrabold text-[#D4AF37] bg-amber-950/60 border border-amber-500/30 px-3 py-1 rounded-full">
-                  Pilier 03
+                  {locale === 'fr' ? 'Pilier 03' : 'Pillar 03'}
                 </span>
               </div>
 
               <h3 className="text-xl font-bold text-white">
-                3. Conformité Fiscale & Attestation NIF / NINEA
+                {t.verification.pillar3Title}
               </h3>
 
               <p className="text-sm text-slate-300 leading-relaxed">
-                Vérification du numéro d&apos;identification fiscale (NINEA au Sénégal, NIF en Côte d&apos;Ivoire et Afrique centrale, numéro de TVA intracommunautaire en Europe). Cette étape certifie l&apos;aptitude de l&apos;entreprise à émettre des factures officielles d&apos;exportation.
+                {t.verification.pillar3Desc}
               </p>
 
               <div className="pt-2 space-y-2 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Attestation d&apos;immatriculation fiscale en règle</span>
+                  <span>{locale === 'fr' ? 'Attestation d\'immatriculation fiscale en règle' : 'Up-to-date active tax identification'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Capacité de facturation B2B internationale</span>
+                  <span>{locale === 'fr' ? 'Capacité de facturation B2B internationale' : 'Official international B2B invoicing capacity'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Traçabilité des coordonnées bancaires d&apos;entreprise</span>
+                  <span>{locale === 'fr' ? 'Traçabilité des coordonnées bancaires d\'entreprise' : 'Verified commercial bank account traceability'}</span>
                 </div>
               </div>
             </div>
@@ -186,30 +190,30 @@ export default function VerificationPage() {
                   <Factory className="w-6 h-6" />
                 </div>
                 <span className="text-xs font-mono font-extrabold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full">
-                  Pilier 04
+                  {locale === 'fr' ? 'Pilier 04' : 'Pillar 04'}
                 </span>
               </div>
 
               <h3 className="text-xl font-bold text-white">
-                4. Localisation des Entrepôts & Capacité de Production
+                {t.verification.pillar4Title}
               </h3>
 
               <p className="text-sm text-slate-300 leading-relaxed">
-                Validation de la réalité physique des infrastructures de stockage, des coopératives ou des unités de transformation. Nous testons également la réactivité de la ligne directe professionnelle et les MOQ (Quantités Minimales).
+                {t.verification.pillar4Desc}
               </p>
 
               <div className="pt-2 space-y-2 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Géolocalisation certifiée des entrepôts et ports de départ</span>
+                  <span>{locale === 'fr' ? 'Géolocalisation certifiée des entrepôts et ports de départ' : 'Certified geolocated warehouses and export ports'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Vérification des volumes de stock disponibles</span>
+                  <span>{locale === 'fr' ? 'Vérification des volumes de stock disponibles' : 'Live stock volume validation'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Test de réactivité du service export sous 24h</span>
+                  <span>{locale === 'fr' ? 'Test de réactivité du service export sous 24h' : '24h export communication responsiveness test'}</span>
                 </div>
               </div>
             </div>
@@ -224,11 +228,13 @@ export default function VerificationPage() {
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              Une protection totale contre la fraude B2B transfrontalière
+              {locale === 'fr' ? 'Une protection totale contre la fraude B2B transfrontalière' : 'Total protection against cross-border B2B fraud'}
             </h2>
 
             <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-              En éliminant à la source les faux profils et les entreprises non immatriculées, Lougara garantit aux acheteurs européens et africains des transactions sereines, directes et sécurisées.
+              {locale === 'fr'
+                ? 'En éliminant à la source les faux profils et les entreprises non immatriculées, Lougara garantit aux acheteurs européens et africains des transactions sereines, directes et sécurisées.'
+                : 'By removing fake profiles and unverified entities at the root, Lougara empowers European and African trade partners with verified, direct, and worry-free transactions.'}
             </p>
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -236,7 +242,7 @@ export default function VerificationPage() {
                 href="/devenir-fournisseur"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] rounded-xl shadow-[0_0_25px_rgba(212,175,55,0.35)] transition-all"
               >
-                <span>Faire auditer mon entreprise</span>
+                <span>{locale === 'fr' ? 'Faire auditer mon entreprise' : 'Submit my company for audit'}</span>
                 <ArrowRight className="w-5 h-5 text-slate-950" />
               </Link>
             </div>

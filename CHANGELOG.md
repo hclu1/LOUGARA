@@ -4,6 +4,20 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.13.1] - 2026-10-15
+### Ajouté — Internationalisation Intégrale FR / EN sur l'Ensemble de l'Application
+- **Généralisation du Support Bilingue Multi-Pages** :
+  - **Accueil (`/`)** : Hero section, badges de confiance, 4 secteurs pilotes, garantie d'audit KYB et bannières d'inscription traduits en français et anglais.
+  - **Catalogue & Sourcing (`/catalogue`)** : En-têtes, sélecteur de corridors commerciaux, filtres de catégories, onglets vitrines/produits/acheteurs, boutons de devis et libellés de recherche traduits.
+  - **Espace Entrepreneurs (`/entrepreneurs`)** : Feuille de route en 4 étapes de l'acheteur B2B, onglets d'inscription et annuaire des fournisseurs vérifiés traduits.
+  - **Devenir Fournisseur (`/devenir-fournisseur`)** : Assistant d'inscription par étapes, messages de confirmation et instructions d'audit documentaire traduits.
+  - **Garantie Vérification (`/verification`)** : Les 4 piliers d'audit légal et physique, pièces acceptées et garanties anti-fraude traduits.
+  - **Connexion (`/connexion`)** : Formulaire, messages de session, boutons et indications de rôles bilingues.
+  - **Pied de page (`Footer`)** : Description de marque, charte KYB, secteurs, corridors et mentions légales traduits.
+  - **Badge de Confiance (`BadgeVerified`)** : Infobulles et libellés bilingues (« Vérifié Lougara » / « Lougara Verified »).
+- **Gestion des Versions (SemVer v0.13.1)** :
+  - Synchronisation de `0.13.1` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.13.0] - 2026-10-15
 ### Ajouté — Support Bilingue (FR/EN), Sélecteur Multidevises Dynamique & Refonte Tarifs B2B
 - **Architecture d'Internationalisation (i18n)** :

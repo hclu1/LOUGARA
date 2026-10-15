@@ -22,6 +22,112 @@ export const fr = {
     selectCurrency: 'Choisir la devise',
   },
 
+  // Page d'Accueil (Landing Page)
+  home: {
+    badge: 'Plateforme B2B Sécurisée Afrique • Europe',
+    h1Main: 'Sourcing B2B de confiance.',
+    h1Gold: 'Fournisseurs vérifiés sur pièces.',
+    heroDesc: 'Lougara élimine les risques du négoce transfrontalier en auditant manuellement l\'immatriculation légale, les signatures et la conformité fiscale de chaque fournisseur.',
+    ctaBuyers: 'Espace Entrepreneurs',
+    ctaExplore: 'Explorer le Catalogue',
+    statsControlled: 'Entreprises contrôlées',
+    statsFake: 'Faux profils tolérés',
+    statsCorridor: 'France • Afrique Ouest',
+    statsDirect: 'Devis & messagerie directe',
+    lastAudited: 'Dernière Entreprise Auditée',
+    viewProof: 'Audit administratif officiel validé',
+    productsCount: 'produits disponibles au catalogue',
+    sectorsTitle: 'Secteurs d\'Activité Phares',
+    sectorsSubtitle: 'Des filières d\'excellence auditées sur pièces pour des partenariats commerciaux fiables et durables.',
+    howItWorksTitle: 'Comment Fonctionne Lougara B2B ?',
+    howItWorksSubtitle: 'Un corridor commercial transparent, sécurisé de bout en bout par l\'audit documentaire préalable.',
+    step1Title: '1. Audit & Immatriculation Légale',
+    step1Desc: 'Chaque fournisseur transmet son Kbis ou RCCM et son attestation fiscale, contrôlés manuellement sous 24h.',
+    step2Title: '2. Consultation Gratuite du Catalogue',
+    step2Desc: 'Les acheteurs découvrent librement les produits certifiés, origines, MOQ et caractéristiques techniques.',
+    step3Title: '3. Mise en Relation Directe Sécurisée',
+    step3Desc: 'Débloquez les coordonnées officielles, échangez en direct et négociez des devis certifiés.',
+    bannerKybTitle: 'Vous êtes grossiste, producteur ou exportateur ?',
+    bannerKybDesc: 'Rejoignez le réseau certifié Lougara, obtenez votre badge Fournisseur Vérifié et développez votre clientèle internationale.',
+    bannerKybCta: 'Déposer mon dossier fournisseur',
+  },
+
+  // Catalogue
+  catalogue: {
+    title: 'Catalogue B2B & Sourcing Certifié',
+    subtitle: 'Trouvez des grossistes et producteurs vérifiés d\'Afrique et d\'Europe. Spécifications techniques, MOQ et devis directs.',
+    searchPlaceholder: 'Rechercher un produit, ingrédient, matière première...',
+    filterAllCategories: 'Toutes les catégories',
+    filterOrigin: 'Pays d\'origine',
+    filterMoq: 'Quantité minimale (MOQ)',
+    resultsCount: 'produits trouvés',
+    noResults: 'Aucun produit ne correspond à vos critères de recherche.',
+    viewDetails: 'Voir la fiche',
+    requestQuote: 'Demander un devis certifié',
+    verifiedSupplier: 'Fournisseur Vérifié KYB',
+    sponsoredBuyerBadge: 'Acheteur B2B Référencé',
+    buyerNeeds: 'Besoins de sourcing :',
+    origin: 'Origine :',
+    moqLabel: 'MOQ :',
+  },
+
+  // Entrepreneurs
+  entrepreneurs: {
+    title: 'Espace Entrepreneurs & Sourcing B2B',
+    subtitle: 'Accédez au répertoire des entreprises vérifiées sur pièces et transmettez vos demandes de cotation directes.',
+    searchSuppliersPlaceholder: 'Filtrer par société, secteur ou ville...',
+    verifiedDirectory: 'Annuaire des Fournisseurs Vérifiés',
+    requestQuoteModalTitle: 'Demande de devis certifié',
+    messagePlaceholder: 'Décrivez précisément vos volumes souhaités, votre port de livraison et vos délais attendus...',
+    sendRequest: 'Envoyer ma demande',
+    sectorsBadge: 'Secteur',
+    regNumBadge: 'Immatriculation',
+    directContactBtn: 'Prendre contact avec ce fournisseur',
+  },
+
+  // Devenir Fournisseur
+  becomeSupplier: {
+    title: 'Devenir Fournisseur Vérifié Lougara',
+    subtitle: 'Rejoignez le corridor commercial de confiance et présentez vos produits aux acheteurs professionnels d\'Afrique et d\'Europe.',
+    companyName: 'Raison sociale de l\'entreprise',
+    registrationNumber: 'Numéro légal (RCCM / SIRET / NINEA)',
+    country: 'Pays du siège social',
+    city: 'Ville d\'implantation',
+    sector: 'Secteur d\'activité principal',
+    uploadKbis: 'Téléverser votre extrait légal (Kbis / RCCM en PDF ou scan)',
+    submitApplication: 'Soumettre mon dossier d\'audit',
+    successTitle: 'Dossier transmis avec succès',
+    successMsg: 'Votre dossier est en cours de contrôle par notre équipe de modération. Vous recevrez une notification sous 24h ouvrées.',
+  },
+
+  // Garantie Vérification
+  verification: {
+    title: 'Protocole d\'Audit & Garantie Vérification KYB',
+    subtitle: 'Comment Lougara protège vos transactions transfrontalières par un contrôle strict en 4 points d\'audit.',
+    pillar1Title: '1. Existence Légale & Active',
+    pillar1Desc: 'Contrôle systématique de l\'inscription au registre du commerce officiel (Kbis au greffe en France, RCCM OHADA en Afrique de l\'Ouest).',
+    pillar2Title: '2. Représentant Légal & Pouvoir',
+    pillar2Desc: 'Concordance stricte entre le dirigeant légal mentionné au registre et la pièce d\'identité officielle fournie.',
+    pillar3Title: '3. Conformité Fiscale & Bancaire',
+    pillar3Desc: 'Validation du numéro fiscal (NIF, NINEA, TVA intracommunautaire) et de l\'adresse physique du siège social.',
+    pillar4Title: '4. Présence Opérationnelle Réelle',
+    pillar4Desc: 'Examen de la réalité des installations physiques, entrepôts, usines et coordonnées directes professionnelles.',
+    acceptedDocs: 'Documents légaux acceptés : Extrait Kbis récent (-3 mois), Registre RCCM OHADA, Carte NINEA / NIF, Passeport / CNI du gérant.',
+    whyKyb: 'Pourquoi l\'audit KYB est indispensable en B2B ? Il élimine 100% des sociétés écrans et sécurise vos acomptes commerciaux.',
+  },
+
+  // Connexion
+  connexion: {
+    title: 'Connexion à votre espace Lougara',
+    subtitle: 'Accédez à votre tableau de bord sécurisé fournisseur ou entrepreneur.',
+    emailLabel: 'Adresse e-mail professionnelle',
+    roleLabel: 'Vous êtes :',
+    roleBuyer: 'Entrepreneur / Acheteur',
+    roleSupplier: 'Fournisseur / Vendeur',
+    submitBtn: 'Se connecter à Lougara',
+    quickDemoNotice: 'Connexion instantanée sécurisée sans mot de passe complexe pour les utilisateurs autorisés.',
+  },
+
   // Tarifs
   pricing: {
     badge: 'Grille Officielle • Sans Engagement • Résiliable à tout moment',
@@ -156,8 +262,21 @@ export const fr = {
 
   // Footer
   footer: {
-    tagline: 'La place de marché B2B de confiance reliant les entrepreneurs et grossistes d\'Afrique et d\'Europe.',
-    rights: 'Tous droits réservés.',
-    securityNote: 'Contrôles KYB stricts, immatriculations RCCM/Kbis auditées sur pièces officielles.',
+    brandDesc: 'La plateforme B2B de sourcing haute confiance connectant les entrepreneurs et grossistes d\'Afrique et d\'Europe. Analyse documentaire rigoureuse, entreprises immatriculées et auditées sur pièces officielles.',
+    auditCharter: 'Charte d\'Audit Administratif Rigoureuse (RCCM / Kbis / NIF / CNI)',
+    sectorsHeading: 'Secteurs Pilotes',
+    corridorsHeading: 'Corridors Stratégiques',
+    auditGuideLink: 'Guide du Protocole d\'Audit →',
+    pricingLink: 'Grille des Tarifs & Abonnements →',
+    copyright: 'Tous droits réservés.',
+    platformSub: 'Plateforme de sourcing B2B & mise en relation d\'affaires vérifiée.',
+    sectorCosmetic: 'Cosmétique & Beauté Naturelle',
+    sectorTextile: 'Textile, Coton & Tissus Wax',
+    sectorAgro: 'Agroalimentaire & Épices Nobles',
+    sectorCraft: 'Artisanat & Décoration d\'Art',
+    corridor1: 'Sénégal • France',
+    corridor2: 'Côte d\'Ivoire • Belgique',
+    corridor3: 'Cameroun • Union Européenne',
+    corridor4: 'Zone UEMOA • Europe centrale',
   },
 };

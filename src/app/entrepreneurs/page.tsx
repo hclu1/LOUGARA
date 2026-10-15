@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { parseKbisOcrText, ParsedKbisData } from '@/features/ocr/kbis-parser';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface VerifiedSupplierItem {
   id: string;
@@ -92,6 +93,7 @@ const VERIFIED_SUPPLIERS_LIST: VerifiedSupplierItem[] = [
 ];
 
 export default function EspaceEntrepreneursPage() {
+  const { t, locale } = useLanguage();
   const [activeTab, setActiveTab] = useState<'register' | 'suppliers' | 'tenders' | 'directory'>('register');
 
   // Formulaire d'inscription & RFQ
@@ -239,15 +241,15 @@ export default function EspaceEntrepreneursPage() {
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D4AF37]/15 text-[#E5A93C] text-xs font-black border border-[#D4AF37]/30 shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             <Briefcase className="w-4 h-4 text-[#D4AF37]" />
-            <span>Hub d&apos;Approvisionnement B2B Acheteurs & Entrepreneurs</span>
+            <span>{locale === 'fr' ? 'Hub d\'Approvisionnement B2B Acheteurs & Entrepreneurs' : 'B2B Sourcing Hub for Buyers & Entrepreneurs'}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            Espace Entrepreneurs & <span className="text-gold-gradient">Générateur RFQ</span>
+            {t.entrepreneurs.title}
           </h1>
 
           <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
-            Identifiez les meilleurs producteurs vérifiés, déposez vos appels d&apos;offres et générez des devis directs en toute sérénité.
+            {t.entrepreneurs.subtitle}
           </p>
         </div>
 
@@ -255,10 +257,10 @@ export default function EspaceEntrepreneursPage() {
         <section className="glass-card p-8 sm:p-10 rounded-3xl border border-[#D4AF37]/30 space-y-8 relative overflow-hidden">
           <div className="text-center max-w-xl mx-auto space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">
-              Parcours d&apos;Achat Sécurisé
+              {locale === 'fr' ? 'Parcours d\'Achat Sécurisé' : 'Secure Procurement Journey'}
             </span>
             <h2 className="text-2xl font-black text-white">
-              Feuille de Route de l&apos;Acheteur B2B (4 Étapes)
+              {locale === 'fr' ? 'Feuille de Route de l\'Acheteur B2B (4 Étapes)' : 'B2B Buyer Sourcing Roadmap (4 Steps)'}
             </h2>
           </div>
 
@@ -268,9 +270,11 @@ export default function EspaceEntrepreneursPage() {
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#D4AF37] via-[#E5A93C] to-[#B8860B] text-slate-950 font-black text-xl flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.4)] group-hover:scale-110 transition-transform">
                 1
               </div>
-              <h3 className="font-extrabold text-white text-base">Immatriculation</h3>
+              <h3 className="font-extrabold text-white text-base">
+                {locale === 'fr' ? 'Immatriculation' : 'Registration'}
+              </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Dépôt de votre extrait Kbis ou RCCM pour valider votre statut d&apos;acheteur professionnel.
+                {locale === 'fr' ? 'Dépôt de votre extrait Kbis ou RCCM pour valider votre statut d\'acheteur professionnel.' : 'Submit company legal ID to verify professional buyer status.'}
               </p>
             </div>
 
@@ -279,9 +283,11 @@ export default function EspaceEntrepreneursPage() {
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#D4AF37] via-[#E5A93C] to-[#B8860B] text-slate-950 font-black text-xl flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.4)] group-hover:scale-110 transition-transform">
                 2
               </div>
-              <h3 className="font-extrabold text-white text-base">Audit KYB</h3>
+              <h3 className="font-extrabold text-white text-base">
+                {locale === 'fr' ? 'Audit KYB' : 'KYB Audit'}
+              </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Contrôle optique OCR immédiat et attribution du pass d&apos;accès au réseau privé.
+                {locale === 'fr' ? 'Contrôle optique OCR immédiat et attribution du pass d\'accès au réseau privé.' : 'Instant optical OCR check and private verified trade corridor access.'}
               </p>
             </div>
 
@@ -290,9 +296,11 @@ export default function EspaceEntrepreneursPage() {
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#D4AF37] via-[#E5A93C] to-[#B8860B] text-slate-950 font-black text-xl flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.4)] group-hover:scale-110 transition-transform">
                 3
               </div>
-              <h3 className="font-extrabold text-white text-base">Sourcing Cible</h3>
+              <h3 className="font-extrabold text-white text-base">
+                {locale === 'fr' ? 'Sourcing Ciblé' : 'Targeted Sourcing'}
+              </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Recherche par corridor commercial et filtres par catégories et MOQ.
+                {locale === 'fr' ? 'Recherche par corridor commercial et filtres par catégories et MOQ.' : 'Filter by trade corridor, certified category, and minimum order quantity.'}
               </p>
             </div>
 
@@ -301,9 +309,11 @@ export default function EspaceEntrepreneursPage() {
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-slate-950 font-black text-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] group-hover:scale-110 transition-transform">
                 4
               </div>
-              <h3 className="font-extrabold text-white text-base">Devis Direct (RFQ)</h3>
+              <h3 className="font-extrabold text-white text-base">
+                {locale === 'fr' ? 'Devis Direct (RFQ)' : 'Direct RFQ Quotes'}
+              </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Négociation directe sans intermédiaire et émission de cotations officielles.
+                {locale === 'fr' ? 'Négociation directe sans intermédiaire et émission de cotations officielles.' : 'Direct negotiations without middlemen and formal verified wholesale quotes.'}
               </p>
             </div>
           </div>
@@ -318,7 +328,7 @@ export default function EspaceEntrepreneursPage() {
                 activeTab === 'register' ? 'border-[#D4AF37] text-[#E5A93C]' : 'border-transparent text-slate-400'
               }`}
             >
-              1. Inscription Acheteur & OCR Kbis
+              {locale === 'fr' ? '1. Inscription Acheteur & OCR Kbis' : '1. Buyer Registration & OCR'}
             </button>
             <button
               onClick={() => setActiveTab('suppliers')}
@@ -326,7 +336,7 @@ export default function EspaceEntrepreneursPage() {
                 activeTab === 'suppliers' ? 'border-[#D4AF37] text-[#E5A93C]' : 'border-transparent text-slate-400'
               }`}
             >
-              2. Contact Direct Fournisseurs ({suppliersList.length})
+              {locale === 'fr' ? `2. Fournisseurs Vérifiés (${suppliersList.length})` : `2. Verified Suppliers (${suppliersList.length})`}
             </button>
           </div>
 

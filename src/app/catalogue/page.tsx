@@ -26,6 +26,7 @@ import {
   ArrowRightLeft,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface MockProduct {
   id: string;
@@ -247,6 +248,7 @@ interface SupplierCatalog {
 }
 
 export default function CataloguePage() {
+  const { t, locale } = useLanguage();
   const [activeTab, setActiveTab] = useState<'catalogues' | 'products' | 'buyers'>('catalogues');
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -472,27 +474,27 @@ export default function CataloguePage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/15 text-[#E5A93C] border border-[#D4AF37]/30 text-xs font-bold mb-2">
                 <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                Catalogue & Espaces Publicitaires Certifiés
+                {locale === 'fr' ? 'Catalogue & Espaces Publicitaires Certifiés' : 'Certified B2B Catalog & Verified Showcases'}
               </div>
               <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-                Catalogue B2B & Vitrines Sourcing Transfrontalier
+                {t.catalogue.title}
               </h1>
               <p className="text-slate-400 text-sm mt-1">
-                Accédez directement aux offres des producteurs et grossistes agréés d&apos;Afrique et d&apos;Europe.
+                {t.catalogue.subtitle}
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-3.5 py-2 rounded-xl shadow-[0_0_12px_rgba(16,185,129,0.2)]">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                Filtre KYB & Kbis Actif
+                {locale === 'fr' ? 'Filtre KYB & Kbis Actif' : 'KYB & Legal Audit Filter Active'}
               </div>
               <Link
                 href="/tarifs"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
               >
                 <Megaphone className="w-3.5 h-3.5" />
-                Découvrir nos tarifs publicitaires
+                {locale === 'fr' ? 'Découvrir nos tarifs' : 'View pricing & plans'}
               </Link>
             </div>
           </div>
@@ -502,7 +504,7 @@ export default function CataloguePage() {
         <div className="glass-card p-4 rounded-2xl border border-[#D4AF37]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs font-extrabold text-[#E5A93C] uppercase tracking-wider shrink-0">
             <ArrowRightLeft className="w-4 h-4 text-[#D4AF37]" />
-            <span>Sélection du Corridor :</span>
+            <span>{locale === 'fr' ? 'Sélection du Corridor :' : 'Trade Corridor:'}</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full">
@@ -514,7 +516,7 @@ export default function CataloguePage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              Tous les Corridors
+              {locale === 'fr' ? 'Tous les Corridors' : 'All Corridors'}
             </button>
             <button
               onClick={() => setSelectedCorridor('sn-fr')}
@@ -524,7 +526,7 @@ export default function CataloguePage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              🇸🇳 Sénégal ➔ 🇫🇷 France
+              🇸🇳 {locale === 'fr' ? 'Sénégal' : 'Senegal'} ➔ 🇫🇷 France
             </button>
             <button
               onClick={() => setSelectedCorridor('ci-be')}
@@ -534,7 +536,7 @@ export default function CataloguePage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              🇨🇮 Côte d&apos;Ivoire ➔ 🇧🇪 Belgique
+              🇨🇮 {locale === 'fr' ? "Côte d'Ivoire" : 'Ivory Coast'} ➔ 🇧🇪 {locale === 'fr' ? 'Belgique' : 'Belgium'}
             </button>
             <button
               onClick={() => setSelectedCorridor('cm-ue')}
@@ -544,7 +546,7 @@ export default function CataloguePage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              🇨🇲 Cameroun ➔ 🇪🇺 Europe
+              🇨🇲 {locale === 'fr' ? 'Cameroun' : 'Cameroon'} ➔ 🇪🇺 Europe
             </button>
           </div>
         </div>
@@ -560,7 +562,7 @@ export default function CataloguePage() {
             }`}
           >
             <Building2 className="w-4 h-4 text-[#D4AF37]" />
-            Vitrines Catalogues Fournisseurs
+            <span>{locale === 'fr' ? 'Vitrines Fournisseurs' : 'Supplier Showcases'}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               activeTab === 'catalogues' ? 'bg-[#D4AF37]/20 text-[#E5A93C]' : 'bg-slate-800 text-slate-400'
             }`}>
@@ -577,7 +579,7 @@ export default function CataloguePage() {
             }`}
           >
             <Package className="w-4 h-4 text-emerald-400" />
-            Tous les Produits B2B
+            <span>{locale === 'fr' ? 'Tous les Produits B2B' : 'All B2B Products'}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               activeTab === 'products' ? 'bg-[#D4AF37]/20 text-[#E5A93C]' : 'bg-slate-800 text-slate-400'
             }`}>
@@ -594,7 +596,7 @@ export default function CataloguePage() {
             }`}
           >
             <Briefcase className="w-4 h-4 text-amber-400" />
-            Appels d&apos;Offres Acheteurs
+            <span>{locale === 'fr' ? 'Appels d\'Offres Acheteurs' : 'Buyer Sourcing RFQs'}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               activeTab === 'buyers' ? 'bg-[#D4AF37]/20 text-[#E5A93C]' : 'bg-slate-800 text-slate-400'
             }`}>
@@ -612,11 +614,17 @@ export default function CataloguePage() {
               <input
                 type="text"
                 placeholder={
-                  activeTab === 'catalogues'
-                    ? 'Rechercher un fournisseur, secteur ou produit...'
-                    : activeTab === 'products'
-                    ? 'Rechercher un produit, ingrédient ou grossiste...'
-                    : 'Rechercher un appel d\'offres, secteur ou profil acheteur...'
+                  locale === 'fr'
+                    ? (activeTab === 'catalogues'
+                        ? 'Rechercher un fournisseur, secteur ou produit...'
+                        : activeTab === 'products'
+                        ? 'Rechercher un produit, ingrédient ou grossiste...'
+                        : 'Rechercher un appel d\'offres, secteur ou profil acheteur...')
+                    : (activeTab === 'catalogues'
+                        ? 'Search for a supplier, sector, or product...'
+                        : activeTab === 'products'
+                        ? 'Search for a product, ingredient, or wholesaler...'
+                        : 'Search for an RFQ, sector, or buyer profile...')
                 }
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -631,14 +639,14 @@ export default function CataloguePage() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-slate-200 focus:ring-2 focus:ring-[#D4AF37]"
               >
-                <option value="all">Tous les secteurs & catégories</option>
-                <option value="Cosmétique">Cosmétique & Soins</option>
-                <option value="Textile">Textile & Mode</option>
-                <option value="Agroalimentaire">Agroalimentaire & Épices</option>
-                <option value="Technologies">Technologies & Numérique</option>
-                <option value="Services">Services & Conseil B2B</option>
-                <option value="Artisanat">Artisanat & Décoration</option>
-                <option value="Emballages">Emballages & Packaging</option>
+                <option value="all">{t.catalogue.filterAllCategories}</option>
+                <option value="Cosmétique">{t.footer.sectorCosmetic}</option>
+                <option value="Textile">{t.footer.sectorTextile}</option>
+                <option value="Agroalimentaire">{t.footer.sectorAgro}</option>
+                <option value="Technologies">{locale === 'fr' ? 'Technologies & Numérique' : 'Tech & Hardware'}</option>
+                <option value="Services">{locale === 'fr' ? 'Services & Conseil B2B' : 'B2B Consulting & Services'}</option>
+                <option value="Artisanat">{t.footer.sectorCraft}</option>
+                <option value="Emballages">{locale === 'fr' ? 'Emballages & Packaging' : 'Packaging & Containers'}</option>
               </select>
             </div>
 

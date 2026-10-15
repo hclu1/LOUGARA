@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { parseKbisOcrText, ParsedKbisData } from '@/features/ocr/kbis-parser';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface CatalogProductItem {
   id: string;
@@ -42,6 +43,7 @@ interface CatalogProductItem {
 }
 
 export default function DevenirFournisseurPage() {
+  const { t, locale, formatPlanPrice } = useLanguage();
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   // Entreprise
@@ -189,26 +191,26 @@ export default function DevenirFournisseurPage() {
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black bg-[#D4AF37]/15 text-[#E5A93C] border border-[#D4AF37]/30 shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             <Zap className="w-4 h-4 text-[#D4AF37]" />
-            <span>Onboarding Fournisseur Agréé &bull; OCR Universel Kbis & NIF</span>
+            <span>{locale === 'fr' ? 'Onboarding Fournisseur Agréé • OCR Universel Kbis & NIF' : 'Approved Supplier Onboarding • Universal Kbis & Tax ID OCR'}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            Devenir Fournisseur <span className="text-gold-gradient">Vérifié Lougara</span>
+            {t.becomeSupplier.title}
           </h1>
 
           <p className="text-slate-300 text-base leading-relaxed">
-            Exposez votre gamme dans le catalogue B2B certifié. Déposez votre document d&apos;immatriculation légal et laissez l&apos;OCR pré-remplir votre dossier sans effort.
+            {t.becomeSupplier.subtitle}
           </p>
         </div>
 
         {/* STEPPER WIZARD INDICATOR */}
         <div className="glass-card p-4 sm:p-6 rounded-3xl border border-slate-800 flex items-center justify-between gap-2 overflow-x-auto">
           {[
-            { step: 1, label: 'Kbis & KYB' },
-            { step: 2, label: 'Entreprise' },
-            { step: 3, label: 'Catalogue (Max 10)' },
-            { step: 4, label: 'Contact' },
-            { step: 5, label: 'Abonnement' },
+            { step: 1, label: locale === 'fr' ? 'Kbis & KYB' : 'Kbis & KYB' },
+            { step: 2, label: locale === 'fr' ? 'Entreprise' : 'Company' },
+            { step: 3, label: locale === 'fr' ? 'Catalogue (Max 10)' : 'Catalog (Max 10)' },
+            { step: 4, label: locale === 'fr' ? 'Contact' : 'Contact' },
+            { step: 5, label: locale === 'fr' ? 'Abonnement' : 'Subscription' },
           ].map((s) => (
             <button
               key={s.step}
@@ -239,17 +241,17 @@ export default function DevenirFournisseurPage() {
                 <CheckCircle2 className="w-10 h-10" />
               </div>
               <h2 className="text-2xl font-black text-white">
-                Dossier KYB Transmis avec Succès !
+                {t.becomeSupplier.successTitle}
               </h2>
               <p className="text-sm text-slate-300">
-                Votre extrait officiel <span className="font-bold text-amber-300">{kbisFile}</span> pour <span className="font-bold text-white">{companyName}</span> est en cours d&apos;audit par l&apos;équipe de modération sous 48h.
+                {t.becomeSupplier.successMsg}
               </p>
               <div className="pt-4">
                 <Link
                   href="/catalogue"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] shadow-md"
                 >
-                  Consulter le Catalogue
+                  <span>{t.nav.catalog}</span>
                   <ArrowRight className="w-4 h-4 text-slate-950" />
                 </Link>
               </div>
