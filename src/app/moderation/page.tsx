@@ -29,6 +29,9 @@ import {
   Phone,
   Check,
   X,
+  Wrench,
+  Power,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth, MODERATOR_EMAILS } from '@/context/AuthContext';
 import AdminVerificationsPage from '../admin/verifications/page';
@@ -111,6 +114,59 @@ export default function ModerationHubPage() {
   const [buyerPlanPrice, setBuyerPlanPrice] = useState('Tarif à venir');
   const [maxProductsLimit, setMaxProductsLimit] = useState(10);
   const [anonymityEnforced, setAnonymityEnforced] = useState(true);
+
+  // Maintenance state pour le Super Admin
+  const [maintenance, setMaintenance] = useState<{
+    isMaintenanceActive: boolean;
+    lastActiveVersion: string;
+    currentAppVersion: string;
+    isVersionMismatch: boolean;
+    message: string;
+  } | null>(null);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+
+  const fetchMaintenance = async () => {
+    try {
+      const res = await fetch(`/api/system/maintenance?_t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setMaintenance(data);
+      }
+    } catch (e) {
+      console.warn('Erreur chargement maintenance:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchMaintenance();
+    const interval = setInterval(fetchMaintenance, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleToggleMaintenance = async (active: boolean) => {
+    if (!isSuperAdmin || !user?.email) return;
+    setMaintenanceLoading(true);
+    try {
+      const res = await fetch('/api/system/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isMaintenanceActive: active,
+          requesterEmail: user.email,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMaintenance(data);
+      } else {
+        alert(data.error || 'Erreur lors de la modification du mode maintenance');
+      }
+    } catch (err: any) {
+      alert('Erreur réseau');
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -217,12 +273,106 @@ export default function ModerationHubPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {isSuperAdmin && (
+              <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                <span className={`inline-flex h-2.5 w-2.5 rounded-full ${maintenance?.isMaintenanceActive ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
+                <span className="text-xs font-bold text-slate-200">
+                  {maintenance?.isMaintenanceActive ? '🔴 Maintenance' : '🟢 En ligne'}
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer ml-1">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(maintenance?.isMaintenanceActive)}
+                    onChange={(e) => handleToggleMaintenance(e.target.checked)}
+                    disabled={maintenanceLoading}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+            )}
             <span className="text-xs font-bold text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
               Comptes modérateurs actifs : 2/2
             </span>
           </div>
         </div>
+
+        {/* CARTE SPÉCIALE SUPER ADMIN : SITE EN MAINTENANCE */}
+        {isSuperAdmin && (
+          <div
+            className={`glass-card rounded-3xl border-2 p-5 sm:p-6 transition-all space-y-4 ${
+              maintenance?.isMaintenanceActive
+                ? 'bg-gradient-to-r from-red-950/30 via-amber-950/20 to-red-950/30 border-amber-500/60 shadow-[0_0_30px_rgba(245,158,11,0.2)]'
+                : 'border-slate-800 bg-slate-900/40'
+            }`}
+          >
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div
+                  className={`p-3 rounded-2xl border ${
+                    maintenance?.isMaintenanceActive
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400 animate-pulse'
+                      : 'bg-slate-800/80 border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-black text-white">Site en maintenance</h2>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
+                        maintenance?.isMaintenanceActive
+                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                      }`}
+                    >
+                      {maintenance?.isMaintenanceActive ? '🔴 Maintenance Active (Accès Public Bloqué)' : '🟢 Site en ligne (Accessible à tous)'}
+                    </span>
+                    {maintenance?.isVersionMismatch && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30">
+                        <Sparkles className="w-3 h-3" /> Bascule auto suite à MàJ v{maintenance?.currentAppVersion}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    {maintenance?.isMaintenanceActive
+                      ? 'Un gros encart de maintenance est affiché sur l’ensemble du site. Plus rien n’est accessible aux visiteurs et aux entrepreneurs. Seul le Super Admin peut naviguer et tester la plateforme.'
+                      : 'La plateforme est actuellement ouverte et accessible à tous les visiteurs et utilisateurs. Cochez la case pour verrouiller le site en maintenance.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 shrink-0 self-stretch sm:self-auto justify-between sm:justify-start">
+                {maintenance?.isMaintenanceActive && (
+                  <button
+                    onClick={() => handleToggleMaintenance(false)}
+                    disabled={maintenanceLoading}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <Power className={`w-3.5 h-3.5 ${maintenanceLoading ? 'animate-spin' : ''}`} />
+                    <span>Redémarrer le site & Ouvrir au public</span>
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2.5 bg-slate-950 p-2.5 px-3.5 rounded-xl border border-slate-800">
+                  <input
+                    type="checkbox"
+                    id="superadmin-main-maintenance-checkbox"
+                    checked={Boolean(maintenance?.isMaintenanceActive)}
+                    onChange={(e) => handleToggleMaintenance(e.target.checked)}
+                    disabled={maintenanceLoading}
+                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-900 border-slate-700 cursor-pointer"
+                  />
+                  <label htmlFor="superadmin-main-maintenance-checkbox" className="text-xs font-bold text-slate-200 cursor-pointer select-none">
+                    Site en maintenance
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* BARRE D'ONGLETS DU DASHBOARD */}
         <div className="flex border-b border-slate-800 overflow-x-auto gap-2">

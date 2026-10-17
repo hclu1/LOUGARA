@@ -44,6 +44,7 @@ import {
   Maximize2,
   ZoomIn,
   ShieldAlert,
+  Wrench,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { VisitStats, VisitorType } from '@/features/analytics/types';
@@ -611,7 +612,8 @@ export default function AdminVerificationsPage() {
               href="/admin/settings"
               className="text-xs font-bold text-slate-200 hover:text-white flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 transition-all"
             >
-              <span>Monétisation & Stripe</span>
+              <Wrench className="w-3.5 h-3.5" />
+              <span>Paramètres, Stripe & Maintenance</span>
             </Link>
 
             <Link

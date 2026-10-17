@@ -4,6 +4,17 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.16.1] - 2026-10-17
+### Ajouté & Amélioré — Affichage Direct du Contrôle « Site en maintenance » dans l'Espace Modérateur & Administration (Mode Super Admin)
+- **Intégration Directe dans le Hub Modérateur (`/moderation`)** :
+  - Ajout du commutateur interactif « Site en maintenance » avec voyant d'état en direct directement dans le bandeau d'accueil de l'Espace Modérateur (Mode Super Admin).
+  - Ajout d'une carte de contrôle dédiée Super Admin placée juste sous le bandeau d'accueil avec la case à cocher « Site en maintenance », les badges d'état (`🔴 Maintenance Active (Accès Public Bloqué)` / `🟢 Site en ligne`), et le bouton direct « Redémarrer le site & Ouvrir au public ».
+  - Détection et badge d'alerte de bascule automatique lors d'une mise à jour applicative (`⚡ Bascule auto suite à MàJ v0.16.1`).
+- **Accès Rapide Système (`/admin/verifications`)** :
+  - Mise à jour du bouton de navigation du sous-en-tête vers « Paramètres, Stripe & Maintenance ».
+- **Gestion des Versions (SemVer v0.16.1)** :
+  - Synchronisation de `0.16.1` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.16.0] - 2026-10-17
 ### Ajouté — Mode « Site en maintenance » Super Admin & Bascule Automatique sur Changement de Version
 - **Panneau de Contrôle Super Admin (`/admin/settings`)** :
