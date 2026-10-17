@@ -4,6 +4,10 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.15.2] - 2026-10-17
+### Corrigé
+- Suppression de l'icône de loupe à gauche du lien Catalogue & Sourcing dans la barre de navigation
+
 ## [0.15.1] - 2026-10-17
 ### Corrigé & Déployé — Résolution des Erreurs TypeScript OCR sur Vercel et Finalisation des Fonctionnalités Modérateur & Catalogue
 - **Correctif TypeScript API OCR KBIS (`/api/ocr/kbis`)** :

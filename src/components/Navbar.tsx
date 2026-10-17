@@ -35,7 +35,6 @@ export const Navbar = () => {
               href="/catalogue"
               className="flex items-center gap-1.5 hover:text-[#E5A93C] transition-colors py-1"
             >
-              <Search className="w-4 h-4 text-[#D4AF37]" />
               {t.nav.catalog}
             </Link>
 
