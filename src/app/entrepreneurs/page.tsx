@@ -33,6 +33,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
+import { DocumentDropzone } from '@/components/DocumentDropzone';
 import { parseKbisOcrText, ParsedKbisData } from '@/features/ocr/kbis-parser';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -118,6 +119,7 @@ export default function EspaceEntrepreneursPage() {
   // Kbis & OCR
   const [kbisFile, setKbisFile] = useState<string | null>(null);
   const [kbisFileSize, setKbisFileSize] = useState<string>('');
+  const [kbisFilePath, setKbisFilePath] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStep, setScanStep] = useState<string>('');
   const [autoFilled, setAutoFilled] = useState(false);
@@ -154,9 +156,10 @@ export default function EspaceEntrepreneursPage() {
     fetchEntrepreneurs();
   }, []);
 
-  const applyParsedData = (data: ParsedKbisData, fileName: string, fileSizeStr: string) => {
+  const applyParsedData = (data: ParsedKbisData, fileName: string, fileSizeStr: string, pathStr: string | null = null) => {
     setKbisFile(fileName);
     setKbisFileSize(fileSizeStr);
+    setKbisFilePath(pathStr);
     setAutoFilled(true);
     setOcrConfidence(data.confidenceScore);
     setRawOcrText(data.rawText);
@@ -167,13 +170,11 @@ export default function EspaceEntrepreneursPage() {
     if (data.contactName) setFullName(data.contactName);
   };
 
-  const handleKbisFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleProcessFile = async (file: File) => {
     const sizeStr = `${(file.size / 1024 / 1024).toFixed(2)} Mo`;
+    setKbisFilePath(null);
     setIsScanning(true);
-    setScanStep(`Détection du document...`);
+    setScanStep(locale === 'fr' ? 'Détection et reconnaissance optique du document...' : 'Detecting and analyzing document...');
 
     try {
       const formData = new FormData();
@@ -187,7 +188,7 @@ export default function EspaceEntrepreneursPage() {
         const result = await response.json();
         if (result.success && result.data) {
           setIsScanning(false);
-          applyParsedData(result.data, file.name, sizeStr);
+          applyParsedData(result.data, file.name, sizeStr, null);
           return;
         }
       }
@@ -197,6 +198,45 @@ export default function EspaceEntrepreneursPage() {
     setKbisFile(file.name);
     setKbisFileSize(sizeStr);
     setAutoFilled(true);
+  };
+
+  const handleProcessPath = async (pathStr: string) => {
+    setIsScanning(true);
+    setScanStep(locale === 'fr' ? 'Lecture du chemin et extraction des données...' : 'Reading path and extracting data...');
+    setKbisFilePath(pathStr);
+
+    try {
+      const formData = new FormData();
+      formData.append('filePath', pathStr);
+      const response = await fetch('/api/ocr/kbis', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setIsScanning(false);
+          applyParsedData(result.data, result.fileName || pathStr, result.fileSize || 'Chemin validé', pathStr);
+          return;
+        }
+      }
+    } catch (err) {}
+
+    setIsScanning(false);
+    const fileName = pathStr.split(/[\\/]/).pop() || pathStr;
+    setKbisFile(fileName);
+    setKbisFileSize('Chemin renseigné');
+    setAutoFilled(true);
+  };
+
+  const handleRemoveFile = () => {
+    setKbisFile(null);
+    setKbisFileSize('');
+    setKbisFilePath(null);
+    setOcrConfidence(null);
+    setRawOcrText(null);
+    setAutoFilled(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -364,21 +404,21 @@ export default function EspaceEntrepreneursPage() {
                       {t.entrepreneurs.stepKbisHeading}
                     </h2>
 
-                    <label className="border-2 border-dashed border-slate-700 hover:border-[#D4AF37] rounded-2xl p-6 text-center cursor-pointer transition-colors block bg-slate-900/60">
-                      <input
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg,.webp"
-                        onChange={handleKbisFileChange}
-                        className="hidden"
-                      />
-                      <Upload className="w-8 h-8 text-[#D4AF37] mx-auto mb-2" />
-                      <p className="text-sm font-bold text-white">
-                        {kbisFile ? `${t.entrepreneurs.dropzoneActive} ${kbisFile}` : t.entrepreneurs.dropzoneDefault}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {t.entrepreneurs.dropzoneSubtext}
-                      </p>
-                    </label>
+                    <DocumentDropzone
+                      id="entrepreneur-kbis-dropzone"
+                      title={t.entrepreneurs.dropzoneDefault}
+                      subtitle={t.entrepreneurs.dropzoneSubtext}
+                      currentFile={kbisFile}
+                      fileSize={kbisFileSize}
+                      filePath={kbisFilePath}
+                      isScanning={isScanning}
+                      scanStep={scanStep}
+                      confidenceScore={ocrConfidence}
+                      onFileSelected={handleProcessFile}
+                      onPathSelected={handleProcessPath}
+                      onRemoveFile={handleRemoveFile}
+                      locale={locale}
+                    />
                   </div>
 
                   {/* Form inputs */}

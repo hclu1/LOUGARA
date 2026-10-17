@@ -4,6 +4,23 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.14.0] - 2026-10-17
+### Ajouté — Support du Clic, Glisser-Déposer (Drag & Drop) et Saisie Manuelle de Chemin pour les Documents
+- **Nouveau Composant Universel `DocumentDropzone` (`src/components/DocumentDropzone.tsx`)** :
+  - **Triple mode d'importation** : clic pour parcourir les fichiers locaux, glisser-déposer (Drag & Drop) direct avec retour visuel animé et détection instantanée, ou saisie / collage direct d'un chemin d'accès local ou URL distante.
+  - **États interactifs et prévisualisation** : carte de statut document avec score OCR, taille du fichier, chemin d'accès complet, étape de scan et bouton de remplacement / suppression.
+  - **Support multilingue** : interface bilingue français / anglais (`fr` / `en`).
+- **Espace Entrepreneurs (`/entrepreneurs`)** :
+  - Intégration du composant `DocumentDropzone` pour le dépôt de l'extrait Kbis / RCCM acheteur.
+  - Support complet du glisser-déposer et de la saisie manuelle de chemin avec extraction OCR automatique des métadonnées légales.
+- **Devenir Fournisseur (`/devenir-fournisseur`)** :
+  - Intégration du composant `DocumentDropzone` en Étape 1 pour le dépôt Kbis / RCCM fournisseur avec remplissage automatique.
+  - Ajout d'une zone `DocumentDropzone` en Étape 4 pour la pièce d'identité (CNI / Passeport) ou document complémentaire du dirigeant.
+- **API Reconnaissance OCR (`/api/ocr/kbis`)** :
+  - Prise en charge transparente des champs `file` (Buffer direct) et `filePath` (chemin local sur serveur ou URL distante).
+- **Gestion des Versions (SemVer v0.14.0)** :
+  - Synchronisation de `0.14.0` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.13.3] - 2026-10-17
 ### Corrigé & Nettoyé — Suppression de l'encart jaune Sourcing B2B et épuration de l'en-tête
 - **Barre de Navigation (`Navbar`)** :

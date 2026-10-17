@@ -26,6 +26,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
+import { DocumentDropzone } from '@/components/DocumentDropzone';
 import { parseKbisOcrText, ParsedKbisData } from '@/features/ocr/kbis-parser';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -57,9 +58,13 @@ export default function DevenirFournisseurPage() {
   // Pièces KYB
   const [kbisFile, setKbisFile] = useState<string | null>(null);
   const [kbisFileSize, setKbisFileSize] = useState<string>('');
+  const [kbisFilePath, setKbisFilePath] = useState<string | null>(null);
   const [cniFile, setCniFile] = useState<string | null>(null);
+  const [cniFileSize, setCniFileSize] = useState<string>('');
+  const [cniFilePath, setCniFilePath] = useState<string | null>(null);
 
   const [isScanning, setIsScanning] = useState(false);
+  const [scanStep, setScanStep] = useState<string>('');
   const [autoFilled, setAutoFilled] = useState(false);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
 
@@ -92,9 +97,10 @@ export default function DevenirFournisseurPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const applyParsedData = (data: ParsedKbisData, fileName: string, fileSizeStr: string) => {
+  const applyParsedData = (data: ParsedKbisData, fileName: string, fileSizeStr: string, pathStr: string | null = null) => {
     setKbisFile(fileName);
     setKbisFileSize(fileSizeStr);
+    setKbisFilePath(pathStr);
     setAutoFilled(true);
     setOcrConfidence(data.confidenceScore);
     if (data.companyName) setCompanyName(data.companyName);
@@ -104,12 +110,11 @@ export default function DevenirFournisseurPage() {
     if (data.contactName) setContactName(data.contactName);
   };
 
-  const handleKbisFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleProcessKbisFile = async (file: File) => {
     const sizeStr = `${(file.size / 1024 / 1024).toFixed(2)} Mo`;
+    setKbisFilePath(null);
     setIsScanning(true);
+    setScanStep(locale === 'fr' ? 'Détection du document et extraction légale...' : 'Detecting document and legal parsing...');
 
     try {
       const formData = new FormData();
@@ -123,7 +128,7 @@ export default function DevenirFournisseurPage() {
         const result = await response.json();
         if (result.success && result.data) {
           setIsScanning(false);
-          applyParsedData(result.data, file.name, sizeStr);
+          applyParsedData(result.data, file.name, sizeStr, null);
           return;
         }
       }
@@ -133,6 +138,44 @@ export default function DevenirFournisseurPage() {
     setKbisFile(file.name);
     setKbisFileSize(sizeStr);
     setAutoFilled(true);
+  };
+
+  const handleProcessKbisPath = async (pathStr: string) => {
+    setIsScanning(true);
+    setScanStep(locale === 'fr' ? 'Lecture du chemin et extraction des données...' : 'Reading path and extracting data...');
+    setKbisFilePath(pathStr);
+
+    try {
+      const formData = new FormData();
+      formData.append('filePath', pathStr);
+      const response = await fetch('/api/ocr/kbis', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setIsScanning(false);
+          applyParsedData(result.data, result.fileName || pathStr, result.fileSize || 'Chemin validé', pathStr);
+          return;
+        }
+      }
+    } catch (err) {}
+
+    setIsScanning(false);
+    const fileName = pathStr.split(/[\\/]/).pop() || pathStr;
+    setKbisFile(fileName);
+    setKbisFileSize('Chemin renseigné');
+    setAutoFilled(true);
+  };
+
+  const handleRemoveKbis = () => {
+    setKbisFile(null);
+    setKbisFileSize('');
+    setKbisFilePath(null);
+    setOcrConfidence(null);
+    setAutoFilled(false);
   };
 
   const handleAddProduct = () => {
@@ -174,6 +217,7 @@ export default function DevenirFournisseurPage() {
           hasCatalogAdSpace,
           products: catalogProducts,
           kbisFile,
+          cniFile,
         }),
       });
       setIsSubmitted(true);
@@ -271,21 +315,21 @@ export default function DevenirFournisseurPage() {
                     </h2>
                   </div>
 
-                  <label className="border-2 border-dashed border-slate-700 hover:border-[#D4AF37] rounded-2xl p-8 text-center cursor-pointer transition-colors block bg-slate-900/80 group gold-glow-border">
-                    <input
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg,.webp"
-                      onChange={handleKbisFileChange}
-                      className="hidden"
-                    />
-                    <Upload className="w-10 h-10 text-[#D4AF37] mx-auto mb-3 group-hover:scale-110 transition-transform" />
-                    <p className="text-base font-bold text-white">
-                      {kbisFile ? `Fichier prêt : ${kbisFile}` : 'Déposez votre Extrait Kbis (France) ou RCCM (Afrique)'}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      PDF, PNG, JPG, WEBP &bull; Extraction immédiate des métadonnées légales
-                    </p>
-                  </label>
+                  <DocumentDropzone
+                    id="supplier-kbis-dropzone"
+                    title={locale === 'fr' ? 'Déposez votre Extrait Kbis (France) ou RCCM (Afrique)' : 'Upload your Kbis / RCCM Document'}
+                    subtitle={locale === 'fr' ? 'PDF, PNG, JPG, WEBP • Extraction immédiate des métadonnées légales par OCR' : 'PDF, PNG, JPG, WEBP • Instant legal metadata extraction via OCR'}
+                    currentFile={kbisFile}
+                    fileSize={kbisFileSize}
+                    filePath={kbisFilePath}
+                    isScanning={isScanning}
+                    scanStep={scanStep}
+                    confidenceScore={ocrConfidence}
+                    onFileSelected={handleProcessKbisFile}
+                    onPathSelected={handleProcessKbisPath}
+                    onRemoveFile={handleRemoveKbis}
+                    locale={locale}
+                  />
 
                   <div className="flex justify-end pt-4">
                     <button
@@ -468,6 +512,35 @@ export default function DevenirFournisseurPage() {
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37]"
                       />
                     </div>
+                  </div>
+
+                  {/* Pièce d'identité ou justificatif dirigeant (Optionnel) */}
+                  <div className="pt-2">
+                    <DocumentDropzone
+                      id="supplier-cni-dropzone"
+                      label={locale === 'fr' ? 'Pièce d\'identité du dirigeant ou justificatif légal (Optionnel)' : 'Manager ID Card or Legal Certificate (Optional)'}
+                      title={locale === 'fr' ? 'Déposez la CNI, Passeport ou justificatif d\'identité' : 'Upload ID Card, Passport or Identity Document'}
+                      subtitle={locale === 'fr' ? 'PDF, PNG, JPG, WEBP • Clic, glisser-déposer ou saisie de chemin' : 'PDF, PNG, JPG, WEBP • Click, drag & drop or path'}
+                      currentFile={cniFile}
+                      fileSize={cniFileSize}
+                      filePath={cniFilePath}
+                      onFileSelected={(file) => {
+                        setCniFile(file.name);
+                        setCniFileSize(`${(file.size / 1024 / 1024).toFixed(2)} Mo`);
+                        setCniFilePath(null);
+                      }}
+                      onPathSelected={(pathStr) => {
+                        setCniFilePath(pathStr);
+                        setCniFile(pathStr.split(/[\\/]/).pop() || pathStr);
+                        setCniFileSize('Chemin renseigné');
+                      }}
+                      onRemoveFile={() => {
+                        setCniFile(null);
+                        setCniFileSize('');
+                        setCniFilePath(null);
+                      }}
+                      locale={locale}
+                    />
                   </div>
 
                   <button

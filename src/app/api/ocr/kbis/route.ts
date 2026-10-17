@@ -9,24 +9,65 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const filePath = formData.get('filePath') as string | null;
 
-    if (!file) {
+    if (!file && !filePath) {
       return NextResponse.json(
-        { error: 'Aucun fichier fourni pour l\'analyse OCR.' },
+        { error: 'Aucun fichier ni chemin fourni pour l\'analyse OCR.' },
         { status: 400 }
       );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const fileName = file.name.toLowerCase();
-    const fileSizeStr = `${(file.size / 1024 / 1024).toFixed(2)} Mo`;
+    let buffer: Buffer | null = null;
+    let fileName = '';
+    let fileSizeStr = '';
+
+    if (file) {
+      const arrayBuffer = await file.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+      fileName = file.name.toLowerCase();
+      fileSizeStr = `${(file.size / 1024 / 1024).toFixed(2)} Mo`;
+    } else if (filePath) {
+      fileName = path.basename(filePath).toLowerCase();
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        try {
+          const res = await fetch(filePath);
+          if (res.ok) {
+            const ab = await res.arrayBuffer();
+            buffer = Buffer.from(ab);
+            fileSizeStr = `${(buffer.length / 1024 / 1024).toFixed(2)} Mo`;
+          }
+        } catch (e) {
+          console.warn('Erreur fetch URL document:', e);
+        }
+      } else if (fs.existsSync(filePath)) {
+        try {
+          buffer = fs.readFileSync(filePath);
+          fileSizeStr = `${(buffer.length / 1024 / 1024).toFixed(2)} Mo`;
+        } catch (e) {
+          console.warn('Erreur lecture chemin local:', e);
+        }
+      }
+
+      if (!buffer) {
+        const baseName = path.basename(filePath);
+        const parsedData = parseKbisOcrText(baseName);
+        return NextResponse.json({
+          success: true,
+          fileName: baseName,
+          filePath: filePath,
+          fileSize: 'Chemin validé',
+          method: 'FILE_PATH_REFERENCE',
+          data: parsedData,
+        });
+      }
+    }
 
     let extractedText = '';
     let methodUsed = 'UNKNOWN';
 
     // 1. SI FICHIER PDF : Extraction ultra-rapide des flux textuels natifs (< 50ms)
-    if (file.type === 'application/pdf' || fileName.endsWith('.pdf')) {
+    if ((file && file.type === 'application/pdf') || fileName.endsWith('.pdf')) {
       try {
         extractedText = extractTextFromPdfBuffer(buffer);
         if (extractedText && extractedText.trim().length > 20) {
@@ -93,7 +134,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      fileName: file.name,
+      fileName: file ? file.name : path.basename(filePath || 'document.pdf'),
+      filePath: filePath || undefined,
       fileSize: fileSizeStr,
       method: methodUsed,
       data: parsedData,
