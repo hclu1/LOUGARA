@@ -4,6 +4,13 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.17.1] - 2026-10-17
+### Corrigé — Compatibilité TypeScript `BodyInit` pour le téléchargement des factures PDF sur Vercel
+- **Route API Facturation PDF (`src/app/api/payments/invoice/[id]/route.ts`)** :
+  - Encapsulation du `Buffer` PDF dans `new Uint8Array(pdfBuffer)` lors de l'instanciation de `NextResponse` afin de résoudre l'erreur TypeScript `TS2345` (`Buffer<ArrayBufferLike>` non assignable à `BodyInit`) lors du build de production Next.js 16 sur Vercel.
+- **Gestion des Versions (SemVer v0.17.1)** :
+  - Synchronisation de `0.17.1` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.17.0] - 2026-10-17
 ### Ajouté — Système de Paiement Complet, Modulaire & Sécurisé (Stripe Payment Element, Virement RIB Lougara, Mobile Money, Factures PDF & Emails)
 - **Architecture Modulaire Multi-Prestataires (`src/features/payment/`)** :
