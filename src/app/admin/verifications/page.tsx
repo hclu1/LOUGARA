@@ -233,6 +233,14 @@ export default function AdminVerificationsPage() {
         const data = await res.json();
         if (data.companies && Array.isArray(data.companies)) {
           setSuppliers(data.companies);
+          if (typeof window !== 'undefined') {
+            try {
+              const hiddenIds = data.companies
+                .filter((c: any) => c.isPublished === false)
+                .map((c: any) => c.id);
+              localStorage.setItem('lougara_hidden_companies', JSON.stringify(hiddenIds));
+            } catch (e) {}
+          }
         }
       }
     } catch (err) {
@@ -341,6 +349,17 @@ export default function AdminVerificationsPage() {
           : s
       )
     );
+
+    try {
+      if (typeof window !== 'undefined') {
+        const hiddenList: string[] = JSON.parse(localStorage.getItem('lougara_hidden_companies') || '[]');
+        const updatedHidden = willBePublished
+          ? hiddenList.filter((id) => id !== companyId)
+          : Array.from(new Set([...hiddenList, companyId]));
+        localStorage.setItem('lougara_hidden_companies', JSON.stringify(updatedHidden));
+      }
+    } catch (e) {}
+
     try {
       const res = await fetch('/api/admin/verifications', {
         method: 'PATCH',
@@ -354,8 +373,8 @@ export default function AdminVerificationsPage() {
       if (res.ok) {
         setActionNotice(
           willBePublished
-            ? `Publication activée et visible au catalogue pour "${name}".`
-            : `Publication masquée (rendue invisible du catalogue) pour "${name}".`
+            ? `Publication & Publicité activée (visible au catalogue) pour "${name}".`
+            : `Publication & Publicité masquée (invisible du catalogue) pour "${name}".`
         );
         setTimeout(() => setActionNotice(null), 4500);
       }
@@ -747,7 +766,7 @@ export default function AdminVerificationsPage() {
                       />
                       <span className={!supplier.isPublished ? 'text-amber-400 font-semibold flex items-center gap-1.5' : 'text-slate-400 flex items-center gap-1.5'}>
                         <EyeOff className={`w-3.5 h-3.5 ${!supplier.isPublished ? 'text-amber-400' : 'text-slate-500'}`} />
-                        {!supplier.isPublished ? 'Publication invisible (masquée du catalogue)' : 'Rendre la publication invisible'}
+                        {!supplier.isPublished ? 'Publication & Publicité invisible (masquée du catalogue)' : 'Rendre la publication / publicité invisible'}
                       </span>
                     </label>
                   </div>

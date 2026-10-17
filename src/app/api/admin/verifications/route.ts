@@ -84,14 +84,24 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: true, document: updatedDoc });
     }
 
-    // 2. Toggle direct de la publication du site fournisseur
+    // 2. Toggle direct de la publication du site fournisseur et de son catalogue
     if (action === 'TOGGLE_PUBLICATION' && companyId) {
+      const willBePublished = Boolean(isPublished);
       const updatedCompany = await prisma.companyProfile.update({
         where: { id: companyId },
         data: {
-          isPublished: Boolean(isPublished),
+          isPublished: willBePublished,
         },
       });
+
+      // Synchroniser immédiatement tous les produits rattachés à cette entreprise
+      await prisma.product.updateMany({
+        where: { companyId },
+        data: {
+          isPublished: willBePublished,
+        },
+      });
+
       return NextResponse.json({ success: true, company: updatedCompany });
     }
 
@@ -112,8 +122,16 @@ export async function PATCH(request: Request) {
     // Auto-publication lorsque le dossier passe VERIFIED
     if (status === VerificationStatus.VERIFIED) {
       updateData.isPublished = true;
+      await prisma.product.updateMany({
+        where: { companyId },
+        data: { isPublished: true },
+      });
     } else if (status === VerificationStatus.REJECTED) {
       updateData.isPublished = false;
+      await prisma.product.updateMany({
+        where: { companyId },
+        data: { isPublished: false },
+      });
     }
 
     const updated = await prisma.companyProfile.update({

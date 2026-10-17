@@ -57,7 +57,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lougara.com'),
   alternates: {
-    canonical: '/',
+    canonical: 'https://lougara.com',
   },
   openGraph: {
     title: 'LOUGARA | Sourcing B2B & Fournisseurs Vérifiés Afrique - Europe',

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
@@ -54,6 +56,7 @@ interface MockProduct {
     country: string;
     city: string;
     isVerified: boolean;
+    isPublished?: boolean;
     subscriptionPlan: 'STANDARD' | 'PREMIUM' | 'VIP';
     hasCatalogAdSpace: boolean;
   };
@@ -249,6 +252,7 @@ interface SupplierCatalog {
   city: string;
   sector: string;
   isVerified: boolean;
+  isPublished?: boolean;
   coverImage: string;
   productsCount: number;
   products: MockProduct[];
@@ -335,56 +339,28 @@ export default function CataloguePage() {
 
     async function loadData() {
       try {
-        // Chargement parallèle non bloquant des 3 sources de données
+        // Chargement parallèle non bloquant des 3 sources de données avec horodatage anti-cache
+        const timestamp = Date.now();
         const [prodResult, suppResult, buyersResult] = await Promise.allSettled([
-          fetch('/api/products'),
-          fetch('/api/suppliers'),
-          fetch('/api/entrepreneurs/register'),
+          fetch(`/api/products?_t=${timestamp}`, { cache: 'no-store' }),
+          fetch(`/api/suppliers?_t=${timestamp}`, { cache: 'no-store' }),
+          fetch(`/api/entrepreneurs/register?_t=${timestamp}`, { cache: 'no-store' }),
         ]);
 
         if (!isMounted) return;
 
         if (prodResult.status === 'fulfilled' && prodResult.value.ok) {
           const dataProd = await prodResult.value.json();
-          if (dataProd.products && Array.isArray(dataProd.products) && dataProd.products.length > 0) {
-            const mappedProducts: MockProduct[] = dataProd.products.map((p: any) => ({
-              id: p.id,
-              title: p.title,
-              slug: p.slug,
-              description: p.description,
-              category: p.category,
-              originCountry: p.originCountry,
-              moq: p.moq,
-              unit: p.unit,
-              priceMin: Number(p.priceMin) || 0,
-              priceMax: Number(p.priceMax) || 0,
-              currency: p.currency || 'EUR',
-              images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600'],
-              company: {
-                id: p.company?.id || 'comp-unknown',
-                companyName: p.company?.companyName || 'Entreprise Partenaire',
-                country: p.company?.country || p.originCountry,
-                city: p.company?.city || '',
-                isVerified: p.company?.verificationStatus === 'VERIFIED',
-                subscriptionPlan: 'PREMIUM',
-                hasCatalogAdSpace: true,
-              },
-            }));
-            setProductsList(mappedProducts);
-          }
-        }
-
-        if (suppResult.status === 'fulfilled' && suppResult.value.ok) {
-          const dataSupp = await suppResult.value.json();
-          if (dataSupp.suppliers && Array.isArray(dataSupp.suppliers) && dataSupp.suppliers.length > 0) {
-            const mappedCatalogs: SupplierCatalog[] = dataSupp.suppliers.map((s: any) => {
-              const supplierProds: MockProduct[] = (s.products || []).slice(0, 10).map((p: any) => ({
+          if (dataProd.products && Array.isArray(dataProd.products)) {
+            const mappedProducts: MockProduct[] = dataProd.products
+              .filter((p: any) => p.isPublished !== false && p.company?.isPublished !== false)
+              .map((p: any) => ({
                 id: p.id,
                 title: p.title,
                 slug: p.slug,
                 description: p.description,
                 category: p.category,
-                originCountry: p.originCountry || s.country,
+                originCountry: p.originCountry,
                 moq: p.moq,
                 unit: p.unit,
                 priceMin: Number(p.priceMin) || 0,
@@ -392,15 +368,52 @@ export default function CataloguePage() {
                 currency: p.currency || 'EUR',
                 images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600'],
                 company: {
-                  id: s.id,
-                  companyName: s.companyName,
-                  country: s.country,
-                  city: s.city,
-                  isVerified: s.verificationStatus === 'VERIFIED',
+                  id: p.company?.id || 'comp-unknown',
+                  companyName: p.company?.companyName || 'Entreprise Partenaire',
+                  country: p.company?.country || p.originCountry,
+                  city: p.company?.city || '',
+                  isVerified: p.company?.verificationStatus === 'VERIFIED',
+                  isPublished: p.company?.isPublished !== false,
                   subscriptionPlan: 'PREMIUM',
                   hasCatalogAdSpace: true,
                 },
               }));
+            setProductsList(mappedProducts);
+          }
+        }
+
+        if (suppResult.status === 'fulfilled' && suppResult.value.ok) {
+          const dataSupp = await suppResult.value.json();
+          if (dataSupp.suppliers && Array.isArray(dataSupp.suppliers)) {
+            const publishedSuppliers = dataSupp.suppliers.filter((s: any) => s.isPublished !== false);
+            const mappedCatalogs: SupplierCatalog[] = publishedSuppliers.map((s: any) => {
+              const supplierProds: MockProduct[] = (s.products || [])
+                .filter((p: any) => p.isPublished !== false)
+                .slice(0, 10)
+                .map((p: any) => ({
+                  id: p.id,
+                  title: p.title,
+                  slug: p.slug,
+                  description: p.description,
+                  category: p.category,
+                  originCountry: p.originCountry || s.country,
+                  moq: p.moq,
+                  unit: p.unit,
+                  priceMin: Number(p.priceMin) || 0,
+                  priceMax: Number(p.priceMax) || 0,
+                  currency: p.currency || 'EUR',
+                  images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600'],
+                  company: {
+                    id: s.id,
+                    companyName: s.companyName,
+                    country: s.country,
+                    city: s.city,
+                    isVerified: s.verificationStatus === 'VERIFIED',
+                    isPublished: s.isPublished !== false,
+                    subscriptionPlan: 'PREMIUM',
+                    hasCatalogAdSpace: true,
+                  },
+                }));
 
               const coverImg = supplierProds.length > 0 && supplierProds[0].images?.[0]
                 ? supplierProds[0].images[0]
@@ -413,8 +426,9 @@ export default function CataloguePage() {
                 city: s.city,
                 sector: s.sector,
                 isVerified: s.verificationStatus === 'VERIFIED',
+                isPublished: s.isPublished !== false,
                 coverImage: coverImg,
-                productsCount: Math.min(s.products?.length || 0, 10),
+                productsCount: Math.min(supplierProds.length, 10),
                 products: supplierProds,
               };
             });
@@ -456,7 +470,16 @@ export default function CataloguePage() {
   };
 
   const filteredCatalogs = useMemo(() => {
+    let localHidden: string[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        localHidden = JSON.parse(localStorage.getItem('lougara_hidden_companies') || '[]');
+      } catch (e) {}
+    }
+
     return suppliersCatalogList.filter((cat) => {
+      if (cat.isPublished === false) return false;
+      if (localHidden.includes(cat.id)) return false;
       if (onlyVerified && !cat.isVerified) return false;
       if (selectedCategory !== 'all' && !cat.sector.toLowerCase().includes(selectedCategory.toLowerCase())) return false;
       if (selectedCountry !== 'all' && cat.country !== selectedCountry) return false;
@@ -473,7 +496,16 @@ export default function CataloguePage() {
   }, [suppliersCatalogList, onlyVerified, selectedCategory, selectedCountry, selectedCorridor, query]);
 
   const filteredProducts = useMemo(() => {
+    let localHidden: string[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        localHidden = JSON.parse(localStorage.getItem('lougara_hidden_companies') || '[]');
+      } catch (e) {}
+    }
+
     return productsList.filter((prod) => {
+      if (prod.company?.isPublished === false) return false;
+      if (localHidden.includes(prod.company.id)) return false;
       if (!prod.company.hasCatalogAdSpace) return false;
       if (onlyVerified && !prod.company.isVerified) return false;
       if (selectedCategory !== 'all' && !prod.category.toLowerCase().includes(selectedCategory.toLowerCase())) return false;

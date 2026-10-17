@@ -4,6 +4,20 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.15.3] - 2026-10-17
+### Corrigé — Masquage Immédiat des Publications & Publicités du Catalogue lors de la Modération
+- **Synchronisation BDD Complète de l'Option Masquée (`/api/admin/verifications`)** :
+  - Mise à jour atomique de l'entreprise (`CompanyProfile.isPublished`) et de l'ensemble de ses produits (`Product.isPublished`) lors du basculement de visibilité.
+  - Synchronisation automatique sur les rejets et validations de dossiers fournisseurs.
+- **Suppression du Cache Navigateur sur les Catalogues & Produits** :
+  - Remplacement des en-têtes `s-maxage` par `Cache-Control: no-store, no-cache, must-revalidate` sur `/api/suppliers` et `/api/products` afin de refléter immédiatement les décisions de modération.
+  - Ajout d'un horodatage anti-cache `?_t=${Date.now()}` et de l'option `{ cache: 'no-store' }` sur les appels du catalogue.
+- **Filtrage Instantané Côté Client & Synchronisation Multi-Onglets (`/catalogue`)** :
+  - Intégration de `localStorage('lougara_hidden_companies')` et du contrôle strict `cat.isPublished === false` et `prod.company.isPublished === false` dans les mémos React pour faire disparaître immédiatement les fiches masquées.
+  - Remplacement complet de la liste des catalogues même lorsqu'elle devient vide après masquage.
+- **Gestion des Versions (SemVer v0.15.3)** :
+  - Synchronisation de `0.15.3` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.15.2] - 2026-10-17
 ### Corrigé
 - Suppression de l'icône de loupe à gauche du lien Catalogue & Sourcing dans la barre de navigation
