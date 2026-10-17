@@ -15,9 +15,9 @@ export const Navbar = () => {
     <header className="sticky top-0 z-50 bg-[#0B132B]/90 backdrop-blur-xl border-b border-[#D4AF37]/20 shadow-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Brand Logo & Tagline */}
+          {/* Brand Logo */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-3 group" title="LOUGARA - Sourcing B2B">
               {/* Official Logo Image Container */}
               <div className="bg-white px-3 py-1.5 rounded-2xl border border-amber-400/50 shadow-[0_0_25px_rgba(212,175,55,0.4)] group-hover:scale-105 transition-all duration-300 flex items-center justify-center">
                 <img
@@ -25,14 +25,6 @@ export const Navbar = () => {
                   alt="LOUGARA Sourcing B2B"
                   className="h-12 sm:h-14 w-auto object-contain max-w-[180px] sm:max-w-[220px]"
                 />
-              </div>
-              <div className="hidden xl:flex flex-col gap-1">
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#D4AF37]/15 text-[#E5A93C] border border-[#D4AF37]/30 w-fit">
-                  {t.nav.sourcingTag}
-                </span>
-                <p className="text-[11px] font-medium text-slate-400">
-                  {t.nav.corridor}
-                </p>
               </div>
             </Link>
           </div>

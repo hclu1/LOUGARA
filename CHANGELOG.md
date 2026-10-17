@@ -4,6 +4,15 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.13.3] - 2026-10-17
+### Corrigé & Nettoyé — Suppression de l'encart jaune Sourcing B2B et épuration de l'en-tête
+- **Barre de Navigation (`Navbar`)** :
+  - Suppression de l'encart jaune d'angle (« Sourcing B2B ») tronqué et inesthétique à côté du logo Lougara sur grand écran.
+  - Suppression du sous-titre de corridor compressé verticalement pour un rendu visuel net, épuré et fidèle à la charte officielle de marque.
+  - Le logo officiel Lougara bénéficie désormais d'un espacement optimal et équilibré, identique sur toutes les résolutions d'écran.
+- **Gestion des Versions (SemVer v0.13.3)** :
+  - Synchronisation de `0.13.3` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.13.2] - 2026-10-15
 ### Corrigé & Enrichi — Traduction Bilingue Intégrale des Catalogues, Vitrines, Filtres & Modales
 - **Internationalisation Complète de la Vue Catalogue (`/catalogue`)** :
