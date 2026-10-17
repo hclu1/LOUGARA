@@ -4,6 +4,29 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.17.0] - 2026-10-17
+### Ajouté — Système de Paiement Complet, Modulaire & Sécurisé (Stripe Payment Element, Virement RIB Lougara, Mobile Money, Factures PDF & Emails)
+- **Architecture Modulaire Multi-Prestataires (`src/features/payment/`)** :
+  - Interface commune `PaymentProvider` (`createPayment`, `verifyPayment`, `handleWebhook`, `refund`).
+  - Matrice déclarative par pays (`payment-methods.config.ts`) associant chaque pays (France, Belgique, Sénégal, Côte d'Ivoire, Cameroun, Gabon, Guinée, Maroc, Nigéria, RDC, International) à ses devises (`EUR`, `XOF`, `XAF`, `USD`, `GNF`, `MAD`, `NGN`) et moyens de paiement sans modification du code métier.
+  - Validation stricte des montants côté serveur (`pricing.service.ts`) : le navigateur ne dicte jamais le montant facturé.
+- **Moyens de Paiement Implémentés** :
+  - **Stripe Payment Element intégré (`/paiement`)** : Support des paiements uniques (Packs Crédits) et abonnements (Mensuel/Annuel) avec `automatic_payment_methods` (Cartes, Apple Pay, Google Pay, Link, Prélèvement SEPA) et gestion des devises zéro-décimale (`XOF`, `XAF`, `GNF`).
+  - **Portail Client Stripe (`/api/stripe/portal`)** : Accessible depuis `/paiement/historique` pour gérer l'abonnement et les cartes enregistrées.
+  - **Virement Bancaire Manuel (RIB Officiel Lougara / Qonto)** : Affichage du titulaire (`Lougara (EI - CHAMPAGNE Christelle / Mimonga)`), IBAN (`FR76 1695 8000 0112 9657 5872 333`), BIC (`QNTOFRP1XXX` / SWIFT partenaire `TRWIBEB3XXX`), montant exact et référence unique `LOU-AAAA-XXXX`, passage au statut `WAITING_TRANSFER` et envoi d'email d'instructions.
+  - **Connecteurs Mobile Money Africains** : Connecteurs documentés prêts à l'activation par variables `.env` pour **CinetPay**, **Flutterwave** et **PayDunya** (Wave, Orange Money, MTN MoMo, Moov Money).
+- **Base de Données, Webhooks Idempotents & Activation Serveur Exclusive** :
+  - Ajout des modèles Prisma `PaymentOrder`, `WebhookEvent` et `Invoice`.
+  - Vérification cryptographique des signatures et idempotence stricte des webhooks (`/api/webhooks/stripe` et `/api/webhooks/[provider]`).
+  - Activation de l'accès client (`fulfillPaymentOrder`) exécutée exclusivement après confirmation serveur (webhook ou validation Admin), jamais via l'URL de retour navigateur.
+- **Factures PDF Séquentielles & Emails Transactionnels** :
+  - Génération automatique de factures PDF 1.4 (`invoice-pdf.service.ts`) avec numérotation séquentielle `FAC-AAAA-XXXX` et mentions légales `Lougara`.
+  - Service d'emails transactionnels (`email.service.ts`) pour les instructions de virement RIB, la confirmation de paiement avec facture PDF jointe et les alertes d'échec.
+- **Interfaces Client & Back-Office Admin** :
+  - Nouvelles pages `/paiement`, `/paiement/succes`, `/paiement/echec`, `/paiement/historique` et `/admin/paiements` (avec bouton **« Marquer comme payé »**).
+  - Fichier `.env.example`, suite de tests unitaires et d'intégration (`payment-system.test.ts`) et guide complet (`docs/GUIDE_PAIEMENTS_ET_MISE_EN_PRODUCTION.md`).
+
+
 ## [0.16.1] - 2026-10-17
 ### Ajouté & Amélioré — Affichage Direct du Contrôle « Site en maintenance » dans l'Espace Modérateur & Administration (Mode Super Admin)
 - **Intégration Directe dans le Hub Modérateur (`/moderation`)** :

@@ -1,92 +1,61 @@
 import { NextResponse } from 'next/server';
-import { getStripeServerClient } from '@/lib/stripe';
-import { prisma } from '@/lib/prisma';
-import Stripe from 'stripe';
+import { getPaymentProvider } from '@/features/payment/providers';
+import {
+  checkAndRecordWebhookIdempotence,
+  fulfillPaymentOrder,
+  markPaymentOrderFailed,
+  markPaymentOrderRefunded,
+} from '@/features/payment/services/fulfillment.service';
 
 export async function POST(req: Request) {
-  const stripe = getStripeServerClient();
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!stripe || !webhookSecret) {
-    return NextResponse.json({ error: 'Stripe webhook non configuré' }, { status: 400 });
-  }
-
-  const rawBody = await req.text();
-  const signature = req.headers.get('stripe-signature');
-
-  if (!signature) {
-    return NextResponse.json({ error: 'Signature Stripe manquante' }, { status: 400 });
-  }
-
-  let event: Stripe.Event;
-
   try {
-    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-  } catch (err: any) {
-    console.error(`❌ Signature Webhook invalide: ${err.message}`);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
-  }
+    const rawBody = await req.text();
+    const signature = req.headers.get('stripe-signature');
 
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const companyId = session.metadata?.companyId || session.client_reference_id;
-        const planCode = session.metadata?.planCode;
+    const stripeProvider = getPaymentProvider('STRIPE');
+    const result = await stripeProvider.handleWebhook(rawBody, {
+      'stripe-signature': signature,
+    });
 
-        if (companyId && planCode) {
-          const plan = await prisma.subscriptionPlan.findUnique({
-            where: { code: planCode },
-          });
+    // Vérification stricte d'idempotence (un même event.id ne doit jamais être traité deux fois)
+    const alreadyProcessed = await checkAndRecordWebhookIdempotence({
+      provider: 'STRIPE',
+      eventId: result.eventId,
+      eventType: result.eventType,
+      payload: rawBody,
+    });
 
-          if (plan) {
-            await prisma.userSubscription.upsert({
-              where: { companyId },
-              update: {
-                planId: plan.id,
-                stripeCustomerId: session.customer as string,
-                stripeSubscriptionId: session.subscription as string,
-                status: 'ACTIVE',
-              },
-              create: {
-                companyId,
-                planId: plan.id,
-                stripeCustomerId: session.customer as string,
-                stripeSubscriptionId: session.subscription as string,
-                status: 'ACTIVE',
-              },
-            });
-            console.log(`✅ Abonnement activé pour la société ${companyId} (${planCode})`);
-          }
-        }
-        break;
-      }
+    if (alreadyProcessed) {
+      return NextResponse.json({
+        received: true,
+        idempotentDuplicate: true,
+        eventId: result.eventId,
+      });
+    }
 
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        await prisma.userSubscription.updateMany({
-          where: { stripeSubscriptionId: subscription.id },
-          data: { status: 'CANCELED' },
+    const identifier = result.orderReference || result.providerPaymentId;
+
+    if (result.handled && identifier) {
+      if (result.newStatus === 'PAID') {
+        await fulfillPaymentOrder({
+          orderIdentifier: identifier,
+          providerPaymentId: result.providerPaymentId,
         });
-        console.log(`🔴 Abonnement résilié pour ${subscription.id}`);
-        break;
-      }
-
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as any;
-        if (invoice.subscription) {
-          await prisma.userSubscription.updateMany({
-            where: { stripeSubscriptionId: String(invoice.subscription) },
-            data: { status: 'PAST_DUE' },
-          });
-        }
-        break;
+      } else if (result.newStatus === 'FAILED') {
+        await markPaymentOrderFailed(identifier, result.message);
+      } else if (result.newStatus === 'REFUNDED') {
+        await markPaymentOrderRefunded(identifier);
       }
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({
+      received: true,
+      eventId: result.eventId,
+      eventType: result.eventType,
+      handled: result.handled,
+    });
   } catch (err: any) {
-    console.error(`Erreur traitement webhook Stripe (${event.type}):`, err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error(`❌ Erreur Webhook Stripe : ${err.message}`);
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 }

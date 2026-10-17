@@ -55,6 +55,7 @@ model User {
   contactCredits ContactCredit[]
   contactRequests ContactRequest[] @relation("BuyerContactRequests")
   billingEvents  BillingEvent[]
+  paymentOrders  PaymentOrder[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -281,6 +282,88 @@ model SystemMaintenance {
   message             String?  @default("Maintenance technique Lougara")
   updatedAt           DateTime @updatedAt
 }
+
+enum PaymentOrderStatus {
+  PENDING
+  WAITING_TRANSFER
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentBillingCycle {
+  MONTHLY
+  ANNUAL
+  ONE_TIME
+}
+
+model PaymentOrder {
+  id                   String              @id @default(cuid())
+  reference            String              @unique // Ex: LOU-2026-4829
+  userId               String?
+  user                 User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerEmail        String
+  customerName         String?
+  companyId            String?
+  companyName          String?
+  countryCode          String              @default("FR")
+  planCode             String              // SUPPLIER_ESSENTIAL, BUYER_PRO, CREDIT_PACK_5...
+  planName             String
+  billingCycle         PaymentBillingCycle @default(MONTHLY)
+  amount               Decimal
+  currency             String              @default("EUR")
+  provider             String              // STRIPE, BANK_TRANSFER, CINETPAY, FLUTTERWAVE, PAYDUNYA
+  paymentMethodType    String?             // card, sepa_debit, bank_transfer, orange_money, wave, mtn_momo...
+  status               PaymentOrderStatus  @default(PENDING)
+  providerPaymentId    String?             // ID PaymentIntent, Subscription, ou transaction Mobile Money
+  providerClientSecret String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  metadataJson         String?
+  paidAt               DateTime?
+  refundedAt           DateTime?
+  validatedByEmail     String?             // Email admin ayant validé un virement bancaire
+  invoice              Invoice?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([customerEmail])
+  @@index([status])
+  @@index([provider])
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String   // STRIPE, CINETPAY, FLUTTERWAVE, PAYDUNYA
+  eventId     String   @unique
+  eventType   String
+  status      String   @default("PROCESSED")
+  payload     String?
+  processedAt DateTime @default(now())
+}
+
+model Invoice {
+  id              String       @id @default(cuid())
+  invoiceNumber   String       @unique // Ex: FAC-2026-0001
+  sequenceNumber  Int
+  year            Int
+  orderId         String       @unique
+  order           PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerEmail   String
+  customerName    String
+  customerCompany String?
+  customerAddress String?
+  amountHt        Decimal
+  taxRate         Decimal      @default(0)
+  taxAmount       Decimal      @default(0)
+  amountTtc       Decimal
+  currency        String       @default("EUR")
+  issuedAt        DateTime     @default(now())
+
+  @@unique([year, sequenceNumber])
+}
+
 
 
 

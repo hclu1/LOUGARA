@@ -43,34 +43,16 @@ export default function TarifsPage() {
       .catch((err) => console.warn('Erreur vérification statut Stripe:', err));
   }, []);
 
-  const handleSelectPlan = async (planCode: string, planName: string) => {
-    if (!isStripeEnabled) {
-      setSelectedPlanName(planName);
-      setModalOpen(true);
-      return;
-    }
-
+  const handleSelectPlan = async (planCode: string, _planName: string) => {
     setLoadingCheckout(planCode);
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planCode, isAnnual, currency }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else if (data.pendingActivation) {
-        setSelectedPlanName(planName);
-        setModalOpen(true);
-      } else {
-        alert(data.message || 'Erreur lors de la préparation du paiement.');
-      }
-    } catch (err) {
-      alert('Erreur réseau lors de la redirection vers le paiement.');
-    } finally {
-      setLoadingCheckout(null);
-    }
+    const cycle = planCode.startsWith('CREDIT_PACK')
+      ? 'ONE_TIME'
+      : isAnnual
+        ? 'ANNUAL'
+        : 'MONTHLY';
+    window.location.href = `/paiement?plan=${encodeURIComponent(
+      planCode
+    )}&cycle=${cycle}&currency=${encodeURIComponent(currency)}`;
   };
 
   const currConfig = SUPPORTED_CURRENCIES[currency] || SUPPORTED_CURRENCIES.EUR;

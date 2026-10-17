@@ -292,6 +292,13 @@ export default function ModerationHubPage() {
                 </label>
               </div>
             )}
+            <Link
+              href="/admin/paiements"
+              className="inline-flex items-center gap-1.5 text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 px-3.5 py-1.5 rounded-xl shadow-md transition-all"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Virements RIB & Paiements</span>
+            </Link>
             <span className="text-xs font-bold text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
               Comptes modérateurs actifs : 2/2
             </span>

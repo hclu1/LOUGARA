@@ -221,13 +221,22 @@ export default function AdminSettingsPage() {
             </p>
           </div>
 
-          <Link
-            href="/admin/verifications"
-            className="inline-flex items-center gap-2 py-2 px-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 hover:bg-slate-800 transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>File des vérifications</span>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              href="/admin/paiements"
+              className="inline-flex items-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] text-slate-950 font-black text-xs shadow-md hover:opacity-95 transition-all"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>Virements RIB & Paiements</span>
+            </Link>
+            <Link
+              href="/admin/verifications"
+              className="inline-flex items-center gap-2 py-2 px-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 hover:bg-slate-800 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>File des vérifications</span>
+            </Link>
+          </div>
         </div>
 
         {/* FEEDBACK MESSAGES */}
