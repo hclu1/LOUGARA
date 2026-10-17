@@ -63,11 +63,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (!buffer) {
+      return NextResponse.json(
+        { success: false, error: 'Fichier ou chemin de document invalide' },
+        { status: 400 }
+      );
+    }
+
     let extractedText = '';
     let methodUsed = 'UNKNOWN';
 
+    const isPdf = Boolean((file && file.type === 'application/pdf') || fileName.endsWith('.pdf'));
+
     // 1. SI FICHIER PDF : Extraction ultra-rapide des flux textuels natifs (< 50ms)
-    if ((file && file.type === 'application/pdf') || fileName.endsWith('.pdf')) {
+    if (isPdf) {
       try {
         extractedText = extractTextFromPdfBuffer(buffer);
         if (extractedText && extractedText.trim().length > 20) {
@@ -93,7 +102,6 @@ export async function POST(req: NextRequest) {
 
     // 2. SI FICHIER IMAGE OU SCANNÉ : Tesseract OCR serveur avec contrôle de fichier local
     if (!extractedText || extractedText.trim().length < 20) {
-      const isPdf = file.type === 'application/pdf' || fileName.endsWith('.pdf');
       if (!isPdf) {
         try {
           methodUsed = 'TESSERACT_OCR_SERVER';
