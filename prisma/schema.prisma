@@ -274,4 +274,13 @@ model BillingEvent {
   createdAt             DateTime @default(now())
 }
 
+model SystemMaintenance {
+  id                  String   @id @default("global")
+  isMaintenanceActive Boolean  @default(false)
+  lastActiveVersion   String   @default("0.15.3")
+  message             String?  @default("Maintenance technique Lougara")
+  updatedAt           DateTime @updatedAt
+}
+
+
 

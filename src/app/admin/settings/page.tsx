@@ -16,6 +16,11 @@ import {
   Sliders,
   DollarSign,
   Package,
+  Wrench,
+  ShieldAlert,
+  Power,
+  RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 
 interface SettingsData {
@@ -23,6 +28,15 @@ interface SettingsData {
   allowFreeCatalogLimit: number;
   currency: string;
   contactEmail: string;
+}
+
+interface MaintenanceData {
+  isMaintenanceActive: boolean;
+  lastActiveVersion: string;
+  currentAppVersion: string;
+  isVersionMismatch: boolean;
+  message: string;
+  updatedAt: string;
 }
 
 interface StripeStatus {
@@ -43,10 +57,20 @@ interface PlanData {
 }
 
 export default function AdminSettingsPage() {
-  const { isSuperAdmin, isLoading: authLoading } = useAuth();
+  const { user, isSuperAdmin, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [maintenance, setMaintenance] = useState<MaintenanceData>({
+    isMaintenanceActive: false,
+    lastActiveVersion: '',
+    currentAppVersion: '',
+    isVersionMismatch: false,
+    message: '',
+    updatedAt: '',
+  });
 
   const [settings, setSettings] = useState<SettingsData>({
     isStripeEnabled: false,
@@ -71,17 +95,56 @@ export default function AdminSettingsPage() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/settings');
-      const data = await res.json();
-      if (data.success) {
-        setSettings(data.settings);
-        setStripeStatus(data.stripeKeyStatus);
-        setPlans(data.plans || []);
+      const [resSettings, resMaint] = await Promise.all([
+        fetch('/api/admin/settings'),
+        fetch(`/api/system/maintenance?_t=${Date.now()}`),
+      ]);
+      const dataSettings = await resSettings.json();
+      const dataMaint = await resMaint.json();
+
+      if (dataSettings.success) {
+        setSettings(dataSettings.settings);
+        setStripeStatus(dataSettings.stripeKeyStatus);
+        setPlans(dataSettings.plans || []);
+      }
+      if (dataMaint.success) {
+        setMaintenance(dataMaint);
       }
     } catch (err) {
       console.error('Erreur chargement paramètres:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleMaintenance = async (active: boolean) => {
+    setMaintenanceLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/system/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isMaintenanceActive: active,
+          requesterEmail: user?.email,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMaintenance(data);
+        setMessage({
+          type: 'success',
+          text: active
+            ? 'Mode maintenance activé avec succès. L’accès est désormais bloqué pour tous sauf le Super Admin.'
+            : 'Site redémarré avec succès. L’accès public est rétabli et la nouvelle version est validée.',
+        });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Erreur lors de la modification du mode maintenance.' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Erreur réseau.' });
+    } finally {
+      setMaintenanceLoading(false);
     }
   };
 
@@ -179,6 +242,103 @@ export default function AdminSettingsPage() {
             {message.text}
           </div>
         )}
+
+        {/* CARTE SPÉCIALE SUPER ADMIN : SITE EN MAINTENANCE */}
+        <div
+          className={`glass-card rounded-3xl border-2 p-6 sm:p-8 space-y-6 transition-all ${
+            maintenance.isMaintenanceActive
+              ? 'bg-amber-950/30 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.15)]'
+              : 'border-slate-800 bg-slate-900/40'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div
+                className={`p-3 rounded-2xl border ${
+                  maintenance.isMaintenanceActive
+                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 animate-pulse'
+                    : 'bg-slate-800/80 border-slate-700 text-slate-400'
+                }`}
+              >
+                <Wrench className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-black text-white">Site en maintenance</h2>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
+                      maintenance.isMaintenanceActive
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    }`}
+                  >
+                    {maintenance.isMaintenanceActive ? '🔴 Maintenance Active' : '🟢 Site en ligne'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed">
+                  Active le mode maintenance sur toute la plateforme. Lorsqu'activé, un gros encart de maintenance est affiché dans l'application et plus rien n'est accessible aux visiteurs et utilisateurs réguliers. Seul le Super Admin peut naviguer.
+                </p>
+              </div>
+            </div>
+
+            {/* LA COCHE / INTERRUPTEUR DE MAINTENANCE */}
+            <div className="flex items-center gap-3 bg-slate-950/70 p-3 rounded-2xl border border-slate-800 shrink-0 self-stretch sm:self-auto justify-between sm:justify-start">
+              <span className="text-xs font-bold text-slate-300">
+                {maintenance.isMaintenanceActive ? 'Maintenance activée' : 'Site en ligne'}
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  disabled={maintenanceLoading}
+                  checked={maintenance.isMaintenanceActive}
+                  onChange={(e) => handleToggleMaintenance(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-7 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-500 disabled:opacity-50"></div>
+              </label>
+            </div>
+          </div>
+
+          {/* DÉTECTION AUTOMATIQUE SUR CHANGEMENT DE VERSION */}
+          {maintenance.isVersionMismatch && maintenance.isMaintenanceActive && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-xs text-amber-200">
+              <Sparkles className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <strong>Bascule automatique sur nouvelle version (v{maintenance.currentAppVersion}) :</strong> Une mise à jour applicative a été détectée. Par sécurité, la maintenance a été activée automatiquement et la coche s'est cochée seule. Seul le Super Admin peut débloquer le site en décochant la case ci-dessus ou en cliquant sur « Redémarrer le site ».
+              </div>
+            </div>
+          )}
+
+          {/* INFOS DE VERSION & ACTION RAPIDE */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-800 text-xs">
+            <div className="flex flex-wrap items-center gap-4 text-slate-400">
+              <span>Version de code : <strong className="text-white">v{maintenance.currentAppVersion || '0.16.0'}</strong></span>
+              <span>Dernière version validée : <strong className="text-amber-400">v{maintenance.lastActiveVersion || '0.15.3'}</strong></span>
+            </div>
+
+            {maintenance.isMaintenanceActive ? (
+              <button
+                type="button"
+                onClick={() => handleToggleMaintenance(false)}
+                disabled={maintenanceLoading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs transition-all shadow-lg active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <Power className="w-4 h-4" />
+                <span>Redémarrer le site & Rétablir l'accès public</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleToggleMaintenance(true)}
+                disabled={maintenanceLoading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs transition-all border border-amber-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                <span>Passer le site en maintenance</span>
+              </button>
+            )}
+          </div>
+        </div>
 
         <form onSubmit={handleSave} className="space-y-8">
           {/* SECTION 1: INTERRUPTEUR DE MONÉTISATION */}

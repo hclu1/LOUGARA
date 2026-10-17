@@ -4,6 +4,27 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.16.0] - 2026-10-17
+### Ajouté — Mode « Site en maintenance » Super Admin & Bascule Automatique sur Changement de Version
+- **Panneau de Contrôle Super Admin (`/admin/settings`)** :
+  - Ajout d'une carte dédiée en tête des paramètres d'administration avec case à cocher interactive pour activer ou désactiver le mode maintenance.
+  - Badge de statut en direct (`🔴 Maintenance Active` / `🟢 Site en ligne`), affichage de la version applicative actuelle vs version active en base, et bouton de redémarrage direct (« Redémarrer le site & Ouvrir au public »).
+- **Écran de Blocage Global Protecteur (`MaintenanceGuard`)** :
+  - Intégration globale dans `layout.tsx` d'un encart plein écran (`z-[999999]`) bloquant l'accès au catalogue, aux espaces et aux formulaires pour tous les visiteurs et utilisateurs standards.
+  - Accès et navigation réservés exclusivement au Super Admin (`champagcrypt@gmail.com`).
+  - Modal d'authentification Super Admin discret intégré à l'écran de blocage pour permettre au Super Admin de se connecter et d'accéder au site sans friction.
+  - Bannière flottante d'administration avec voyant d'alerte et bouton de réouverture en un clic affichée pour le Super Admin connecté.
+- **Bascule Automatique en Maintenance lors d'une Mise à Jour de Version** :
+  - Détection automatique à l'exécution de toute différence entre la version de code (`APP_VERSION`) et la version active enregistrée (`lastActiveVersion`).
+  - Si un déploiement ou une mise à jour est effectué sans activation préalable par l'administrateur, le système verrouille automatiquement la plateforme en mode maintenance et coche l'option dans l'espace Super Admin.
+  - Seul le Super Admin peut réouvrir l'accès public (« Redémarrer le site »), ce qui met à jour la version enregistrée et restaure la disponibilité générale.
+- **Persistance PostgreSQL & API Dédiée (`/api/system/maintenance`)** :
+  - Modèle de données `SystemMaintenance` dans Prisma avec initialisation et persistance directe en base PostgreSQL.
+  - API `GET` avec en-têtes anti-cache stricts (`Cache-Control: no-store`) et API `POST` strictement réservée au Super Admin vérifié.
+  - Fallback en mémoire résilient assurant la protection du site même en cas d'indisponibilité momentanée du serveur PostgreSQL.
+- **Gestion des Versions (SemVer v0.16.0)** :
+  - Synchronisation de `0.16.0` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.15.3] - 2026-10-17
 ### Corrigé — Masquage Immédiat des Publications & Publicités du Catalogue lors de la Modération
 - **Synchronisation BDD Complète de l'Option Masquée (`/api/admin/verifications`)** :

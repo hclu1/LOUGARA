@@ -5,6 +5,7 @@ import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { VisitorTracker } from '@/components/VisitorTracker';
+import { MaintenanceGuard } from '@/components/MaintenanceGuard';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 
@@ -57,7 +58,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lougara.com'),
   alternates: {
-    canonical: 'https://lougara.com',
+    canonical: '/',
   },
   openGraph: {
     title: 'LOUGARA | Sourcing B2B & Fournisseurs Vérifiés Afrique - Europe',
@@ -91,6 +92,9 @@ export default function RootLayout({
       <body className="flex flex-col min-h-screen bg-[#0B132B] text-slate-100 font-sans antialiased selection:bg-amber-500/30 selection:text-amber-200">
         <LanguageProvider>
           <AuthProvider>
+            <Suspense fallback={null}>
+              <MaintenanceGuard />
+            </Suspense>
             <Suspense fallback={null}>
               <VisitorTracker />
             </Suspense>

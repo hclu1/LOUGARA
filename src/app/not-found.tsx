@@ -2,6 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { FileQuestion, Home } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function NotFound() {
   return (
     <div className="min-h-[70vh] bg-[#0B132B] text-slate-100 flex items-center justify-center px-4 py-16">
