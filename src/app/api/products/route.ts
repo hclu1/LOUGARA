@@ -6,6 +6,9 @@ export async function GET() {
     const products = await prisma.product.findMany({
       where: {
         isPublished: true,
+        company: {
+          isPublished: true,
+        },
       },
       include: {
         company: true,
@@ -13,9 +16,17 @@ export async function GET() {
       orderBy: {
         createdAt: 'desc',
       },
+      take: 60,
     });
 
-    return NextResponse.json({ success: true, products });
+    return NextResponse.json(
+      { success: true, products },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Erreur API /api/products :', error);
     return NextResponse.json(

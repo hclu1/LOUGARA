@@ -29,11 +29,18 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const entrepreneurs = await getRegisteredEntrepreneurs();
-    return NextResponse.json({
-      success: true,
-      count: entrepreneurs.length,
-      entrepreneurs,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        count: entrepreneurs.length,
+        entrepreneurs,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: err.message },

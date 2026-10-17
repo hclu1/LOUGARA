@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
     const suppliers = await prisma.companyProfile.findMany({
       where: includeUnpublished ? {} : { isPublished: true },
       include: {
-        products: true,
+        products: {
+          take: 10,
+        },
         user: {
           select: {
             firstName: true,
@@ -22,9 +24,17 @@ export async function GET(req: NextRequest) {
       orderBy: {
         createdAt: 'desc',
       },
+      take: 50,
     });
 
-    return NextResponse.json({ success: true, suppliers });
+    return NextResponse.json(
+      { success: true, suppliers },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Erreur API /api/suppliers GET :', error);
     return NextResponse.json(

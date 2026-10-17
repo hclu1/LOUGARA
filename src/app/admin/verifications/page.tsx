@@ -19,6 +19,7 @@ import {
   Users,
   Factory,
   Eye,
+  EyeOff,
   TrendingUp,
   RefreshCw,
   Activity,
@@ -330,6 +331,37 @@ export default function AdminVerificationsPage() {
       setActionNotice(`Dossier rejeté pour "${name}".`);
       setTimeout(() => setActionNotice(null), 4500);
     } catch (e) {}
+  };
+
+  const handleToggleVisibility = async (companyId: string, willBePublished: boolean, name: string) => {
+    setSuppliers((prev) =>
+      prev.map((s) =>
+        s.id === companyId
+          ? { ...s, isPublished: willBePublished }
+          : s
+      )
+    );
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'TOGGLE_PUBLICATION',
+          companyId,
+          isPublished: willBePublished,
+        }),
+      });
+      if (res.ok) {
+        setActionNotice(
+          willBePublished
+            ? `Publication activée et visible au catalogue pour "${name}".`
+            : `Publication masquée (rendue invisible du catalogue) pour "${name}".`
+        );
+        setTimeout(() => setActionNotice(null), 4500);
+      }
+    } catch (e) {
+      console.error('Erreur toggle visibilité :', e);
+    }
   };
 
   const handleUpdateDocumentStatus = async (
@@ -676,26 +708,48 @@ export default function AdminVerificationsPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-black text-white">{supplier.companyName}</h3>
                       {supplier.verificationStatus === 'VERIFIED' && <BadgeVerified />}
+                      {!supplier.isPublished && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <EyeOff className="w-3 h-3 text-amber-400" />
+                          Masqué du catalogue
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
                       RCS : {supplier.registrationNumber || 'En attente'} &bull; {supplier.city}, {supplier.country} &bull; Secteur : <strong className="text-amber-300">{supplier.sector}</strong>
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleRejectSupplier(supplier.id, supplier.companyName)}
-                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-rose-400 bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 transition-colors"
-                    >
-                      Rejeter
-                    </button>
-                    <button
-                      onClick={() => handleApproveSupplier(supplier.id, supplier.companyName)}
-                      className="px-4 py-1.5 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md flex items-center gap-1"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
-                      Valider & Publier
-                    </button>
+                  <div className="flex flex-col sm:items-end gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleRejectSupplier(supplier.id, supplier.companyName)}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-rose-400 bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 transition-colors"
+                      >
+                        Rejeter
+                      </button>
+                      <button
+                        onClick={() => handleApproveSupplier(supplier.id, supplier.companyName)}
+                        className="px-4 py-1.5 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md flex items-center gap-1"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
+                        Valider & Publier
+                      </button>
+                    </div>
+
+                    {/* Coche pour rendre la publication invisible quand elle est cochée */}
+                    <label className="flex items-center gap-2 pt-0.5 text-xs cursor-pointer select-none group/toggle">
+                      <input
+                        type="checkbox"
+                        checked={!supplier.isPublished}
+                        onChange={(e) => handleToggleVisibility(supplier.id, !e.target.checked, supplier.companyName)}
+                        className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-1 focus:ring-amber-400 cursor-pointer accent-[#D4AF37]"
+                      />
+                      <span className={!supplier.isPublished ? 'text-amber-400 font-semibold flex items-center gap-1.5' : 'text-slate-400 flex items-center gap-1.5'}>
+                        <EyeOff className={`w-3.5 h-3.5 ${!supplier.isPublished ? 'text-amber-400' : 'text-slate-500'}`} />
+                        {!supplier.isPublished ? 'Publication invisible (masquée du catalogue)' : 'Rendre la publication invisible'}
+                      </span>
+                    </label>
                   </div>
                 </div>
 

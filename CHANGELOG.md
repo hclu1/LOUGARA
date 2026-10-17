@@ -4,6 +4,37 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.15.1] - 2026-10-17
+### Corrigé & Déployé — Résolution des Erreurs TypeScript OCR sur Vercel et Finalisation des Fonctionnalités Modérateur & Catalogue
+- **Correctif TypeScript API OCR KBIS (`/api/ocr/kbis`)** :
+  - Sécurisation du `Buffer` et élimination des erreurs `TS2345` et `TS18047` bloquant le build de production sur Vercel.
+  - Détection fiable du type PDF avec garde de nullité `Boolean((file && file.type === 'application/pdf') || fileName.endsWith('.pdf'))`.
+- **Intégration Complète de la Coche de Masquage de Publication (`/admin/verifications`)** :
+  - Ajout sous chaque dossier fournisseur (sous les boutons *« Rejeter »* et *« Valider & Publier »*) de la coche permettant de rendre la publication invisible du catalogue public.
+  - Badge visuel `Masqué du catalogue` avec icône `EyeOff` et mise à jour en temps réel via l'action `TOGGLE_PUBLICATION`.
+- **Accélération du Catalogue (`/catalogue`)** :
+  - Pré-chargement des vitrines par défaut pour un affichage instantané à 0ms.
+  - Parallélisation non bloquante `Promise.allSettled`, en-têtes HTTP de mise en cache (`Cache-Control: public, s-maxage=60, stale-while-revalidate=300`) et `useMemo` sur les filtres.
+- **Gestion des Versions (SemVer v0.15.1)** :
+  - Synchronisation de `0.15.1` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
+## [0.15.0] - 2026-10-17
+### Ajouté & Optimisé — Accélération Majeure du Catalogue & Masquage de Publication dans la Console Modérateur
+- **Console Modérateur / Espace Vérification (`/admin/verifications`)** :
+  - **Coche de publication invisible** : Ajout sous chaque dossier fournisseur (directement sous les boutons *« Rejeter »* et *« Valider & Publier »*) d'une case à cocher permettant de rendre la publication invisible du catalogue public (`isPublished = false` lorsque cochée).
+  - **Mise à jour en temps réel et notification** : Déclenchement instantané via `PATCH /api/admin/verifications` avec l'action `TOGGLE_PUBLICATION`, mise à jour optimiste du state React et bandeau de notification visuel.
+  - **Badge de statut visuel** : Ajout d'une puce `Masqué du catalogue` avec icône `EyeOff` à côté de l'intitulé de l'entreprise quand la fiche est masquée.
+- **Accélération et Optimisation des Performances du Catalogue (`/catalogue`)** :
+  - **Rendu instantané à 0ms** : Pré-remplissage des vitrines catalogues par défaut (`SAMPLE_SUPPLIER_CATALOGS`) éliminant l'écran blanc et l'attente au premier chargement.
+  - **Parallélisation non bloquante** : Remplacement des requêtes séquentielles par `Promise.allSettled([fetch('/api/products'), fetch('/api/suppliers'), fetch('/api/entrepreneurs/register')])` avec synchronisation discrète en arrière-plan.
+  - **Mise en cache HTTP** : Ajout de l'en-tête `Cache-Control: public, s-maxage=60, stale-while-revalidate=300` sur `/api/products`, `/api/suppliers` et `/api/entrepreneurs/register`.
+  - **Allègement des requêtes SQL Prisma** :
+    - Limitation des produits rattachés aux vitrines fournisseurs à `take: 10` et `take: 50` entreprises max.
+    - Filtrage des produits uniquement issus d'entreprises publiées (`company: { isPublished: true }`) et limite à `take: 60`.
+  - **Chargement différé des médias** : Ajout systématique de `loading="lazy"` et `decoding="async"` avec images de couverture optimisées pour le web.
+- **Gestion des Versions (SemVer v0.15.0)** :
+  - Synchronisation de `0.15.0` dans `package.json`, `package-lock.json`, `src/version.ts`, `VERSION` et `CHANGELOG.md`.
+
 ## [0.14.0] - 2026-10-17
 ### Ajouté — Support du Clic, Glisser-Déposer (Drag & Drop) et Saisie Manuelle de Chemin pour les Documents
 - **Nouveau Composant Universel `DocumentDropzone` (`src/components/DocumentDropzone.tsx`)** :

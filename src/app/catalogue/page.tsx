@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Search,
@@ -254,6 +254,53 @@ interface SupplierCatalog {
   products: MockProduct[];
 }
 
+const SAMPLE_SUPPLIER_CATALOGS: SupplierCatalog[] = [
+  {
+    id: 'comp-1',
+    companyName: 'Africa Bio Extracts SARL',
+    country: 'Sénégal',
+    city: 'Dakar',
+    sector: 'Cosmétique',
+    isVerified: true,
+    coverImage: 'https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600',
+    productsCount: 2,
+    products: [SAMPLE_PRODUCTS[0], SAMPLE_PRODUCTS[1]],
+  },
+  {
+    id: 'comp-2',
+    companyName: 'Ivoire Textiles & Confection',
+    country: "Côte d'Ivoire",
+    city: 'Abidjan',
+    sector: 'Textile',
+    isVerified: true,
+    coverImage: 'https://images.unsplash.com/photo-1590736969955-71cc94801759?auto=format&fit=crop&q=75&w=600',
+    productsCount: 1,
+    products: [SAMPLE_PRODUCTS[2]],
+  },
+  {
+    id: 'comp-3',
+    companyName: 'Savanah Agro Trading',
+    country: "Côte d'Ivoire",
+    city: 'Bouaké',
+    sector: 'Agroalimentaire',
+    isVerified: true,
+    coverImage: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&q=75&w=600',
+    productsCount: 1,
+    products: [SAMPLE_PRODUCTS[3]],
+  },
+  {
+    id: 'comp-4',
+    companyName: 'Madagascar Vanilla Export',
+    country: 'Madagascar',
+    city: 'Antananarivo',
+    sector: 'Agroalimentaire',
+    isVerified: true,
+    coverImage: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=75&w=600',
+    productsCount: 1,
+    products: [SAMPLE_PRODUCTS[4]],
+  },
+];
+
 export default function CataloguePage() {
   const { t, locale } = useLanguage();
   const [activeTab, setActiveTab] = useState<'catalogues' | 'products' | 'buyers'>('catalogues');
@@ -263,10 +310,11 @@ export default function CataloguePage() {
   const [selectedCorridor, setSelectedCorridor] = useState<string>('all');
   const [onlyVerified, setOnlyVerified] = useState<boolean>(true);
 
-  // Produits & Acheteurs & Catalogues Fournisseurs
+  // Produits & Acheteurs & Catalogues Fournisseurs pré-chargés pour un rendu à 0ms
   const [productsList, setProductsList] = useState<MockProduct[]>(SAMPLE_PRODUCTS);
-  const [suppliersCatalogList, setSuppliersCatalogList] = useState<SupplierCatalog[]>([]);
+  const [suppliersCatalogList, setSuppliersCatalogList] = useState<SupplierCatalog[]>(SAMPLE_SUPPLIER_CATALOGS);
   const [buyersList, setBuyersList] = useState<SponsoredBuyer[]>(INITIAL_BUYERS);
+  const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
   // Modale catalogue complet d'un fournisseur
   const [selectedSupplierCatalog, setSelectedSupplierCatalog] = useState<SupplierCatalog | null>(null);
@@ -283,11 +331,21 @@ export default function CataloguePage() {
   const [proposalSuccess, setProposalSuccess] = useState<boolean>(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function loadData() {
       try {
-        const resProd = await fetch('/api/products');
-        if (resProd.ok) {
-          const dataProd = await resProd.json();
+        // Chargement parallèle non bloquant des 3 sources de données
+        const [prodResult, suppResult, buyersResult] = await Promise.allSettled([
+          fetch('/api/products'),
+          fetch('/api/suppliers'),
+          fetch('/api/entrepreneurs/register'),
+        ]);
+
+        if (!isMounted) return;
+
+        if (prodResult.status === 'fulfilled' && prodResult.value.ok) {
+          const dataProd = await prodResult.value.json();
           if (dataProd.products && Array.isArray(dataProd.products) && dataProd.products.length > 0) {
             const mappedProducts: MockProduct[] = dataProd.products.map((p: any) => ({
               id: p.id,
@@ -301,7 +359,7 @@ export default function CataloguePage() {
               priceMin: Number(p.priceMin) || 0,
               priceMax: Number(p.priceMax) || 0,
               currency: p.currency || 'EUR',
-              images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=80&w=800'],
+              images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600'],
               company: {
                 id: p.company?.id || 'comp-unknown',
                 companyName: p.company?.companyName || 'Entreprise Partenaire',
@@ -315,14 +373,9 @@ export default function CataloguePage() {
             setProductsList(mappedProducts);
           }
         }
-      } catch (e) {
-        console.log('Chargement produits en mode fallback local');
-      }
 
-      try {
-        const resSupp = await fetch('/api/suppliers');
-        if (resSupp.ok) {
-          const dataSupp = await resSupp.json();
+        if (suppResult.status === 'fulfilled' && suppResult.value.ok) {
+          const dataSupp = await suppResult.value.json();
           if (dataSupp.suppliers && Array.isArray(dataSupp.suppliers) && dataSupp.suppliers.length > 0) {
             const mappedCatalogs: SupplierCatalog[] = dataSupp.suppliers.map((s: any) => {
               const supplierProds: MockProduct[] = (s.products || []).slice(0, 10).map((p: any) => ({
@@ -337,7 +390,7 @@ export default function CataloguePage() {
                 priceMin: Number(p.priceMin) || 0,
                 priceMax: Number(p.priceMax) || 0,
                 currency: p.currency || 'EUR',
-                images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=80&w=800'],
+                images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600'],
                 company: {
                   id: s.id,
                   companyName: s.companyName,
@@ -351,7 +404,7 @@ export default function CataloguePage() {
 
               const coverImg = supplierProds.length > 0 && supplierProds[0].images?.[0]
                 ? supplierProds[0].images[0]
-                : 'https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=80&w=800';
+                : 'https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600';
 
               return {
                 id: s.id,
@@ -368,14 +421,9 @@ export default function CataloguePage() {
             setSuppliersCatalogList(mappedCatalogs);
           }
         }
-      } catch (e) {
-        console.log('Erreur chargement catalogues fournisseurs');
-      }
 
-      try {
-        const res = await fetch('/api/entrepreneurs/register');
-        if (res.ok) {
-          const data = await res.json();
+        if (buyersResult.status === 'fulfilled' && buyersResult.value.ok) {
+          const data = await buyersResult.value.json();
           if (data.entrepreneurs && Array.isArray(data.entrepreneurs)) {
             const sponsored = data.entrepreneurs.filter((e: any) => e.hasCatalogAdSpace === true);
             if (sponsored.length > 0) {
@@ -384,10 +432,17 @@ export default function CataloguePage() {
           }
         }
       } catch (e) {
-        console.log('Chargement acheteurs en mode local déconnecté');
+        console.log('Chargement catalogue en mode local déconnecté');
+      } finally {
+        if (isMounted) setIsSyncing(false);
       }
     }
+
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Filtrage par corridor commercial
@@ -400,57 +455,63 @@ export default function CataloguePage() {
     return true;
   };
 
-  const filteredCatalogs = suppliersCatalogList.filter((cat) => {
-    if (onlyVerified && !cat.isVerified) return false;
-    if (selectedCategory !== 'all' && !cat.sector.toLowerCase().includes(selectedCategory.toLowerCase())) return false;
-    if (selectedCountry !== 'all' && cat.country !== selectedCountry) return false;
-    if (!matchesCorridor(cat.country, selectedCorridor)) return false;
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      const matchComp = cat.companyName.toLowerCase().includes(q);
-      const matchSector = cat.sector.toLowerCase().includes(q);
-      const matchProd = cat.products.some((p) => p.title.toLowerCase().includes(q));
-      if (!matchComp && !matchSector && !matchProd) return false;
-    }
-    return true;
-  });
+  const filteredCatalogs = useMemo(() => {
+    return suppliersCatalogList.filter((cat) => {
+      if (onlyVerified && !cat.isVerified) return false;
+      if (selectedCategory !== 'all' && !cat.sector.toLowerCase().includes(selectedCategory.toLowerCase())) return false;
+      if (selectedCountry !== 'all' && cat.country !== selectedCountry) return false;
+      if (!matchesCorridor(cat.country, selectedCorridor)) return false;
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const matchComp = cat.companyName.toLowerCase().includes(q);
+        const matchSector = cat.sector.toLowerCase().includes(q);
+        const matchProd = cat.products.some((p) => p.title.toLowerCase().includes(q));
+        if (!matchComp && !matchSector && !matchProd) return false;
+      }
+      return true;
+    });
+  }, [suppliersCatalogList, onlyVerified, selectedCategory, selectedCountry, selectedCorridor, query]);
 
-  const filteredProducts = productsList.filter((prod) => {
-    if (!prod.company.hasCatalogAdSpace) return false;
-    if (onlyVerified && !prod.company.isVerified) return false;
-    if (selectedCategory !== 'all' && !prod.category.toLowerCase().includes(selectedCategory.toLowerCase())) return false;
-    if (selectedCountry !== 'all' && prod.originCountry !== selectedCountry) return false;
-    if (!matchesCorridor(prod.originCountry, selectedCorridor)) return false;
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      const matchTitle = prod.title.toLowerCase().includes(q);
-      const matchDesc = prod.description.toLowerCase().includes(q);
-      const matchComp = prod.company.companyName.toLowerCase().includes(q);
-      if (!matchTitle && !matchDesc && !matchComp) return false;
-    }
-    return true;
-  });
+  const filteredProducts = useMemo(() => {
+    return productsList.filter((prod) => {
+      if (!prod.company.hasCatalogAdSpace) return false;
+      if (onlyVerified && !prod.company.isVerified) return false;
+      if (selectedCategory !== 'all' && !prod.category.toLowerCase().includes(selectedCategory.toLowerCase())) return false;
+      if (selectedCountry !== 'all' && prod.originCountry !== selectedCountry) return false;
+      if (!matchesCorridor(prod.originCountry, selectedCorridor)) return false;
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const matchTitle = prod.title.toLowerCase().includes(q);
+        const matchDesc = prod.description.toLowerCase().includes(q);
+        const matchComp = prod.company.companyName.toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchComp) return false;
+      }
+      return true;
+    });
+  }, [productsList, onlyVerified, selectedCategory, selectedCountry, selectedCorridor, query]);
 
-  const filteredBuyers = buyersList.filter((buyer) => {
-    if (!buyer.hasCatalogAdSpace) return false;
-    if (onlyVerified && !buyer.isKbisVerified) return false;
-    if (selectedCountry !== 'all' && buyer.country !== selectedCountry) return false;
-    if (!matchesCorridor(buyer.country, selectedCorridor)) return false;
-    if (selectedCategory !== 'all') {
-      const matchesSector = buyer.targetSectors?.some((s) =>
-        s.toLowerCase().includes(selectedCategory.toLowerCase())
-      );
-      if (!matchesSector) return false;
-    }
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      const matchName = buyer.companyName.toLowerCase().includes(q);
-      const matchNeeds = (buyer.sourcingNeeds || '').toLowerCase().includes(q);
-      const matchType = buyer.buyerType.toLowerCase().includes(q);
-      if (!matchName && !matchNeeds && !matchType) return false;
-    }
-    return true;
-  });
+  const filteredBuyers = useMemo(() => {
+    return buyersList.filter((buyer) => {
+      if (!buyer.hasCatalogAdSpace) return false;
+      if (onlyVerified && !buyer.isKbisVerified) return false;
+      if (selectedCountry !== 'all' && buyer.country !== selectedCountry) return false;
+      if (!matchesCorridor(buyer.country, selectedCorridor)) return false;
+      if (selectedCategory !== 'all') {
+        const matchesSector = buyer.targetSectors?.some((s) =>
+          s.toLowerCase().includes(selectedCategory.toLowerCase())
+        );
+        if (!matchesSector) return false;
+      }
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const matchName = buyer.companyName.toLowerCase().includes(q);
+        const matchNeeds = (buyer.sourcingNeeds || '').toLowerCase().includes(q);
+        const matchType = buyer.buyerType.toLowerCase().includes(q);
+        if (!matchName && !matchNeeds && !matchType) return false;
+      }
+      return true;
+    });
+  }, [buyersList, onlyVerified, selectedCountry, selectedCorridor, selectedCategory, query]);
 
   const handleSendQuote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -706,9 +767,11 @@ export default function CataloguePage() {
                   <img
                     src={cat.coverImage}
                     alt={cat.companyName}
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800';
+                        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=75&w=600';
                     }}
                     className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 opacity-80 group-hover/img:opacity-100"
                   />
@@ -788,9 +851,11 @@ export default function CataloguePage() {
                   <img
                     src={prod.images[0]}
                     alt={prod.title}
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800';
+                        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=75&w=600';
                     }}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
                   />
@@ -976,9 +1041,11 @@ export default function CataloguePage() {
                       <img
                         src={p.images[0]}
                         alt={p.title}
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800';
+                            'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=75&w=600';
                         }}
                         className="w-full h-full object-cover"
                       />
