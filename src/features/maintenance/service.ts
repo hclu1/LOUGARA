@@ -10,37 +10,48 @@ export interface SystemMaintenanceStatus {
   updatedAt: string;
 }
 
-// Fallback en mémoire en cas d'indisponibilité momentanée de la base de données
+/**
+ * Clé isolée pour le contrôle manuel de maintenance afin qu'aucune ancienne
+ * instance de prévisualisation (ex: v0.18.0) qui lisait la ligne 'global'
+ * ne puisse jamais réactiver automatiquement la maintenance en base de données.
+ */
+const MAINTENANCE_ROW_ID = 'manual_control';
+
 let memoryMaintenanceState = {
   isMaintenanceActive: false,
   lastActiveVersion: APP_VERSION,
-  message: 'Plateforme en maintenance technique Lougara pour mise à niveau des services.',
+  message: 'Site en ligne',
   updatedAt: new Date().toISOString(),
 };
 
-/**
- * Initialise la table et enregistre si nécessaire.
- */
 async function ensureMaintenanceTable() {
   try {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "SystemMaintenance" (
-        "id" TEXT PRIMARY KEY DEFAULT 'global',
+        "id" TEXT PRIMARY KEY DEFAULT 'manual_control',
         "isMaintenanceActive" BOOLEAN NOT NULL DEFAULT false,
         "lastActiveVersion" TEXT NOT NULL DEFAULT '${APP_VERSION}',
         "message" TEXT,
         "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
     `);
+
+    // Neutraliser définitivement l'ancienne ligne 'global' pour éviter qu'une ancienne preview v0.18.0 ne déclenche de requête
+    await prisma.$executeRawUnsafe(`
+      UPDATE "SystemMaintenance"
+      SET "isMaintenanceActive" = false,
+          "lastActiveVersion" = '0.18.0',
+          "message" = 'Site en ligne'
+      WHERE "id" = 'global' AND "isMaintenanceActive" = true;
+    `).catch(() => {});
   } catch (error) {
-    console.warn('[Maintenance] Note création table SystemMaintenance:', error);
+    console.warn('[Maintenance] Note initialisation table SystemMaintenance:', error);
   }
 }
 
 /**
  * Récupère le statut actuel du mode maintenance.
- * Ne verrouille JAMAIS automatiquement le site lors d'un simple écart de version
- * afin d'éviter tout blocage involontaire lors des déploiements ou tests.
+ * Seul un déclenchement manuel explicite par un administrateur sur la clé 'manual_control' est pris en compte.
  */
 export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
   await ensureMaintenanceTable();
@@ -49,7 +60,7 @@ export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
     const rows = (await prisma.$queryRaw`
       SELECT "id", "isMaintenanceActive", "lastActiveVersion", "message", "updatedAt"
       FROM "SystemMaintenance"
-      WHERE "id" = 'global'
+      WHERE "id" = ${MAINTENANCE_ROW_ID}
       LIMIT 1
     `) as Array<{
       id: string;
@@ -62,7 +73,7 @@ export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
     if (!rows || rows.length === 0) {
       await prisma.$executeRawUnsafe(`
         INSERT INTO "SystemMaintenance" ("id", "isMaintenanceActive", "lastActiveVersion", "message", "updatedAt")
-        VALUES ('global', false, '${APP_VERSION}', 'Plateforme en maintenance technique pour mise à niveau.', NOW())
+        VALUES ('${MAINTENANCE_ROW_ID}', false, '${APP_VERSION}', 'Site en ligne', NOW())
         ON CONFLICT ("id") DO NOTHING;
       `);
 
@@ -71,30 +82,23 @@ export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
         lastActiveVersion: APP_VERSION,
         currentAppVersion: APP_VERSION,
         isVersionMismatch: false,
-        message: 'Plateforme en maintenance technique pour mise à niveau.',
+        message: 'Site en ligne',
         updatedAt: new Date().toISOString(),
       };
     }
 
     const row = rows[0];
-
-    // Si la version a évolué et que le site est en ligne, on synchronise silencieusement lastActiveVersion
-    // sans jamais activer la maintenance de manière forcée.
-    if (row.lastActiveVersion !== APP_VERSION && !row.isMaintenanceActive) {
-      await prisma.$executeRawUnsafe(`
-        UPDATE "SystemMaintenance"
-        SET "lastActiveVersion" = '${APP_VERSION}',
-            "updatedAt" = NOW()
-        WHERE "id" = 'global';
-      `).catch(() => {});
-    }
+    const isAutoLegacyMessage = Boolean(row.message && row.message.startsWith('Mise à jour système v'));
+    const isActive = Boolean(row.isMaintenanceActive) && !isAutoLegacyMessage;
 
     return {
-      isMaintenanceActive: Boolean(row.isMaintenanceActive),
+      isMaintenanceActive: isActive,
       lastActiveVersion: APP_VERSION,
       currentAppVersion: APP_VERSION,
       isVersionMismatch: false,
-      message: row.message || 'Plateforme en maintenance technique pour mise à niveau.',
+      message: isActive
+        ? row.message || 'Plateforme Lougara en maintenance technique programmée.'
+        : 'Site en ligne',
       updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
     };
   } catch (error) {
@@ -111,8 +115,7 @@ export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
 }
 
 /**
- * Met à jour le statut du mode maintenance.
- * Si isMaintenanceActive est désactivé (remise en service du site), on synchronise lastActiveVersion = APP_VERSION.
+ * Met à jour le statut du mode maintenance (uniquement sur action manuelle d'un administrateur).
  */
 export async function setMaintenanceStatus(params: {
   isMaintenanceActive: boolean;
@@ -127,48 +130,29 @@ export async function setMaintenanceStatus(params: {
       : 'Site en ligne');
 
   try {
-    if (!params.isMaintenanceActive) {
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO "SystemMaintenance" ("id", "isMaintenanceActive", "lastActiveVersion", "message", "updatedAt")
-        VALUES ('global', false, '${APP_VERSION}', '${targetMessage.replace(/'/g, "''")}', NOW())
-        ON CONFLICT ("id") DO UPDATE
-        SET "isMaintenanceActive" = false,
-            "lastActiveVersion" = '${APP_VERSION}',
-            "message" = '${targetMessage.replace(/'/g, "''")}',
-            "updatedAt" = NOW();
-      `);
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "SystemMaintenance" ("id", "isMaintenanceActive", "lastActiveVersion", "message", "updatedAt")
+      VALUES ('${MAINTENANCE_ROW_ID}', ${params.isMaintenanceActive ? 'true' : 'false'}, '${APP_VERSION}', '${targetMessage.replace(/'/g, "''")}', NOW())
+      ON CONFLICT ("id") DO UPDATE
+      SET "isMaintenanceActive" = ${params.isMaintenanceActive ? 'true' : 'false'},
+          "lastActiveVersion" = '${APP_VERSION}',
+          "message" = '${targetMessage.replace(/'/g, "''")}',
+          "updatedAt" = NOW();
+    `);
 
-      memoryMaintenanceState = {
-        isMaintenanceActive: false,
-        lastActiveVersion: APP_VERSION,
-        message: targetMessage,
-        updatedAt: new Date().toISOString(),
-      };
-    } else {
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO "SystemMaintenance" ("id", "isMaintenanceActive", "lastActiveVersion", "message", "updatedAt")
-        VALUES ('global', true, '${APP_VERSION}', '${targetMessage.replace(/'/g, "''")}', NOW())
-        ON CONFLICT ("id") DO UPDATE
-        SET "isMaintenanceActive" = true,
-            "lastActiveVersion" = '${APP_VERSION}',
-            "message" = '${targetMessage.replace(/'/g, "''")}',
-            "updatedAt" = NOW();
-      `);
-
-      memoryMaintenanceState.isMaintenanceActive = true;
-      memoryMaintenanceState.lastActiveVersion = APP_VERSION;
-      memoryMaintenanceState.message = targetMessage;
-      memoryMaintenanceState.updatedAt = new Date().toISOString();
-    }
+    memoryMaintenanceState = {
+      isMaintenanceActive: params.isMaintenanceActive,
+      lastActiveVersion: APP_VERSION,
+      message: targetMessage,
+      updatedAt: new Date().toISOString(),
+    };
 
     return await getMaintenanceStatus();
   } catch (error) {
     console.warn('[Maintenance] Erreur sauvegarde DB, mise à jour mémoire:', error);
     memoryMaintenanceState.isMaintenanceActive = params.isMaintenanceActive;
     memoryMaintenanceState.lastActiveVersion = APP_VERSION;
-    if (params.message) {
-      memoryMaintenanceState.message = params.message;
-    }
+    memoryMaintenanceState.message = targetMessage;
     memoryMaintenanceState.updatedAt = new Date().toISOString();
 
     return {

@@ -4,6 +4,11 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.4] - 2026-10-18
+### Corrigé — Isolation de la Clé Base de Données du Mode Maintenance (`manual_control`) Contre les Anciennes Instances `v0.18.0`
+- **Service de Maintenance (`src/features/maintenance/service.ts`)** :
+  - Isolation de la ligne d'état de maintenance sous l'identifiant `'manual_control'` (au lieu de `'global'`) et neutralisation des messages automatiques `'Mise à jour système v...'`, empêchant définitivement toute ancienne instance ou preview `v0.18.0` de réactiver la maintenance en arrière-plan.
+
 ## [0.18.3] - 2026-10-18
 ### Corrigé — Correction de l'Import Serveur `SUPER_ADMIN_EMAIL` / `MODERATOR_EMAILS` pour la Remise en Service du Site (`POST /api/system/maintenance`)
 - **Routes API Serveur (`src/app/api/system/maintenance/route.ts`, `src/app/api/admin/payments/**`)** :
