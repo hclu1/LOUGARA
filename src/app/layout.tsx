@@ -93,17 +93,16 @@ export default function RootLayout({
         <LanguageProvider>
           <AuthProvider>
             <Suspense fallback={null}>
-              <MaintenanceGuard>
-                <Suspense fallback={null}>
-                  <VisitorTracker />
-                </Suspense>
-                <Suspense fallback={null}>
-                  <Navbar />
-                </Suspense>
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </MaintenanceGuard>
+              <MaintenanceGuard />
             </Suspense>
+            <Suspense fallback={null}>
+              <VisitorTracker />
+            </Suspense>
+            <Suspense fallback={null}>
+              <Navbar />
+            </Suspense>
+            <main className="flex-1">{children}</main>
+            <Footer />
           </AuthProvider>
         </LanguageProvider>
       </body>

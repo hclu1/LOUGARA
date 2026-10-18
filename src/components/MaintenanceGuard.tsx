@@ -22,7 +22,8 @@ interface SystemMaintenanceStatus {
   updatedAt: string;
 }
 
-export function MaintenanceGuard({ children }: { children?: React.ReactNode }) {
+export function MaintenanceGuard() {
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname() || '/';
   const { user, isModerator } = useAuth();
   const [status, setStatus] = useState<SystemMaintenanceStatus | null>(null);
@@ -53,6 +54,7 @@ export function MaintenanceGuard({ children }: { children?: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     fetchStatus();
 
     const interval = setInterval(fetchStatus, 8000);
@@ -103,56 +105,64 @@ export function MaintenanceGuard({ children }: { children?: React.ReactNode }) {
     }
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   const isUnderMaintenance = Boolean(status?.isMaintenanceActive);
 
   // 1. Espace /admin pendant la maintenance : l'espace d'administration reste accessible aux rôles moderator & super_admin (et page /admin/login)
   if (isUnderMaintenance && isAdminRoute) {
+    if (!isModerator) return null;
     return (
-      <>
-        {isModerator && (
-          <div className="sticky top-0 z-[999999] bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-sans px-4 py-2.5 shadow-2xl border-b-2 border-amber-600 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-3 w-3 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-700"></span>
-              </span>
-              <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider text-slate-950">
-                <ShieldAlert className="w-4 h-4 text-slate-950" />
-                <span>SITE PUBLIC EN MAINTENANCE (Console /admin active)</span>
-              </div>
-              <span className="hidden md:inline-block text-xs font-medium text-slate-900 border-l border-amber-600/40 pl-2">
-                Toutes les routes publiques affichent actuellement la page de maintenance.
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRestartSite}
-                disabled={isToggling}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950 text-amber-400 font-bold text-xs hover:bg-slate-900 transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                <Power className={`w-3.5 h-3.5 ${isToggling ? 'animate-spin' : ''}`} />
-                {isToggling ? 'Remise en service...' : 'Remettre en service le site public'}
-              </button>
-              <Link
-                href="/admin"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-slate-950 font-bold text-xs transition-colors"
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Console Admin</span>
-              </Link>
-            </div>
+      <div className="sticky top-0 z-[999999] bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-sans px-4 py-2.5 shadow-2xl border-b-2 border-amber-600 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-3 w-3 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-700"></span>
+          </span>
+          <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider text-slate-950">
+            <ShieldAlert className="w-4 h-4 text-slate-950" />
+            <span>SITE PUBLIC EN MAINTENANCE (Console /admin active)</span>
           </div>
-        )}
-        {children}
-      </>
+          <span className="hidden md:inline-block text-xs font-medium text-slate-900 border-l border-amber-600/40 pl-2">
+            Toutes les routes publiques affichent actuellement la page de maintenance.
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRestartSite}
+            disabled={isToggling}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950 text-amber-400 font-bold text-xs hover:bg-slate-900 transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
+          >
+            <Power className={`w-3.5 h-3.5 ${isToggling ? 'animate-spin' : ''}`} />
+            {isToggling ? 'Remise en service...' : 'Remettre en service le site public'}
+          </button>
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-slate-950 font-bold text-xs transition-colors"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Console Admin</span>
+          </Link>
+        </div>
+      </div>
     );
   }
 
-  // 2. Site public en mode maintenance : AUCUN contenu public, produit, donnée utilisateur ni fonctionnalité admin n'est rendu ni exposé
+  // 2. Site public en mode maintenance : bloque et masque intégralement le contenu public, les produits, les données utilisateurs et toute fonctionnalité admin
   if (isUnderMaintenance && !isAdminRoute) {
     return (
-      <div className="min-h-screen w-full bg-[#070D1E] flex flex-col items-center justify-center p-4 sm:p-6 text-slate-100 select-none">
+      <div className="fixed inset-0 z-[999999] bg-[#070D1E] overflow-y-auto flex flex-col items-center justify-center p-4 sm:p-6 text-slate-100 select-none">
+        <style>{`
+          body > header, body > main, body > footer {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+          }
+        `}</style>
+
         {/* Halo d'ambiance doré & ambré cohérent avec le design Lougara */}
         <div className="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -218,6 +228,5 @@ export function MaintenanceGuard({ children }: { children?: React.ReactNode }) {
     );
   }
 
-  // 3. Fonctionnement normal (site en ligne)
-  return <>{children}</>;
+  return null;
 }

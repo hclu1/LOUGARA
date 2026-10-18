@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       submitClientPasswordRequest({
         email: body.email,
         password: rawPassword,
-        fullName: `${body.firstName || ''} ${body.lastName || ''}`.trim() || entrepreneur.firstName,
+        fullName: `${body.firstName || ''} ${body.lastName || ''}`.trim() || body.contactName || entrepreneur.companyName,
         companyName: body.companyName || entrepreneur.companyName,
         country: body.country || entrepreneur.country,
         clientRole: 'entrepreneur',
