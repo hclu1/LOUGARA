@@ -58,7 +58,7 @@ interface PlanData {
 }
 
 export default function AdminSettingsPage() {
-  const { user, isSuperAdmin, isLoading: authLoading } = useAuth();
+  const { user, isModerator, isSuperAdmin, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
@@ -190,7 +190,7 @@ export default function AdminSettingsPage() {
     );
   }
 
-  if (!isSuperAdmin) {
+  if (!isModerator) {
     return <AdminRoleLoginGate defaultRole="super_admin" />;
   }
 

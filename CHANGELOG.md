@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.2] - 2026-10-18
+### Corrigé — Suppression du Verrouillage Automatique en Maintenance sur Écart de Version & Remise en Service Immédiate
+- **Service de Maintenance (`src/features/maintenance/service.ts`)** :
+  - Désactivation du déclenchement forcé de `isMaintenanceActive = true` dans `getMaintenanceStatus()` lors d'une différence entre `lastActiveVersion` et `APP_VERSION`, qui re-verrouillait le site en boucle entre deux déploiements.
+  - Synchronisation silencieuse de `lastActiveVersion` lorsque le site est en ligne (`isMaintenanceActive = false`).
+- **Console d'Administration (`src/app/admin/page.tsx`, `src/app/admin/settings/page.tsx`)** :
+  - Autorisation de la remise en service du site public pour les deux profils `moderator` et `super_admin`.
+
 ## [0.18.1] - 2026-10-18
 ### Ajouté & Amélioré — Portail à 2 Choix de Connexion (`moderator` & `super_admin`) sur Toutes les Routes `/admin`
 - **Composant Unifié de Sélection de Rôle Admin (`src/components/AdminRoleLoginGate.tsx`)** :

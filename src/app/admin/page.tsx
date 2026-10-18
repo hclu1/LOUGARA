@@ -133,7 +133,7 @@ export default function AdminHubPage() {
   }, [isModerator]);
 
   const handleToggleMaintenance = async (active: boolean) => {
-    if (!isSuperAdmin || !user?.email) return;
+    if (!isModerator || !user?.email) return;
     setMaintenanceLoading(true);
     try {
       const res = await fetch('/api/system/maintenance', {
@@ -262,7 +262,7 @@ export default function AdminHubPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {isSuperAdmin && (
+            {isModerator && (
               <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
                 <span
                   className={`inline-flex h-2.5 w-2.5 rounded-full ${
@@ -303,8 +303,8 @@ export default function AdminHubPage() {
           </div>
         </div>
 
-        {/* CARTE SPÉCIALE SUPER ADMIN : SITE EN MAINTENANCE */}
-        {isSuperAdmin && (
+        {/* CARTE ADMIN : SITE EN MAINTENANCE / REMISE EN SERVICE */}
+        {isModerator && (
           <div
             className={`glass-card rounded-3xl border-2 p-5 sm:p-6 transition-all space-y-4 ${
               maintenance?.isMaintenanceActive

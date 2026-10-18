@@ -39,8 +39,8 @@ async function ensureMaintenanceTable() {
 
 /**
  * Récupère le statut actuel du mode maintenance.
- * Règle automatique : si une nouvelle version applicative est détectée (APP_VERSION !== lastActiveVersion)
- * et que la maintenance n'était pas active, elle s'active automatiquement !
+ * Ne verrouille JAMAIS automatiquement le site lors d'un simple écart de version
+ * afin d'éviter tout blocage involontaire lors des déploiements ou tests.
  */
 export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
   await ensureMaintenanceTable();
@@ -60,7 +60,6 @@ export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
     }>;
 
     if (!rows || rows.length === 0) {
-      // Premier démarrage : on initialise avec APP_VERSION et maintenance = false
       await prisma.$executeRawUnsafe(`
         INSERT INTO "SystemMaintenance" ("id", "isMaintenanceActive", "lastActiveVersion", "message", "updatedAt")
         VALUES ('global', false, '${APP_VERSION}', 'Plateforme en maintenance technique pour mise à niveau.', NOW())
@@ -78,50 +77,33 @@ export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
     }
 
     const row = rows[0];
-    const isVersionMismatch = row.lastActiveVersion !== APP_VERSION;
 
-    // RÈGLE MÉTIER : Détection d'un déploiement / nouvelle version
-    // Si la version de code diffère de la dernière version active enregistrée et que la maintenance n'était pas active,
-    // on l'active automatiquement !
-    if (isVersionMismatch && !row.isMaintenanceActive) {
-      console.log(`[Maintenance] Changement de version détecté (${row.lastActiveVersion} -> ${APP_VERSION}). Activation automatique du mode maintenance.`);
+    // Si la version a évolué et que le site est en ligne, on synchronise silencieusement lastActiveVersion
+    // sans jamais activer la maintenance de manière forcée.
+    if (row.lastActiveVersion !== APP_VERSION && !row.isMaintenanceActive) {
       await prisma.$executeRawUnsafe(`
         UPDATE "SystemMaintenance"
-        SET "isMaintenanceActive" = true,
-            "message" = 'Mise à jour système v${APP_VERSION} en cours. Maintenance automatique déclenchée.',
+        SET "lastActiveVersion" = '${APP_VERSION}',
             "updatedAt" = NOW()
         WHERE "id" = 'global';
-      `);
-
-      return {
-        isMaintenanceActive: true,
-        lastActiveVersion: row.lastActiveVersion,
-        currentAppVersion: APP_VERSION,
-        isVersionMismatch: true,
-        message: `Mise à jour système v${APP_VERSION} en cours. Maintenance automatique déclenchée.`,
-        updatedAt: new Date().toISOString(),
-      };
+      `).catch(() => {});
     }
 
     return {
       isMaintenanceActive: Boolean(row.isMaintenanceActive),
-      lastActiveVersion: row.lastActiveVersion || APP_VERSION,
+      lastActiveVersion: APP_VERSION,
       currentAppVersion: APP_VERSION,
-      isVersionMismatch,
+      isVersionMismatch: false,
       message: row.message || 'Plateforme en maintenance technique pour mise à niveau.',
       updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
     };
   } catch (error) {
     console.warn('[Maintenance] Erreur lecture DB, utilisation du fallback mémoire:', error);
-    const isVersionMismatch = memoryMaintenanceState.lastActiveVersion !== APP_VERSION;
-    if (isVersionMismatch && !memoryMaintenanceState.isMaintenanceActive) {
-      memoryMaintenanceState.isMaintenanceActive = true;
-    }
     return {
       isMaintenanceActive: memoryMaintenanceState.isMaintenanceActive,
-      lastActiveVersion: memoryMaintenanceState.lastActiveVersion,
+      lastActiveVersion: APP_VERSION,
       currentAppVersion: APP_VERSION,
-      isVersionMismatch,
+      isVersionMismatch: false,
       message: memoryMaintenanceState.message,
       updatedAt: memoryMaintenanceState.updatedAt,
     };
@@ -129,8 +111,8 @@ export async function getMaintenanceStatus(): Promise<SystemMaintenanceStatus> {
 }
 
 /**
- * Met à jour le statut du mode maintenance (réservé au Super Admin).
- * Si isMaintenanceActive est désactivé (redémarrage du site), on synchronise lastActiveVersion = APP_VERSION.
+ * Met à jour le statut du mode maintenance.
+ * Si isMaintenanceActive est désactivé (remise en service du site), on synchronise lastActiveVersion = APP_VERSION.
  */
 export async function setMaintenanceStatus(params: {
   isMaintenanceActive: boolean;
@@ -146,7 +128,6 @@ export async function setMaintenanceStatus(params: {
 
   try {
     if (!params.isMaintenanceActive) {
-      // Redémarrage du site par le Super Admin : on synchronise la version enregistrée avec la version de code actuelle !
       await prisma.$executeRawUnsafe(`
         INSERT INTO "SystemMaintenance" ("id", "isMaintenanceActive", "lastActiveVersion", "message", "updatedAt")
         VALUES ('global', false, '${APP_VERSION}', '${targetMessage.replace(/'/g, "''")}', NOW())
@@ -164,17 +145,18 @@ export async function setMaintenanceStatus(params: {
         updatedAt: new Date().toISOString(),
       };
     } else {
-      // Activation manuelle du mode maintenance par le Super Admin
       await prisma.$executeRawUnsafe(`
         INSERT INTO "SystemMaintenance" ("id", "isMaintenanceActive", "lastActiveVersion", "message", "updatedAt")
         VALUES ('global', true, '${APP_VERSION}', '${targetMessage.replace(/'/g, "''")}', NOW())
         ON CONFLICT ("id") DO UPDATE
         SET "isMaintenanceActive" = true,
+            "lastActiveVersion" = '${APP_VERSION}',
             "message" = '${targetMessage.replace(/'/g, "''")}',
             "updatedAt" = NOW();
       `);
 
       memoryMaintenanceState.isMaintenanceActive = true;
+      memoryMaintenanceState.lastActiveVersion = APP_VERSION;
       memoryMaintenanceState.message = targetMessage;
       memoryMaintenanceState.updatedAt = new Date().toISOString();
     }
@@ -183,9 +165,7 @@ export async function setMaintenanceStatus(params: {
   } catch (error) {
     console.warn('[Maintenance] Erreur sauvegarde DB, mise à jour mémoire:', error);
     memoryMaintenanceState.isMaintenanceActive = params.isMaintenanceActive;
-    if (!params.isMaintenanceActive) {
-      memoryMaintenanceState.lastActiveVersion = APP_VERSION;
-    }
+    memoryMaintenanceState.lastActiveVersion = APP_VERSION;
     if (params.message) {
       memoryMaintenanceState.message = params.message;
     }
@@ -193,7 +173,7 @@ export async function setMaintenanceStatus(params: {
 
     return {
       isMaintenanceActive: memoryMaintenanceState.isMaintenanceActive,
-      lastActiveVersion: memoryMaintenanceState.lastActiveVersion,
+      lastActiveVersion: APP_VERSION,
       currentAppVersion: APP_VERSION,
       isVersionMismatch: false,
       message: memoryMaintenanceState.message,
