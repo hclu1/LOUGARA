@@ -170,7 +170,7 @@ export default function AdminPaiementsPage() {
             Veuillez vous connecter avec un compte administrateur autorisé pour gérer les virements bancaires et les factures.
           </p>
           <Link
-            href="/moderation/login"
+            href="/admin/login"
             className="inline-block py-2.5 px-5 rounded-xl bg-amber-500 text-slate-950 text-xs font-black hover:bg-amber-400"
           >
             Se connecter à l&apos;Administration

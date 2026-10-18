@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getMaintenanceStatus, setMaintenanceStatus } from '@/features/maintenance/service';
-import { SUPER_ADMIN_EMAIL } from '@/context/AuthContext';
+import { SUPER_ADMIN_EMAIL, MODERATOR_EMAILS } from '@/context/AuthContext';
+import { isRequestAdminAuthorized } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -39,15 +40,19 @@ export async function POST(req: Request) {
 
     const emailFromHeader = req.headers.get('x-user-email');
     const emailCandidate = (requesterEmail || emailFromHeader || '').trim().toLowerCase();
+    const sessionAuth = isRequestAdminAuthorized(req);
 
-    // Vérification stricte des autorisations Super Admin
-    const isAuthorized = emailCandidate === SUPER_ADMIN_EMAIL.toLowerCase();
+    // Vérification stricte des autorisations Administrateur (session signée ou email habilité)
+    const isAuthorized =
+      sessionAuth.authorized ||
+      emailCandidate === SUPER_ADMIN_EMAIL.toLowerCase() ||
+      MODERATOR_EMAILS.map((e) => e.toLowerCase()).includes(emailCandidate);
 
     if (!isAuthorized) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Accès non autorisé. Seul le Super Admin peut modifier le mode maintenance.',
+          error: 'Accès non autorisé. Réservé aux administrateurs habilités.',
         },
         { status: 403 }
       );

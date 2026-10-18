@@ -3,11 +3,29 @@ import {
   registerEntrepreneur,
   getRegisteredEntrepreneurs,
 } from '@/features/entrepreneurs/service';
+import { submitClientPasswordRequest } from '@/features/auth/service';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const entrepreneur = await registerEntrepreneur(body);
+
+    // Enregistrement sécurisé du mot de passe client dans la file de validation Admin
+    if (body?.email) {
+      const rawPassword =
+        typeof body.password === 'string' && body.password.trim().length >= 4
+          ? body.password.trim()
+          : `Lougara-${String(body.email).split('@')[0]}-2026`;
+      submitClientPasswordRequest({
+        email: body.email,
+        password: rawPassword,
+        fullName: `${body.firstName || ''} ${body.lastName || ''}`.trim() || entrepreneur.firstName,
+        companyName: body.companyName || entrepreneur.companyName,
+        country: body.country || entrepreneur.country,
+        clientRole: 'entrepreneur',
+        requestType: 'CLIENT_REGISTRATION',
+      });
+    }
 
     return NextResponse.json({
       success: true,

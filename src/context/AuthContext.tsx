@@ -21,10 +21,21 @@ export const MODERATOR_EMAILS = [
 
 export const SUPER_ADMIN_EMAIL = 'champagcrypt@gmail.com';
 
+interface LoginResult {
+  success: boolean;
+  error?: string;
+  user?: UserProfile;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
-  login: (email: string, role?: UserRole, name?: string) => Promise<boolean>;
+  login: (email: string, password?: string, name?: string) => Promise<boolean>;
+  loginWithPassword: (
+    email: string,
+    password: string,
+    requireAdmin?: boolean
+  ) => Promise<LoginResult>;
   logout: () => void;
   isModerator: boolean;
   isSuperAdmin: boolean;
@@ -46,55 +57,107 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed: UserProfile = JSON.parse(stored);
-          // Recalculate role to enforce emails rule
-          const cleanEmail = parsed.email.trim().toLowerCase();
-          if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-            parsed.role = 'super_admin';
-          } else if (cleanEmail === 'asherilla4@gmail.com'.toLowerCase()) {
-            parsed.role = 'moderator';
+    let active = true;
+
+    async function loadSession() {
+      try {
+        // 1. Vérifier la session serveur signée (cookie HttpOnly)
+        const res = await fetch('/api/auth/login', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            if (active) {
+              setUser(data.user);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+              }
+            }
+            return;
           }
-          setUser(parsed);
+        }
+
+        // 2. Fallback localStorage uniquement pour les sessions non-admin (empêche toute usurpation admin locale)
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (stored) {
+            const parsed: UserProfile = JSON.parse(stored);
+            const cleanEmail = (parsed.email || '').trim().toLowerCase();
+            const isAdminCandidate =
+              parsed.role === 'moderator' ||
+              parsed.role === 'super_admin' ||
+              MODERATOR_EMAILS.includes(cleanEmail);
+
+            if (isAdminCandidate) {
+              // Un compte admin doit impérativement avoir un cookie de session serveur valide
+              localStorage.removeItem(STORAGE_KEY);
+              if (active) setUser(null);
+            } else if (active) {
+              setUser(parsed);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Erreur chargement session auth:', e);
+      } finally {
+        if (active) {
+          setIsLoading(false);
         }
       }
-    } catch (e) {
-      console.error('Erreur chargement session auth:', e);
-    } finally {
-      setIsLoading(false);
     }
+
+    loadSession();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const login = async (email: string, customRole?: UserRole, name?: string): Promise<boolean> => {
-    const cleanEmail = email.trim().toLowerCase();
-    let assignedRole: UserRole = customRole || 'visitor';
-
-    // Règle stricte d'attribution automatique des rôles pour les adresses modérateurs
-    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
-      assignedRole = 'super_admin';
-    } else if (cleanEmail === 'asherilla4@gmail.com'.toLowerCase()) {
-      assignedRole = 'moderator';
-    }
-
-    const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
-      email: cleanEmail,
-      role: assignedRole,
-      firstName: name || (cleanEmail.includes('asherilla') ? 'Asherilla' : cleanEmail.includes('champag') ? 'ChampagCrypt' : 'Utilisateur'),
-      lastName: assignedRole.includes('admin') || assignedRole === 'moderator' ? 'Modérateur' : 'B2B',
-      accountStatus: 'active',
-    };
-
-    setUser(newUser);
+  const loginWithPassword = async (
+    email: string,
+    password: string,
+    requireAdmin = false
+  ): Promise<LoginResult> => {
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          requireAdmin,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.user) {
+        return {
+          success: false,
+          error: data.error || 'Identifiants invalides.',
+        };
       }
-    } catch (e) {}
-    return true;
+
+      setUser(data.user);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+        }
+      } catch {}
+
+      return {
+        success: true,
+        user: data.user,
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Erreur réseau lors de la vérification des identifiants.',
+      };
+    }
+  };
+
+  const login = async (email: string, password?: string): Promise<boolean> => {
+    const result = await loginWithPassword(email, password || '', false);
+    return result.success;
   };
 
   const logout = () => {
@@ -103,18 +166,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof window !== 'undefined') {
         localStorage.removeItem(STORAGE_KEY);
       }
-    } catch (e) {}
+    } catch {}
+    fetch('/api/auth/login', { method: 'DELETE' }).catch(() => {});
   };
 
   const isModerator = Boolean(
     user &&
-      (user.role === 'moderator' ||
-        user.role === 'super_admin' ||
-        MODERATOR_EMAILS.includes(user.email.toLowerCase()))
+      (user.role === 'moderator' || user.role === 'super_admin') &&
+      MODERATOR_EMAILS.includes(user.email.toLowerCase())
   );
 
   const isSuperAdmin = Boolean(
-    user && (user.role === 'super_admin' || user.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase())
+    user &&
+      user.role === 'super_admin' &&
+      user.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()
   );
 
   return (
@@ -123,6 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isLoading,
         login,
+        loginWithPassword,
         logout,
         isModerator,
         isSuperAdmin,

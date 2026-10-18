@@ -4,6 +4,24 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.0] - 2026-10-18
+### Ajouté & Sécurisé — Séparation Stricte Site Public (`lougara.com`) / Espace Admin (`lougara.com/admin`), Validation des Mots de Passe Clients & Mode Maintenance Isolé
+- **Séparation Site Public & Espace Admin (`/admin`)** :
+  - Création de la console d'administration unifiée sur `/admin` (`src/app/admin/page.tsx`) et du portail de connexion sécurisé `/admin/login` (`src/app/admin/login/page.tsx`), strictement réservés aux rôles existants `moderator` (`asherilla4@gmail.com`) et `super_admin` (`champagcrypt@gmail.com`).
+  - Masquage total des onglets d'administration sur le site public : dans `src/components/Navbar.tsx`, les onglets d'administration (`Console Admin`, `Validation Mots de Passe`, `Audits KYB`, `Paiements RIB`, `Paramètres & Maintenance`) ne s'affichent que lorsque l'administrateur navigue en mode `/admin`.
+  - Ajout du pictogramme `&` sur l'onglet public `Catalogue & Sourcing` dans `src/components/Navbar.tsx` pour harmoniser son affichage avec les 4 autres onglets publics.
+  - Suppression de tous les boutons de connexion rapide en 1 clic et de toute divulgation d'adresses e-mail administrateurs sur `/connexion`, `/moderation/login`, les écrans 403 et l'écran de maintenance.
+- **Authentification par Mot de Passe & Sécurité des Clients Inscrits (`src/features/auth/service.ts`)** :
+  - Hachage cryptographique `scrypt` avec sel unique et comparaison en temps constant (`timingSafeEqual`), accompagné d'un cookie de session `HttpOnly` signé HMAC-SHA256 (`lougara_session`).
+  - Configuration des mots de passe temporaires demandés : `"sherilla"` pour `moderator` et `"herve"` pour `super_admin`.
+  - Mise en place du système de création/réinitialisation et de validation des mots de passe pour les clients inscrits (Entrepreneurs & Fournisseurs) via `/connexion` (`POST /api/auth/password-request`) et lors de l'inscription (`/api/entrepreneurs/register`, `/api/suppliers`).
+- **Page de Validation des Mots de Passe (`/admin/mots-de-passe` & onglet dédié dans `/admin`)** :
+  - Interface complète de contrôle et de validation des mots de passe clients (`AdminPasswordValidationPanel` dans `src/app/admin/mots-de-passe/page.tsx`) accessible uniquement aux rôles `moderator` et `super_admin` (`GET/PATCH /api/admin/password-validations`).
+  - Gestion des états de chargement, d'erreur, de liste vide, de filtrage par statut (`PENDING`, `APPROVED`, `REJECTED`), de recherche et des actions de validation ou de refus motivé.
+- **Mode Maintenance Isolé & Remise en Service Immédiate (`src/components/MaintenanceGuard.tsx`, `src/app/layout.tsx`, `src/proxy.ts`)** :
+  - Enveloppement complet du DOM public dans `MaintenanceGuard` : lorsque la maintenance est active, aucune route publique n'expose la `Navbar`, les produits, les données utilisateurs ou les fonctionnalités admin (y compris pour les clients connectés).
+  - Maintien de l'accès à `/admin` pendant la maintenance pour `moderator` et `super_admin` avec bandeau de remise en service immédiate sans blocage de cache (`Cache-Control: no-store`).
+
 ## [0.17.1] - 2026-10-17
 ### Corrigé — Compatibilité TypeScript `BodyInit` pour le téléchargement des factures PDF sur Vercel
 - **Route API Facturation PDF (`src/app/api/payments/invoice/[id]/route.ts`)** :

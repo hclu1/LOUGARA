@@ -132,6 +132,9 @@ export default function AdminSettingsPage() {
       const data = await res.json();
       if (data.success) {
         setMaintenance(data);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('lougara-maintenance-updated'));
+        }
         setMessage({
           type: 'success',
           text: active
@@ -195,9 +198,14 @@ export default function AdminSettingsPage() {
           <p className="text-sm text-slate-400">
             Cette page est strictement réservée à l'administration principale du système Lougara.
           </p>
-          <Link href="/moderation" className="inline-block py-2 px-4 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-700">
-            Retour à la modération
-          </Link>
+          <div className="flex flex-col gap-2 pt-2">
+            <Link href="/admin/login" className="inline-block py-2.5 px-4 rounded-xl bg-amber-500 text-slate-950 text-xs font-black hover:bg-amber-400">
+              Se connecter à l&apos;Espace Admin
+            </Link>
+            <Link href="/admin" className="inline-block py-2 px-4 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-700">
+              Retour à la Console Admin
+            </Link>
+          </div>
         </div>
       </div>
     );

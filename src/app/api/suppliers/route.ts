@@ -151,6 +151,26 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Enregistrement sécurisé du mot de passe fournisseur dans la file de validation Admin
+    try {
+      const { submitClientPasswordRequest } = await import('@/features/auth/service');
+      const rawPassword =
+        typeof body.password === 'string' && body.password.trim().length >= 4
+          ? body.password.trim()
+          : `Lougara-${String(email).split('@')[0]}-2026`;
+      submitClientPasswordRequest({
+        email,
+        password: rawPassword,
+        fullName: contactName || companyName,
+        companyName,
+        country: country || 'Sénégal',
+        clientRole: 'supplier',
+        requestType: 'CLIENT_REGISTRATION',
+      });
+    } catch {
+      // Non bloquant
+    }
+
     return NextResponse.json({
       success: true,
       supplier: company,
