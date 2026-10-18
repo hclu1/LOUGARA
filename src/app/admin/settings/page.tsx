@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { AdminRoleLoginGate } from '@/components/AdminRoleLoginGate';
 import {
   ShieldCheck,
   Zap,
@@ -190,25 +191,7 @@ export default function AdminSettingsPage() {
   }
 
   if (!isSuperAdmin) {
-    return (
-      <div className="min-h-screen bg-[#0B132B] p-8 flex items-center justify-center text-center">
-        <div className="glass-card max-w-md p-8 rounded-2xl border border-red-500/30 text-white space-y-4">
-          <Lock className="w-12 h-12 text-red-400 mx-auto" />
-          <h2 className="text-xl font-bold">Accès réservé au Super Admin</h2>
-          <p className="text-sm text-slate-400">
-            Cette page est strictement réservée à l'administration principale du système Lougara.
-          </p>
-          <div className="flex flex-col gap-2 pt-2">
-            <Link href="/admin/login" className="inline-block py-2.5 px-4 rounded-xl bg-amber-500 text-slate-950 text-xs font-black hover:bg-amber-400">
-              Se connecter à l&apos;Espace Admin
-            </Link>
-            <Link href="/admin" className="inline-block py-2 px-4 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-700">
-              Retour à la Console Admin
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <AdminRoleLoginGate defaultRole="super_admin" />;
   }
 
   return (

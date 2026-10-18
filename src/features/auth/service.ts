@@ -253,14 +253,20 @@ export function authenticateAccount(params: {
 } {
   initDefaultSecurityStore();
 
-  const cleanEmail = (params.email || '').trim().toLowerCase();
+  const rawIdentifier = (params.email || '').trim().toLowerCase();
+  const cleanEmail =
+    rawIdentifier === 'moderator' || rawIdentifier === 'moderateur' || rawIdentifier === 'modérateur'
+      ? MODERATOR_EMAIL
+      : rawIdentifier === 'super_admin' || rawIdentifier === 'superadmin' || rawIdentifier === 'super-admin'
+      ? SUPER_ADMIN_EMAIL
+      : rawIdentifier;
   const rawPassword = params.password ?? '';
   const trimmedPassword = rawPassword.trim();
 
   if (!cleanEmail) {
     return {
       success: false,
-      error: 'Veuillez saisir une adresse e-mail valide.',
+      error: 'Veuillez sélectionner un profil ou saisir une adresse e-mail valide.',
       statusCode: 400,
     };
   }

@@ -66,6 +66,23 @@ describe('Séparation Site Public / Espace Admin & Sécurité des Mots de Passe'
       });
       expect(trimmedResult.success).toBe(true);
       expect(trimmedResult.user?.role).toBe('super_admin');
+
+      // Supporte la sélection directe des 2 choix sur /admin : "moderator" et "super_admin"
+      const directModChoice = authenticateAccount({
+        email: 'moderator',
+        password: 'sherilla',
+        requireAdmin: true,
+      });
+      expect(directModChoice.success).toBe(true);
+      expect(directModChoice.user?.role).toBe('moderator');
+
+      const directSuperChoice = authenticateAccount({
+        email: 'super_admin',
+        password: 'herve',
+        requireAdmin: true,
+      });
+      expect(directSuperChoice.success).toBe(true);
+      expect(directSuperChoice.user?.role).toBe('super_admin');
     });
 
     it('refuse l’accès Admin (403) à tout utilisateur non-administrateur même avec un mot de passe valide', () => {

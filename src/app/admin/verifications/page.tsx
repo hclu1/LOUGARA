@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { AdminRoleLoginGate } from '@/components/AdminRoleLoginGate';
 import {
   ShieldCheck,
   FileText,
@@ -541,42 +542,7 @@ export default function AdminVerificationsPage() {
   };
 
   if (!isAuthLoading && !isModerator) {
-    return (
-      <div className="bg-[#0B132B] text-slate-100 min-h-screen py-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full glass-card gold-glow-border p-8 rounded-3xl text-center space-y-6">
-          <div className="w-16 h-16 rounded-3xl bg-rose-950/80 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(244,63,94,0.3)]">
-            <ShieldAlert className="w-9 h-9" />
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-500/40">
-              Erreur 403 — Accès Refusé
-            </span>
-            <h1 className="text-2xl font-black text-white">Zone d&apos;Administration Protégée</h1>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Cet espace est strictement réservé aux comptes disposant des droits d&apos;administration habilités.
-            </p>
-          </div>
-
-          <div className="pt-4 flex flex-col gap-3">
-            <Link
-              href="/admin/login"
-              className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] shadow-md"
-            >
-              <Lock className="w-4 h-4 text-slate-950" />
-              <span>Se connecter à l&apos;Espace Admin</span>
-            </Link>
-
-            <Link
-              href="/"
-              className="w-full py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800"
-            >
-              &larr; Retourner au site public
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <AdminRoleLoginGate />;
   }
 
   return (

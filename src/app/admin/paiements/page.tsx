@@ -17,6 +17,7 @@ import {
   Sliders,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { AdminRoleLoginGate } from '@/components/AdminRoleLoginGate';
 import { CurrencyCode, formatCurrencyAmount } from '@/locales/currencies';
 
 export default function AdminPaiementsPage() {
@@ -161,23 +162,7 @@ export default function AdminPaiementsPage() {
   }
 
   if (!isModerator) {
-    return (
-      <div className="min-h-screen bg-[#0B132B] p-8 flex items-center justify-center text-center">
-        <div className="glass-card max-w-md p-8 rounded-2xl border border-red-500/30 text-white space-y-4">
-          <Lock className="w-12 h-12 text-red-400 mx-auto" />
-          <h2 className="text-xl font-bold">Accès Administration Protégé</h2>
-          <p className="text-sm text-slate-400">
-            Veuillez vous connecter avec un compte administrateur autorisé pour gérer les virements bancaires et les factures.
-          </p>
-          <Link
-            href="/admin/login"
-            className="inline-block py-2.5 px-5 rounded-xl bg-amber-500 text-slate-950 text-xs font-black hover:bg-amber-400"
-          >
-            Se connecter à l&apos;Administration
-          </Link>
-        </div>
-      </div>
-    );
+    return <AdminRoleLoginGate />;
   }
 
   const filteredOrders =

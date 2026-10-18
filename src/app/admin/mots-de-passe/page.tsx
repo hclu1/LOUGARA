@@ -19,6 +19,7 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { AdminRoleLoginGate } from '@/components/AdminRoleLoginGate';
 
 export interface PasswordValidationRequestItem {
   id: string;
@@ -783,39 +784,7 @@ export default function AdminPasswordValidationsPage() {
   }
 
   if (!isModerator) {
-    return (
-      <div className="min-h-screen bg-[#0B132B] text-slate-100 py-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full glass-card gold-glow-border p-8 rounded-3xl text-center space-y-5">
-          <div className="w-16 h-16 rounded-3xl bg-rose-950/80 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto">
-            <ShieldAlert className="w-9 h-9" />
-          </div>
-          <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-500/40">
-              Erreur 403 &bull; Accès Refusé
-            </span>
-            <h1 className="text-2xl font-black text-white">Accès Restreint</h1>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Vous ne disposez pas des droits nécessaires pour consulter cette ressource.
-            </p>
-          </div>
-          <div className="pt-2 flex flex-col gap-2.5">
-            <Link
-              href="/admin/login"
-              className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C]"
-            >
-              <Lock className="w-4 h-4 text-slate-950" />
-              <span>Connexion Administration</span>
-            </Link>
-            <Link
-              href="/"
-              className="w-full py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800"
-            >
-              Retour à l&apos;accueil
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <AdminRoleLoginGate />;
   }
 
   return (

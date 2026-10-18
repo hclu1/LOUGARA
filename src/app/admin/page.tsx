@@ -17,6 +17,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { useAuth, MODERATOR_EMAILS } from '@/context/AuthContext';
+import { AdminRoleLoginGate, AdminRoleChoice } from '@/components/AdminRoleLoginGate';
 import AdminVerificationsPage from './verifications/page';
 import { AdminPasswordValidationPanel } from './mots-de-passe/page';
 
@@ -33,6 +34,7 @@ interface UserAccount {
 
 export default function AdminHubPage() {
   const { user, isModerator, isSuperAdmin, isLoading } = useAuth();
+  const [switchingRole, setSwitchingRole] = useState<AdminRoleChoice | null>(null);
   const [activeTab, setActiveTab] = useState<
     'passwords' | 'verifications' | 'users' | 'catalogs' | 'pricing' | 'audit'
   >('passwords');
@@ -170,43 +172,14 @@ export default function AdminHubPage() {
   }
 
   // PROTECTION STRICTE : Seuls les rôles `moderator` et `super_admin` ont accès à `/admin`.
-  // Page 403 sobre ne divulguant aucun email ni détail interne sur l'application.
-  if (!isModerator) {
+  // Chaque fois que l'utilisateur arrive sur `/admin` (ou choisit de changer de profil), il dispose des 2 choix : `moderator` et `super_admin`.
+  if (!isModerator || switchingRole !== null) {
     return (
-      <div className="min-h-screen bg-[#0B132B] text-slate-100 py-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full glass-card gold-glow-border p-8 rounded-3xl text-center space-y-6">
-          <div className="w-16 h-16 rounded-3xl bg-rose-950/80 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(244,63,94,0.3)]">
-            <ShieldAlert className="w-9 h-9" />
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-500/40">
-              Erreur 403 &bull; Accès Interdit
-            </span>
-            <h1 className="text-2xl font-black text-white">Accès Restreint</h1>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Cet espace est strictement réservé aux administrateurs habilités.
-            </p>
-          </div>
-
-          <div className="pt-4 flex flex-col gap-3">
-            <Link
-              href="/admin/login"
-              className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] shadow-md"
-            >
-              <Lock className="w-4 h-4 text-slate-950" />
-              <span>Se connecter à l&apos;administration</span>
-            </Link>
-
-            <Link
-              href="/"
-              className="w-full py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800"
-            >
-              &larr; Retourner à l&apos;accueil public
-            </Link>
-          </div>
-        </div>
-      </div>
+      <AdminRoleLoginGate
+        defaultRole={switchingRole || 'moderator'}
+        onAuthenticated={() => setSwitchingRole(null)}
+        onCancelSwitch={isModerator ? () => setSwitchingRole(null) : undefined}
+      />
     );
   }
 
@@ -238,14 +211,14 @@ export default function AdminHubPage() {
   return (
     <div className="min-h-screen bg-[#0B132B] text-slate-100 py-8 px-4 sm:px-6 lg:px-8 space-y-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* BANDEAU ACCUEIL ESPACE ADMIN */}
+        {/* BANDEAU ACCUEIL ESPACE ADMIN AVEC LES 2 CHOIX DE CONNEXION (MODERATOR / SUPER_ADMIN) */}
         <div className="glass-card gold-glow-border p-6 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#D4AF37] via-[#E5A93C] to-[#B8860B] text-slate-950 flex items-center justify-center font-black shadow-[0_0_20px_rgba(212,175,55,0.4)]">
               <Lock className="w-6 h-6 text-slate-950" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-white">
                   Espace Administration Lougara
                 </h1>
@@ -254,8 +227,37 @@ export default function AdminHubPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Connecté en tant que <strong className="text-amber-300">{user?.email}</strong>. Validation des mots de passe clients, contrôle KYB, gestion des comptes et maintenance.
+                Connecté en tant que <strong className="text-amber-300">{user?.email}</strong> ({user?.role}).
               </p>
+
+              {/* SÉLECTEUR PERMANENT DES 2 CHOIX DE CONNEXION ADMIN */}
+              <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                <span className="text-[11px] font-bold text-slate-400">
+                  Mode de connexion Admin :
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSwitchingRole('moderator')}
+                  className={`px-3 py-1 rounded-xl text-[11px] font-black border transition-all cursor-pointer ${
+                    !isSuperAdmin
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-400'
+                      : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-amber-400/60'
+                  }`}
+                >
+                  Modérateur (moderator)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSwitchingRole('super_admin')}
+                  className={`px-3 py-1 rounded-xl text-[11px] font-black border transition-all cursor-pointer ${
+                    isSuperAdmin
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400'
+                      : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-emerald-400/60'
+                  }`}
+                >
+                  Super Admin (super_admin)
+                </button>
+              </div>
             </div>
           </div>
 

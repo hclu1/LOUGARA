@@ -4,6 +4,15 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.1] - 2026-10-18
+### Ajouté & Amélioré — Portail à 2 Choix de Connexion (`moderator` & `super_admin`) sur Toutes les Routes `/admin`
+- **Composant Unifié de Sélection de Rôle Admin (`src/components/AdminRoleLoginGate.tsx`)** :
+  - Affichage systématique des **2 choix de connexion** (`Modérateur (moderator)` et `Super Admin (super_admin)`) dès que l'utilisateur accède à `https://lougara.com/admin` ou à toute sous-route (`/admin/login`, `/admin/mots-de-passe`, `/admin/verifications`, `/admin/paiements`, `/admin/settings`).
+  - Sélection interactive du profil (`moderator` ou `super_admin`) suivie de la saisie obligatoire du mot de passe associé (`"sherilla"` pour `moderator`, `"herve"` pour `super_admin`).
+  - Ajout d'un sélecteur permanent des 2 modes de connexion (`Modérateur (moderator)` / `Super Admin (super_admin)`) dans l'en-tête de `/admin` permettant de basculer à tout moment entre les deux profils.
+- **Service d'Authentification (`src/features/auth/service.ts`)** :
+  - Prise en charge directe des identifiants de rôle `moderator` et `super_admin` dans `authenticateAccount`.
+
 ## [0.18.0] - 2026-10-18
 ### Ajouté & Sécurisé — Séparation Stricte Site Public (`lougara.com`) / Espace Admin (`lougara.com/admin`), Validation des Mots de Passe Clients & Mode Maintenance Isolé
 - **Séparation Site Public & Espace Admin (`/admin`)** :
