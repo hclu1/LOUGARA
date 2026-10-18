@@ -4,6 +4,11 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.3] - 2026-10-18
+### Corrigé — Correction de l'Import Serveur `SUPER_ADMIN_EMAIL` / `MODERATOR_EMAILS` pour la Remise en Service du Site (`POST /api/system/maintenance`)
+- **Routes API Serveur (`src/app/api/system/maintenance/route.ts`, `src/app/api/admin/payments/**`)** :
+  - Remplacement de l'import depuis `@/context/AuthContext` (`'use client'`) par l'import depuis le module serveur `@/features/auth/service`, corrigeant l'erreur Next.js 16 RSC (`c.SUPER_ADMIN_EMAIL.toLowerCase is not a function`) lors du clic sur « Remettre en service le site public ».
+
 ## [0.18.2] - 2026-10-18
 ### Corrigé — Suppression du Verrouillage Automatique en Maintenance sur Écart de Version & Remise en Service Immédiate
 - **Service de Maintenance (`src/features/maintenance/service.ts`)** :

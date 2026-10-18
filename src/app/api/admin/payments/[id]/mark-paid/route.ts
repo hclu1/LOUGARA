@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { MODERATOR_EMAILS } from '@/context/AuthContext';
+import { MODERATOR_EMAILS } from '@/features/auth/service';
 import { fulfillPaymentOrder } from '@/features/payment/services/fulfillment.service';
 
 export async function POST(

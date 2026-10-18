@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { MODERATOR_EMAILS } from '@/context/AuthContext';
+import { MODERATOR_EMAILS } from '@/features/auth/service';
 import { buildBankTransferInstructions } from '@/features/payment/config/rib.config';
 import { getSentEmailLogs } from '@/features/payment/services/email.service';
 import { listPaymentOrders } from '@/features/payment/services/fulfillment.service';

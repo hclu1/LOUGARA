@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getMaintenanceStatus, setMaintenanceStatus } from '@/features/maintenance/service';
-import { SUPER_ADMIN_EMAIL, MODERATOR_EMAILS } from '@/context/AuthContext';
-import { isRequestAdminAuthorized } from '@/features/auth/service';
+import { SUPER_ADMIN_EMAIL, MODERATOR_EMAILS, isRequestAdminAuthorized } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
