@@ -120,6 +120,25 @@ export const Footer = () => {
             {t.footer.platformSub}
           </p>
         </div>
+
+        {/* Mentions légales officielles obligatoires */}
+        <div className="mt-6 pt-4 border-t border-slate-900 text-center text-[11px] text-slate-400">
+          <p>
+            <span>App à la Carte — Hervé CHAMPAGNE EI</span>
+            {' '}|{' '}
+            <span>SIREN : 132 021 098</span>
+            {' '}|{' '}
+            <span className="font-mono text-amber-400">{APP_VERSION_LABEL}</span>
+            {' '}|{' '}
+            <Link href="/mentions-legales" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+              Mentions légales
+            </Link>
+            {' '}|{' '}
+            <a href="mailto:contact@appalacarte.fr" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+              Contact
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );

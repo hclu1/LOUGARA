@@ -19,7 +19,7 @@ import {
 import { useAuth, MODERATOR_EMAILS } from '@/context/AuthContext';
 import { AdminRoleLoginGate, AdminRoleChoice } from '@/components/AdminRoleLoginGate';
 import AdminVerificationsPage from './verifications/page';
-import { AdminPasswordValidationPanel } from './mots-de-passe/page';
+import { AdminPasswordValidationPanel } from '@/components/AdminPasswordValidationPanel';
 
 interface UserAccount {
   id: string;

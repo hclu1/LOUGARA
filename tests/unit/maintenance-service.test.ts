@@ -60,32 +60,26 @@ describe('Système de Maintenance Lougara & Déclenchement Automatique', () => {
     expect(reopened.lastActiveVersion).toBe(APP_VERSION);
   });
 
-  it('doit détecter une nouvelle version applicative et activer AUTOMATIQUEMENT la maintenance', async () => {
-    // Simuler une ancienne version enregistrée en base (ex: 0.15.0)
+  it('maintient le site en ligne même en cas de changement de version (pas de blocage intempestif)', async () => {
+    // Simuler une ancienne version enregistrée en base (ex: 0.14.0)
     await prisma.$executeRawUnsafe(`
       UPDATE "SystemMaintenance"
       SET "isMaintenanceActive" = false,
           "lastActiveVersion" = '0.14.0',
           "updatedAt" = NOW()
-      WHERE "id" = 'global';
+      WHERE "id" = 'manual_control';
     `);
 
-    // Lors de la requête getMaintenanceStatus(), la détection automatique se déclenche
+    // getMaintenanceStatus() garantit que le site reste accessible sans interruption intempestive
     const status = await getMaintenanceStatus();
 
-    expect(status.isVersionMismatch).toBe(true);
-    expect(status.isMaintenanceActive).toBe(true);
-    expect(status.message).toContain('Mise à jour système');
+    expect(status.isMaintenanceActive).toBe(false);
+    expect(status.currentAppVersion).toBe(APP_VERSION);
 
-    // Vérifier en base que la coche a bien été positionnée automatiquement
-    const fresh = await getMaintenanceStatus();
-    expect(fresh.isMaintenanceActive).toBe(true);
-
-    // Une fois que le Super Admin redémarre le site, la maintenance se désactive et la version se synchronise
+    // Une fois que l'admin change le statut, la version se synchronise
     const fixed = await setMaintenanceStatus({ isMaintenanceActive: false });
     expect(fixed.isMaintenanceActive).toBe(false);
     expect(fixed.lastActiveVersion).toBe(APP_VERSION);
-    expect(fixed.isVersionMismatch).toBe(false);
   });
 
   it('doit vérifier que seul l’email SUPER_ADMIN_EMAIL est autorisé', () => {

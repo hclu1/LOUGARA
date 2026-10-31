@@ -4,6 +4,21 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.5] - 2026-10-31
+### Ajouté & Corrigé — Neutralisation du Pré-remplissage des Identifiants, Inscription Client Directe & Mentions Légales Dédiées
+- **Formulaire de Connexion & Inscription (`src/app/connexion/page.tsx`)** :
+  - Neutralisation définitive du pré-remplissage automatique des champs e-mail et mot de passe par les navigateurs (`autoComplete="off"`, `autoComplete="new-password"`, noms de champs personnalisés et balises leurres anti-autofill).
+  - Ajout de l'onglet **S'inscrire** permettant à un nouvel utilisateur (Entrepreneur / Acheteur ou Fournisseur B2B) de créer directement son compte professionnel avec nom, entreprise, pays, e-mail et mot de passe sécurisé.
+  - Connexion automatique et feedback immédiat dès la validation de l'inscription.
+  - Ajout d'une case à cocher obligatoire d'acceptation des conditions et des Mentions Légales.
+  - Intégration d'un bloc dédié aux mentions légales d'authentification et à la sécurité cryptographique scrypt au bas du portail de connexion.
+- **Page Officielle des Mentions Légales (`src/app/mentions-legales/page.tsx`)** :
+  - Création de la page complète des Mentions Légales et de Politique de Confidentialité conforme à 100% aux obligations légales et à l'identité officielle de l'éditeur (App à la Carte — Hervé CHAMPAGNE EI, SIREN 132 021 098, 173 rue de Courcelles 75017 Paris, hébergement Vercel Inc., contact@appalacarte.fr, franchise de TVA art. 293 B du CGI).
+- **Pied de Page Public (`src/components/Footer.tsx`)** :
+  - Ajout du bandeau légal normalisé avec liens cliquables : `App à la Carte — Hervé CHAMPAGNE EI | SIREN : 132 021 098 | v0.18.5 | Mentions légales | Contact`.
+- **Refactorisation Admin Mots de Passe (`src/components/AdminPasswordValidationPanel.tsx`, `src/app/admin/mots-de-passe/page.tsx`, `src/app/admin/page.tsx`)** :
+  - Extraction du composant `AdminPasswordValidationPanel` dans son propre fichier pour éliminer l'export nommé non autorisé sur la route page Next.js 16 et valider l'inspection TypeScript `tsc --noEmit`.
+
 ## [0.18.4] - 2026-10-18
 ### Corrigé — Isolation de la Clé Base de Données du Mode Maintenance (`manual_control`) Contre les Anciennes Instances `v0.18.0`
 - **Service de Maintenance (`src/features/maintenance/service.ts`)** :
