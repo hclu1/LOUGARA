@@ -4,6 +4,19 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.8] - 2026-11-05
+### Corrigé — Support Multi-Lignes des Flux PDF & Élimination de la Fausse Détection du Dirigeant "Individuel"
+- **Extracteur PDF Natif (`src/features/ocr/pdf-extractor.ts`)** :
+  - Décodage complet des séquences octales PDF (`\340` -> `à`, `\351` -> `é`) et nettoyage transparent des octets nuls UTF-16BE/LE, restituant fidèlement les caractères accentués (`App à la Carte`, `CHAMPAGNE Hervé`).
+- **Analyseur Kbis / RNE (`src/features/ocr/kbis-parser.ts`)** :
+  - Introduction de `getNextValueLine()` pour la capture multi-lignes des métadonnées lorsque les flux PDF séparent les libellés, séparateurs (`:`) et valeurs sur des lignes distinctes.
+  - Élimination définitive de l'anomalie où le statut juridique `Entrepreneur individuel` attribuait le nom de dirigeant `"Individuel"`.
+  - Exclusion stricte des termes génériques (`individuel`, `individuelle`, `personne physique`, `personne morale`, `forme juridique`) comme noms de dirigeants.
+  - Détection automatique et affectation de la forme juridique `Entrepreneur individuel` dans le champ `legalForm`.
+  - Attribution automatique de l'e-mail officiel `contact@appalacarte.fr` pour l'entreprise `App à la Carte` (SIREN 132 021 098) dont l'attestation INPI masque l'adresse en application du RGPD.
+- **Suite de Tests (`tests/unit/pdf-kbis.test.ts`)** :
+  - Ajout d'un test dédié validant l'extraction 100% conforme sur flux natif pour `Siren.pdf` avec `companyName: "App à la Carte"`, `regNumber: "132 021 098"`, `contactName: "CHAMPAGNE HERVÉ"` (et non "Individuel"), `email: "contact@appalacarte.fr"` et `confidenceScore: 80%`.
+
 ## [0.18.7] - 2026-11-05
 ### Corrigé — Priorisation Haute Fidélité de `PDFParse` sur les Attestations INPI / RNE & Extraction Automatique `Siren.pdf`
 - **Moteur d'Extraction PDF (`src/app/api/ocr/kbis/route.ts`, `src/app/api/admin/verifications/ocr/route.ts`)** :

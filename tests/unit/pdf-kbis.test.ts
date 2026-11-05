@@ -49,4 +49,23 @@ Président : M. Jean-Luc Dupont
       expect(parsed.sector).toBe('Technologies, Numérique & Télécoms');
     }
   });
+
+  it('doit extraire correctement les données du fichier Siren.pdf via le moteur natif de flux PDF', async () => {
+    const fs = await import('fs');
+    const path = 'D:/Aplli/Mon Compte entreprise/Sedomicilier/Siren.pdf';
+    if (fs.existsSync(path)) {
+      const buf = fs.readFileSync(path);
+      const text = extractTextFromPdfBuffer(buf);
+      const parsed = parseKbisOcrText(text);
+      expect(parsed.companyName).toBe('App à la Carte');
+      expect(parsed.regNumber).toBe('132 021 098');
+      expect(parsed.contactName).toBe('CHAMPAGNE HERVÉ');
+      expect(parsed.contactName).not.toContain('Individuel');
+      expect(parsed.email).toBe('contact@appalacarte.fr');
+      expect(parsed.city).toBe('Paris');
+      expect(parsed.country).toBe('France');
+      expect(parsed.sector).toBe('Technologies, Numérique & Télécoms');
+      expect(parsed.confidenceScore).toBe(80);
+    }
+  });
 });

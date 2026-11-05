@@ -1,6 +1,23 @@
 import zlib from 'zlib';
 
 /**
+ * Décode les séquences d'échappement PDF octales (\340 -> à, \351 -> é)
+ * et nettoie les octets nuls UTF-16BE/LE.
+ */
+function decodePdfOctalAndUtf16(str: string): string {
+  let clean = str;
+  if (clean.includes('\u0000')) {
+    clean = clean.replace(/\u0000/g, '');
+  }
+  clean = clean.replace(/\\([0-7]{1,3})/g, (_, oct) => {
+    const code = parseInt(oct, 8);
+    return Buffer.from([code]).toString('latin1');
+  });
+  clean = clean.replace(/\\([()\\\/])/g, '$1');
+  return clean.trim();
+}
+
+/**
  * Extracteur natif ultra-rapide de texte PDF (sans dépendances externes lourdes).
  * Lit directement les flux de texte et décompresse les objets FlateDecode en mémoire en < 50ms.
  */
@@ -18,11 +35,11 @@ export function extractTextFromPdfBuffer(buffer: Buffer): string {
 
     try {
       const streamBuffer = Buffer.from(rawStream, 'binary');
-      decompressed = zlib.inflateSync(streamBuffer).toString('utf-8');
+      decompressed = zlib.inflateSync(streamBuffer).toString('latin1');
     } catch {
       try {
         const streamBuffer = Buffer.from(rawStream, 'binary');
-        decompressed = zlib.unzipSync(streamBuffer).toString('utf-8');
+        decompressed = zlib.unzipSync(streamBuffer).toString('latin1');
       } catch {
         // Flux non compressé
         decompressed = rawStream;
@@ -33,7 +50,10 @@ export function extractTextFromPdfBuffer(buffer: Buffer): string {
     const textOperatorRegex = /\(([^)]+)\)\s*(?:Tj|'|")/g;
     let textMatch: RegExpExecArray | null;
     while ((textMatch = textOperatorRegex.exec(decompressed)) !== null) {
-      textChunks.push(textMatch[1]);
+      const decoded = decodePdfOctalAndUtf16(textMatch[1]);
+      if (decoded) {
+        textChunks.push(decoded);
+      }
     }
 
     // Extraction des tableaux [(texte) -123 (texte)] TJ
@@ -43,7 +63,13 @@ export function extractTextFromPdfBuffer(buffer: Buffer): string {
       const inner = arrayMatch[1];
       const parts = inner.match(/\(([^)]+)\)/g);
       if (parts) {
-        textChunks.push(parts.map((p) => p.slice(1, -1)).join(' '));
+        const joined = parts
+          .map((p) => decodePdfOctalAndUtf16(p.slice(1, -1)))
+          .filter(Boolean)
+          .join(' ');
+        if (joined) {
+          textChunks.push(joined);
+        }
       }
     }
   }
@@ -52,7 +78,10 @@ export function extractTextFromPdfBuffer(buffer: Buffer): string {
   if (textChunks.length === 0) {
     const rawMatch = content.match(/\(([^)]{3,})\)/g);
     if (rawMatch) {
-      return rawMatch.map((m) => m.slice(1, -1)).join('\n');
+      return rawMatch
+        .map((m) => decodePdfOctalAndUtf16(m.slice(1, -1)))
+        .filter(Boolean)
+        .join('\n');
     }
   }
 
