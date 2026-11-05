@@ -79,29 +79,32 @@ export async function POST(req: NextRequest) {
 
     const isPdf = Boolean((file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) || fileName.endsWith('.pdf'));
 
-    // 1. SI FICHIER PDF : Extraction des flux textuels natifs puis OCR Tesseract en cas de document scanné
+    // 1. SI FICHIER PDF : Extraction de haute précision via pdf-parse
     if (isPdf) {
       try {
-        extractedText = extractTextFromPdfBuffer(buffer);
-        if (extractedText && extractedText.trim().length > 20) {
-          methodUsed = 'PDF_FAST_STREAM_EXTRACTION';
+        const { PDFParse } = require('pdf-parse');
+        const pdfParser = new PDFParse({ data: buffer });
+        const parsedRes = await pdfParser.getText();
+        const parsedText = typeof parsedRes === 'string' ? parsedRes : (parsedRes?.text || '');
+        if (parsedText && parsedText.trim().length > 20) {
+          extractedText = parsedText;
+          methodUsed = 'PDF_PARSE_LIBRARY';
         }
-      } catch (err) {
-        console.warn('Extraction flux PDF natif :', err);
+      } catch (pdfErr) {
+        console.warn('Echec pdf-parse :', pdfErr);
       }
 
+      // 1.b Extraction flux natif brut si pdf-parse a échoué (nettoyé des octets nuls)
       if (!extractedText || extractedText.trim().length < 20) {
         try {
-          const { PDFParse } = require('pdf-parse');
-          const pdfParser = new PDFParse({ data: buffer });
-          const parsedRes = await pdfParser.getText();
-          const parsedText = typeof parsedRes === 'string' ? parsedRes : (parsedRes?.text || '');
-          if (parsedText && parsedText.trim().length > 20) {
-            extractedText = parsedText;
-            methodUsed = 'PDF_PARSE_LIBRARY';
+          const rawFast = extractTextFromPdfBuffer(buffer);
+          const cleanFast = rawFast.replace(/[\x00-\x08\x0B-\x1F\x7F-\x9F]/g, '').trim();
+          if (cleanFast && cleanFast.length > 20) {
+            extractedText = cleanFast;
+            methodUsed = 'PDF_FAST_STREAM_EXTRACTION';
           }
-        } catch (pdfErr) {
-          console.warn('Echec pdf-parse :', pdfErr);
+        } catch (err) {
+          console.warn('Extraction flux PDF natif :', err);
         }
       }
 

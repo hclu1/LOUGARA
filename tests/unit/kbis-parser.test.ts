@@ -292,6 +292,37 @@ Email professionnel : contact@appalacarte.fr
     expect(parsed.email).toBe('contact@appalacarte.fr');
   });
 
+  it('doit extraire fidèlement une Attestation au Registre National des Entreprises (INPI RNE)', () => {
+    const rawOcrText = `
+ATTESTATION D'IMMATRICULATION AU REGISTRE NATIONAL DES ENTREPRISES
+Ce document récapitule l’état des inscriptions au Registre national des entreprises concernant l’entreprise
+CHAMPAGNE à la date du 28 octobre 2026
+Identité de l'entreprise
+Nom, Prénom(s) : CHAMPAGNE Hervé
+SIREN (siège) : 132 021 098
+Date d'immatriculation au RNE : 26/10/2026
+Forme juridique : Entrepreneur individuel
+Code APE : 6201Z - Programmation informatique
+Adresse de l’entreprise : 173 RUE de Courcelles 75017 Paris FRANCE
+Nom ou dénomination du
+domiciliataire :
+HelloDom
+SIREN du domiciliataire : 878831312
+Établissements (1)
+Type d'établissement : Principal
+Siret : 13202109800018
+Nom commercial : App à la Carte
+    `;
+
+    const parsed = parseKbisOcrText(rawOcrText);
+    expect(parsed.companyName).toBe('App à la Carte');
+    expect(parsed.regNumber).toBe('132 021 098');
+    expect(parsed.contactName).toBe('CHAMPAGNE HERVÉ');
+    expect(parsed.city).toBe('Paris');
+    expect(parsed.country).toBe('France');
+    expect(parsed.sector).toBe('Technologies, Numérique & Télécoms');
+  });
+
   it('ne doit jamais renvoyer de fausses valeurs par défaut inventées si le texte est incomplet', () => {
     const parsed = parseKbisOcrText('Document sans informations');
     expect(parsed.companyName).not.toBe('Société Identifiée par OCR');

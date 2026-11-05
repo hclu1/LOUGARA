@@ -30,4 +30,23 @@ Président : M. Jean-Luc Dupont
     expect(parsed.sector).toBe('Cosmétique & Soins');
     expect(parsed.contactName).toContain('Jean-Luc Dupont');
   });
+
+  it('doit extraire correctement les données du fichier Siren.pdf avec PDFParse', async () => {
+    const fs = await import('fs');
+    const { PDFParse } = await import('pdf-parse');
+    const path = 'D:/Aplli/Mon Compte entreprise/Sedomicilier/Siren.pdf';
+    if (fs.existsSync(path)) {
+      const buf = fs.readFileSync(path);
+      const parser = new PDFParse({ data: buf });
+      const res = await parser.getText();
+      const text = typeof res === 'string' ? res : (res?.text || '');
+      const parsed = parseKbisOcrText(text);
+      expect(parsed.companyName).toBe('App à la Carte');
+      expect(parsed.regNumber).toBe('132 021 098');
+      expect(parsed.contactName).toBe('CHAMPAGNE HERVÉ');
+      expect(parsed.city).toBe('Paris');
+      expect(parsed.country).toBe('France');
+      expect(parsed.sector).toBe('Technologies, Numérique & Télécoms');
+    }
+  });
 });

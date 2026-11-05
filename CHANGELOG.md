@@ -4,6 +4,21 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.7] - 2026-11-05
+### Corrigé — Priorisation Haute Fidélité de `PDFParse` sur les Attestations INPI / RNE & Extraction Automatique `Siren.pdf`
+- **Moteur d'Extraction PDF (`src/app/api/ocr/kbis/route.ts`, `src/app/api/admin/verifications/ocr/route.ts`)** :
+  - Inversion de priorité : exécution de `PDFParse` en premier lieu pour décoder nativement les polices vectorielles complexes, le kerning et les flux UTF-16, éliminant définitivement les chaînes d'octets nuls parasites (`\x00`) produites par les regex brutes sur zlib.
+  - Nettoyage et assainissement des flux de repli.
+- **Parseur d'Attestations RNE & Kbis (`src/features/ocr/kbis-parser.ts`)** :
+  - Filtrage strict des entités de domiciliation (`HelloDom`, lignes `domiciliat...`) pour ne pas les confondre avec la raison sociale déclarante.
+  - Exclusion des prépositions / mots vides (`DU`, `DE`, `DES`, `LE`, `LA`, etc.) comme noms d'entreprise.
+  - Détection précise des libellés INPI / Guichet Unique : capture de `SIREN (siège) : 132 021 098`, `Siret : 13202109800018`, `Nom, Prénom(s) : CHAMPAGNE Hervé` et du nom commercial `Nom commercial : App à la Carte`.
+- **Espace Acheteurs (`src/app/entrepreneurs/page.tsx`)** :
+  - Pré-remplissage automatique de l'e-mail connecté depuis le contexte d'authentification (`useAuth`) si non présent sur l'attestation INPI.
+  - Remplissage instantané des champs Raison Sociale, SIREN/RCCM, Nom du Dirigeant et E-mail lors du dépôt de `Siren.pdf`.
+- **Tests Unitaires (`tests/unit/kbis-parser.test.ts`, `tests/unit/pdf-kbis.test.ts`)** :
+  - Ajout du test d'extraction directe de bout en bout sur `Siren.pdf` validant 100% des métadonnées extraites.
+
 ## [0.18.6] - 2026-11-05
 ### Corrigé — Résolution de l'Extraction OCR Kbis / RCCM, Suppression des Valeurs Factices & Intégration Complète du Générateur RFQ
 - **Moteur OCR & Analyseur Kbis/RCCM (`src/features/ocr/kbis-parser.ts`, `src/app/api/ocr/kbis/route.ts`, `src/app/api/admin/verifications/ocr/route.ts`)** :

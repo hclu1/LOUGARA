@@ -122,6 +122,8 @@ const COUNTRY_MAP: Record<string, string> = {
   antananarivo: 'Madagascar',
 };
 
+const STOP_WORDS = new Set(['DU', 'DE', 'DES', 'LE', 'LA', 'LES', 'AU', 'AUX', 'EN', 'UN', 'UNE', 'PAR', 'ET', 'OU', 'SUR']);
+
 export function cleanCompanyName(text: string): string {
   let cleaned = text.normalize('NFC').trim();
 
@@ -140,6 +142,7 @@ export function cleanCompanyName(text: string): string {
   cleaned = cleaned.replace(/^(?:raison|roion|raion|roison)\s+(?:sociale|soie|social|soclale)\s*[:\-\.]*\s*/i, '');
   cleaned = cleaned.replace(/^(?:sociale|soie|social|om\s*commercial|nom\s*commercial|enseigne|d[eéè]livr[eéè]e?\s+[aà]\s+la\s+soci[eéè]t[eéè])\s*[:\-\.]*\s*/i, '');
   cleaned = cleaned.replace(/^(?:soci[eéè]t[eéè]|entreprise|nom)\s*[:\-\.]*\s*/i, '');
+  cleaned = cleaned.replace(/\s+(?:du|de|des|le|la|les|au|aux|en)$/i, '');
   
   // Nettoyage des parenthèses fermées ou ouvertes restées en fin de chaîne
   cleaned = cleaned.replace(/\s*\([^)]*\)/g, '');
@@ -148,6 +151,10 @@ export function cleanCompanyName(text: string): string {
   cleaned = cleaned.replace(/[\/\-\\:\.\*\#\_\~\|\s\>\•\–\—\(\[\{\,\;]+$/, '');
 
   cleaned = cleaned.trim();
+
+  if (STOP_WORDS.has(cleaned.toUpperCase()) || cleaned.length <= 2) {
+    return '';
+  }
 
   // 3. Normalisation des noms de sociétés / acronymes
   if (/\b(SARL|SAS|SASU|SA|SUARL|GIE)\b/i.test(cleaned) || /^[A-Za-z0-9\s\-\.\&\']+$/.test(cleaned)) {
@@ -251,7 +258,7 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     regNumber = `RC ${rcMarocMatch[1]}`;
   } else {
     const siretMatch = rawText.match(/(?:SIRET|Identifiant\s+SIRET)[\s\:\.\-]*([0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{5})/i);
-    const rcsMatch = rawText.match(/(?:R\.?C\.?S\.?|num[eéè]ro|SIREN|Identifiant\s+SIREN|Immatriculation|Imation)\s*(?:au\s+R\.?C\.?S\.?,?)?\s*(?:num[eéè]ro)?\s*[:\s]*([0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{3})/i);
+    const rcsMatch = rawText.match(/(?:SIREN|SIRET|R\.?C\.?S\.?|num[eéè]ro|Identifiant\s+SIREN|Immatriculation|Imation)\s*(?:\([^\)]*\))?\s*(?:au\s+R\.?C\.?S\.?,?)?\s*(?:num[eéè]ro)?\s*[:\s]*([0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{3})/i);
     if (rcsMatch) {
       const digits = rcsMatch[1].replace(/[\s\.\-]/g, '');
       if (digits.length === 9) {
@@ -315,9 +322,10 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   let explicitCommercialName = '';
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (line.toLowerCase().includes('domiciliat')) continue;
     if (/^(?:om\s*commercial|nom\s*commercial|enseigne)\s*[:\-\.]*\s*(.+)/i.test(line)) {
       const candidate = cleanCompanyName(line);
-      if (candidate && candidate.length > 1 && !isDocumentHeader(candidate)) {
+      if (candidate && candidate.length > 2 && !isDocumentHeader(candidate)) {
         explicitCommercialName = candidate;
         break;
       }
@@ -328,15 +336,16 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     const line = lines[i];
 
     if (isDocumentHeader(line)) continue;
+    if (line.toLowerCase().includes('domiciliat')) continue;
 
     if (/(?:d[eéè]signation|d[eéè]nominat|raison|roion|nom\s*commercial|enseigne|nom\s*[\:\/\.\-]|nom\s+(?:de\s+l'|du\s+contribuable|de\s+la\s+soci[eéè]t[eéè]|ou\s+d[eéè]nominat|ou\s+raison|\/\s*d[eéè]nominat|\/\s*raison))/i.test(line) && !/nom\s+(?:et|&)\s+pr[eéè]noms?|nom\s*,\s*pr[eéè]noms?|nom\s+du\s+(?:g[eéè]rant|dirigeant|responsable|promoteur)/i.test(line)) {
       const candidate = cleanCompanyName(line);
-      if (candidate && candidate.length > 1 && !isDocumentHeader(candidate) && !candidate.toLowerCase().includes('forme') && !candidate.toLowerCase().includes('adresse')) {
+      if (candidate && candidate.length > 2 && !isDocumentHeader(candidate) && !candidate.toLowerCase().includes('forme') && !candidate.toLowerCase().includes('adresse')) {
         companyName = candidate;
         break;
-      } else if (i + 1 < lines.length) {
+      } else if (i + 1 < lines.length && !lines[i + 1].toLowerCase().includes('domiciliat')) {
         const nextCandidate = cleanCompanyName(lines[i + 1]);
-        if (nextCandidate && nextCandidate.length > 1 && !isDocumentHeader(nextCandidate) && !nextCandidate.toLowerCase().includes('forme')) {
+        if (nextCandidate && nextCandidate.length > 2 && !isDocumentHeader(nextCandidate) && !nextCandidate.toLowerCase().includes('forme')) {
           companyName = nextCandidate;
           break;
         }
@@ -350,9 +359,17 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     }
   }
 
-  // Si la dénomination n'a pas été trouvée, utilisation du nom commercial / enseigne explicite
-  if (!companyName && explicitCommercialName) {
-    companyName = explicitCommercialName;
+  // Priorité au nom commercial / enseigne si la dénomination n'est pas renseignée ou s'il s'agit uniquement du nom patronymique du dirigeant
+  if (explicitCommercialName) {
+    const isPersonPatronymic = Boolean(
+      companyName && contactName && (
+        contactName.toUpperCase().includes(companyName.toUpperCase()) ||
+        companyName.toUpperCase().includes(contactName.toUpperCase())
+      )
+    );
+    if (!companyName || isPersonPatronymic) {
+      companyName = explicitCommercialName;
+    }
   }
 
   // 5. Extraction Multi-Format du Dirigeant / Représentant Légal / Signataire
@@ -362,8 +379,8 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     if (/^[A-Z\s\/,]+$/.test(line) && line.includes('/') && !line.toLowerCase().includes('nom')) continue;
     if (/GESTION|DIRECTION|ADMINISTRATION/i.test(line) && !line.includes(':') && line.length < 40) continue;
 
-    // Pattern A : Match direct sur la ligne (ex: "Président : Mme Amina Diop", "Gérant : M. Cheikh Ndiaye", "Nom et Prénoms : Kouassi Konan", "Nom, prénoms : CHAMPAGNE Hervé")
-    const leaderMatch = line.match(/(?:président(?:e)?|gérant(?:e)?(?:\(s\))?|co-gérant(?:e)?|gérance|directeur(?:\s*général|\s*générale)?|directrice(?:\s*générale)?|administrateur(?:\s*général|\s*délégué)?|promoteur|promotrice|titulaire|signataire|responsable(?:\s*légal)?|représentant(?:\s*légal|\s*légale)?|exploitant(?:e)?|fondateur|fondatrice|nom\s*(?:,|&|\/|\+)?\s*pr[eéè]noms?(?:\s+du\s+(?:g[eéè]rant|dirigeant|responsable|promoteur))?|om,?\s*pr[eéè]noms?|nom\s+du\s+gérant|nom\s+du\s+dirigeant|nom\s+du\s+responsable|nom\s+du\s+promoteur|nom\s+du\s+représentant|identité\s+du\s+dirigeant|identité\s+du\s+gérant|dirigeant(?:\s+principal)?|entrepreneur|personne\s+physique)\s*[:\-\.]*\s*(.+)/i);
+    // Pattern A : Match direct sur la ligne (ex: "Président : Mme Amina Diop", "Gérant : M. Cheikh Ndiaye", "Nom et Prénoms : Kouassi Konan", "Nom, Prénom(s) : CHAMPAGNE Hervé")
+    const leaderMatch = line.match(/(?:président(?:e)?|gérant(?:e)?(?:\(s\))?|co-gérant(?:e)?|gérance|directeur(?:\s*général|\s*générale)?|directrice(?:\s*générale)?|administrateur(?:\s*général|\s*délégué)?|promoteur|promotrice|titulaire|signataire|responsable(?:\s*légal)?|représentant(?:\s*légal|\s*légale)?|exploitant(?:e)?|fondateur|fondatrice|nom\s*(?:,|&|\/|\+)?\s*pr[eéè]noms?(?:\s*\([^\)]*\))?(?:\s+du\s+(?:g[eéè]rant|dirigeant|responsable|promoteur))?|om,?\s*pr[eéè]noms?|nom\s+du\s+gérant|nom\s+du\s+dirigeant|nom\s+du\s+responsable|nom\s+du\s+promoteur|nom\s+du\s+représentant|identité\s+du\s+dirigeant|identité\s+du\s+gérant|dirigeant(?:\s+principal)?|entrepreneur|personne\s+physique)\s*[:\-\.]*\s*(.+)/i);
 
     if (leaderMatch && leaderMatch[1]) {
       let candidate = cleanContactName(leaderMatch[1]);

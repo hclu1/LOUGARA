@@ -36,6 +36,7 @@ import { BadgeVerified } from '@/components/BadgeVerified';
 import { DocumentDropzone } from '@/components/DocumentDropzone';
 import { parseKbisOcrText, ParsedKbisData } from '@/features/ocr/kbis-parser';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface VerifiedSupplierItem {
   id: string;
@@ -95,6 +96,7 @@ const VERIFIED_SUPPLIERS_LIST: VerifiedSupplierItem[] = [
 
 export default function EspaceEntrepreneursPage() {
   const { t, locale } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'register' | 'suppliers' | 'tenders' | 'directory'>('register');
 
   // Formulaire d'inscription & RFQ
@@ -155,6 +157,12 @@ export default function EspaceEntrepreneursPage() {
   useEffect(() => {
     fetchEntrepreneurs();
   }, []);
+
+  useEffect(() => {
+    if (!email && user?.email) {
+      setEmail(user.email);
+    }
+  }, [user, email]);
 
   const applyParsedData = (data: ParsedKbisData, fileName: string, fileSizeStr: string, pathStr: string | null = null) => {
     setKbisFile(fileName);
