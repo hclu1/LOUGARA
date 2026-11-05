@@ -238,6 +238,19 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
             sector: validated.targetSectors[0] || 'Achat & Sourcing Général',
             phone: validated.phone,
             description: `[Acheteur B2B - ${validated.buyerType}] Forfait : ${validated.subscriptionPlan} - Espace Publicitaire : ${validated.hasCatalogAdSpace ? 'ACTIF' : 'NON'}. Budget estimé : ${validated.estimatedBudget}. Besoins : ${validated.sourcingNeeds || 'Non précisé'}${validated.kbisFile ? ` - Kbis/RCCM déposé : ${validated.kbisFile}` : ''}`,
+            documents: validated.kbisFile
+              ? {
+                  create: {
+                    documentType: 'COMMERCIAL_REGISTER',
+                    fileName: validated.kbisFile,
+                    filePath: `/api/documents/preview?file=${encodeURIComponent(validated.kbisFile)}&name=${encodeURIComponent(validated.kbisFile)}&status=PENDING`,
+                    fileSize: 157121,
+                    mimeType: validated.kbisFile.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+                    status: 'PENDING',
+                    issuingAuthority: 'INPI / Registre National des Entreprises (RNE)',
+                  },
+                }
+              : undefined,
           },
         },
       },

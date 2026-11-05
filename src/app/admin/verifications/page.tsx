@@ -46,6 +46,7 @@ import {
   ZoomIn,
   ShieldAlert,
   Wrench,
+  Download,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { VisitStats, VisitorType } from '@/features/analytics/types';
@@ -445,10 +446,18 @@ export default function AdminVerificationsPage() {
 
     try {
       const formData = new FormData();
-      const dummyFile = new File(['Extrait Kbis ou Pièce d\'Identité'], doc.fileName, {
-        type: doc.mimeType || 'application/pdf',
-      });
-      formData.append('file', dummyFile);
+      const docUrl = getDocumentUrl(doc.filePath, doc.fileName, doc.status);
+      try {
+        const fileRes = await fetch(docUrl);
+        if (fileRes.ok) {
+          const blob = await fileRes.blob();
+          formData.append('file', new File([blob], doc.fileName, { type: doc.mimeType || 'application/pdf' }));
+        } else {
+          formData.append('filePath', doc.filePath || doc.fileName);
+        }
+      } catch {
+        formData.append('filePath', doc.filePath || doc.fileName);
+      }
       formData.append('expectedAddress', `${supplier.city}, ${supplier.country}`);
 
       const res = await fetch('/api/admin/verifications/ocr', {
@@ -535,6 +544,12 @@ export default function AdminVerificationsPage() {
       default:
         return 'Pièce Officielles';
     }
+  };
+
+  const isDocPdf = (doc: VerificationDocumentItem) => {
+    const name = (doc.fileName || '').toLowerCase();
+    const mime = (doc.mimeType || '').toLowerCase();
+    return name.endsWith('.pdf') || mime.includes('pdf');
   };
 
   const getDocumentUrl = (filePath?: string, fileName?: string, status?: string) => {
@@ -749,12 +764,31 @@ export default function AdminVerificationsPage() {
                           <span className="block font-bold text-white truncate">{translateDocType(doc.documentType)}</span>
                           <span className="block text-[10px] text-slate-400 truncate">{doc.fileName}</span>
                         </div>
-                        <button
-                          onClick={() => handleOpenInspection(doc, supplier)}
-                          className="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-slate-950 bg-[#D4AF37] hover:bg-amber-300 transition-colors shrink-0 flex items-center gap-1 shadow-sm"
-                        >
-                          <FileSearch className="w-3.5 h-3.5" /> Inspecter
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <a
+                            href={getDocumentUrl(doc.filePath, doc.fileName, doc.status)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-xl text-slate-300 hover:text-[#D4AF37] hover:bg-slate-800 border border-slate-700 transition-colors flex items-center justify-center"
+                            title="Ouvrir le document dans un nouvel onglet"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                          <a
+                            href={getDocumentUrl(doc.filePath, doc.fileName, doc.status)}
+                            download={doc.fileName}
+                            className="p-1.5 rounded-xl text-slate-300 hover:text-emerald-400 hover:bg-slate-800 border border-slate-700 transition-colors flex items-center justify-center"
+                            title="Télécharger la pièce originale"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            onClick={() => handleOpenInspection(doc, supplier)}
+                            className="px-3 py-1.5 rounded-xl text-[11px] font-extrabold text-slate-950 bg-[#D4AF37] hover:bg-amber-300 transition-colors flex items-center gap-1 shadow-sm"
+                          >
+                            <FileSearch className="w-3.5 h-3.5" /> Inspecter
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -822,32 +856,65 @@ export default function AdminVerificationsPage() {
                     )}
                   </div>
 
-                  <div
-                    onMouseMove={handleMouseMoveMagnifier}
-                    className="flex-1 flex items-center justify-center overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-2 relative group min-h-[380px] cursor-crosshair"
-                  >
-                    <img
-                      id="document-inspect-img"
-                      src={getDocumentUrl(inspectingDoc.doc.filePath, inspectingDoc.doc.fileName, inspectingDoc.doc.status)}
-                      alt={inspectingDoc.doc.fileName}
-                      className="max-h-[500px] w-auto max-w-full object-contain rounded-xl shadow-2xl"
-                    />
-
-                    {/* FLOATING 2.5X MAGNIFIER LENS */}
-                    {isMagnifierActive && magnifierPos.width > 0 && (
-                      <div
-                        className="pointer-events-none absolute w-52 h-52 rounded-full border-2 border-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.6)] overflow-hidden z-30 bg-slate-950"
-                        style={{
-                          top: `${magnifierPos.y - 104}px`,
-                          left: `${magnifierPos.x - 104}px`,
-                          backgroundImage: `url(${getDocumentUrl(inspectingDoc.doc.filePath, inspectingDoc.doc.fileName, inspectingDoc.doc.status)})`,
-                          backgroundPosition: `${magnifierPos.relX}% ${magnifierPos.relY}%`,
-                          backgroundSize: `${magnifierPos.width * 2.5}px ${magnifierPos.height * 2.5}px`,
-                          backgroundRepeat: 'no-repeat',
-                        }}
+                  {isDocPdf(inspectingDoc.doc) ? (
+                    <div className="flex-1 w-full min-h-[460px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 flex flex-col">
+                      <div className="p-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                          <FileText className="w-4 h-4 text-emerald-400" />
+                          Pièce PDF Officielle ({inspectingDoc.doc.fileName})
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={getDocumentUrl(inspectingDoc.doc.filePath, inspectingDoc.doc.fileName, inspectingDoc.doc.status)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-amber-300 bg-amber-950/60 hover:bg-amber-900 border border-amber-500/40 flex items-center gap-1 transition-colors"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" /> Plein Écran
+                          </a>
+                          <a
+                            href={getDocumentUrl(inspectingDoc.doc.filePath, inspectingDoc.doc.fileName, inspectingDoc.doc.status)}
+                            download={inspectingDoc.doc.fileName}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/40 flex items-center gap-1 transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Télécharger
+                          </a>
+                        </div>
+                      </div>
+                      <iframe
+                        src={getDocumentUrl(inspectingDoc.doc.filePath, inspectingDoc.doc.fileName, inspectingDoc.doc.status)}
+                        className="w-full flex-1 min-h-[420px] rounded-b-2xl border-none bg-slate-900"
+                        title={inspectingDoc.doc.fileName}
                       />
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div
+                      onMouseMove={handleMouseMoveMagnifier}
+                      className="flex-1 flex items-center justify-center overflow-hidden rounded-2xl bg-slate-900 border border-slate-800 p-2 relative group min-h-[380px] cursor-crosshair"
+                    >
+                      <img
+                        id="document-inspect-img"
+                        src={getDocumentUrl(inspectingDoc.doc.filePath, inspectingDoc.doc.fileName, inspectingDoc.doc.status)}
+                        alt={inspectingDoc.doc.fileName}
+                        className="max-h-[500px] w-auto max-w-full object-contain rounded-xl shadow-2xl"
+                      />
+
+                      {/* FLOATING 2.5X MAGNIFIER LENS */}
+                      {isMagnifierActive && magnifierPos.width > 0 && (
+                        <div
+                          className="pointer-events-none absolute w-52 h-52 rounded-full border-2 border-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.6)] overflow-hidden z-30 bg-slate-950"
+                          style={{
+                            top: `${magnifierPos.y - 104}px`,
+                            left: `${magnifierPos.x - 104}px`,
+                            backgroundImage: `url(${getDocumentUrl(inspectingDoc.doc.filePath, inspectingDoc.doc.fileName, inspectingDoc.doc.status)})`,
+                            backgroundPosition: `${magnifierPos.relX}% ${magnifierPos.relY}%`,
+                            backgroundSize: `${magnifierPos.width * 2.5}px ${magnifierPos.height * 2.5}px`,
+                            backgroundRepeat: 'no-repeat',
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* RIGHT: OCR DATA REPORT & ACTIONS */}

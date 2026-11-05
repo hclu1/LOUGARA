@@ -4,6 +4,25 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.9] - 2026-11-05
+### Corrigé — Affichage Multi-Formats (PDF / Images) des Pièces Kbis, Téléchargement Direct Admin & Fiabilisation Build Vercel Webpack
+- **Accès et Inspection des Documents Admin (`src/app/admin/verifications/page.tsx`)** :
+  - Remplacement de la balise `<img>` inadaptée aux documents PDF par un affichage bi-modal réactif :
+    - Pour les fichiers PDF (`.pdf` / `application/pdf`) : affichage haute définition dans un composant `<iframe>` dédié avec barre d'outils interactive.
+    - Pour les fichiers images (`.jpg`, `.png`, `.webp`) : maintien de la loupe optique 2.5x grossissante pour inspecter les sceaux, greffes et signatures.
+  - Ajout de boutons d'action rapide sur chaque document dans la liste des entreprises :
+    - *« Ouvrir dans un nouvel onglet »* (`target="_blank"`)
+    - *« Télécharger la pièce originale »* (`download`)
+    - *« Inspecter »* avec panneau comparatif côte à côte.
+  - Amélioration de `handleRunOcrOnDocument` : récupération dynamique des octets réels du document ou transmission du chemin physique au lieu d'un fichier fictif.
+- **Routage et Résilience des Documents (`src/lib/supabase-storage.ts`, `src/app/api/documents/preview/route.ts`)** :
+  - Normalisation de `getKybDocumentUrl` pour éviter l'encodage imbriqué récursif et rediriger systématiquement vers `/api/documents/preview`.
+  - Résolution directe des spécimens et documents déposés (dont `Siren.pdf`) depuis les répertoires `public/uploads` et `docs/kyb-specimens`.
+- **Fiabilisation du Build Vercel & Next.js 16 (`package.json`, layouts Next.js)** :
+  - Configuration du script de build de production : `"prisma generate && next build --webpack"`, éliminant le bug invariant interne de Turbopack Next.js 16 (`Expected workStore to be initialized`).
+  - Migration de la page d'accueil vers un composant serveur dynamique (`src/app/page.tsx`) encapsulant `src/components/HomePageClient.tsx`.
+  - Configuration `force-dynamic` sur l'ensemble des layouts de route (`/paiement`, `/connexion`, `/mentions-legales`, `/catalogue`, etc.) pour garantir la compilation de 28/28 routes sans erreur de pré-rendu statique.
+
 ## [0.18.8] - 2026-11-05
 ### Corrigé — Support Multi-Lignes des Flux PDF & Élimination de la Fausse Détection du Dirigeant "Individuel"
 - **Extracteur PDF Natif (`src/features/ocr/pdf-extractor.ts`)** :

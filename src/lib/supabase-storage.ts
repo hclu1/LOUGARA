@@ -85,25 +85,28 @@ export async function uploadKybDocumentToSupabase(
 
 /**
  * Formate et retourne l'URL publique Supabase Storage absolue pour tout document.
- * Évite les erreurs 404 lors du clic sur les liens.
+ * Évite les erreurs 404 lors du clic sur les liens et garantit l'accès aux prévisualisations et téléchargements.
  */
 export function getKybDocumentUrl(filePath?: string, fileName?: string, docStatus: string = 'PENDING'): string {
   const defaultName = fileName || 'document.pdf';
 
-  if (!filePath || filePath === 'document.pdf') {
-    return `/api/documents/preview?name=${encodeURIComponent(defaultName)}&status=${docStatus}`;
-  }
-
-  // Si c'est déjà une URL Supabase ou HTTP absolue
-  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+  // Si c'est déjà une URL relative pointant vers /api/documents/preview, la renvoyer directement
+  if (filePath && filePath.startsWith('/api/documents/preview')) {
     return filePath;
   }
 
-  // Si le chemin fait référence à un objet dans Supabase Storage
-  if (filePath.startsWith('uploads/') || filePath.startsWith('kbis/')) {
-    return `${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${filePath}`;
+  // Si c'est une URL absolue externe (http:// ou https://)
+  if (filePath && (filePath.startsWith('http://') || filePath.startsWith('https://'))) {
+    return filePath;
   }
 
-  // Fallback sécurisé vers l'API de prévisualisation Supabase/Local
-  return `/api/documents/preview?file=${encodeURIComponent(filePath)}&name=${encodeURIComponent(defaultName)}&status=${docStatus}`;
+  // Toujours passer par l'endpoint /api/documents/preview qui assure la résilience
+  // (vérification Supabase Storage avec clé de service, disque local, et spécimens originaux)
+  const cleanPath = filePath && filePath !== 'document.pdf' ? filePath.replace(/^\/+/, '') : '';
+  const params = new URLSearchParams();
+  if (cleanPath) params.set('file', cleanPath);
+  if (defaultName) params.set('name', defaultName);
+  if (docStatus) params.set('status', docStatus);
+
+  return `/api/documents/preview?${params.toString()}`;
 }

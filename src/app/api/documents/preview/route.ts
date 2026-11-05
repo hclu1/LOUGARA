@@ -67,12 +67,13 @@ export async function GET(req: NextRequest) {
     const possibleLocalPaths = [
       path.join(process.cwd(), 'docs', 'kyb-specimens', fileNameOnly),
       path.join(process.cwd(), 'docs', 'kyb-specimens', sanitizedPath),
-      path.join(process.cwd(), 'public', 'uploads', 'kbis', fileNameOnly),
-      path.join(process.cwd(), 'public', 'uploads', 'kbis', sanitizedPath),
       path.join(process.cwd(), 'public', 'uploads', fileNameOnly),
       path.join(process.cwd(), 'public', 'uploads', sanitizedPath),
+      path.join(process.cwd(), 'public', 'uploads', 'kbis', fileNameOnly),
+      path.join(process.cwd(), 'public', 'uploads', 'kbis', sanitizedPath),
       path.join(process.cwd(), 'public', sanitizedPath),
-      path.join(/*turbopackIgnore: true*/ process.cwd(), sanitizedPath),
+      path.join(process.cwd(), sanitizedPath),
+      path.join('D:/Aplli/Mon Compte entreprise/Sedomicilier', fileNameOnly),
     ];
 
     for (const targetPath of possibleLocalPaths) {

@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Shield, Building, Globe, Server, FileText, Mail, ArrowLeft } from 'lucide-react';
 import { APP_VERSION_LABEL } from '@/version';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Mentions Légales | Lougara B2B',
   description: 'Mentions légales officielles et politique de confidentialité de la plateforme Lougara B2B éditée par App à la Carte — Hervé CHAMPAGNE EI.',
