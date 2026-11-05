@@ -4,6 +4,20 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.6] - 2026-11-05
+### Corrigé — Résolution de l'Extraction OCR Kbis / RCCM, Suppression des Valeurs Factices & Intégration Complète du Générateur RFQ
+- **Moteur OCR & Analyseur Kbis/RCCM (`src/features/ocr/kbis-parser.ts`, `src/app/api/ocr/kbis/route.ts`, `src/app/api/admin/verifications/ocr/route.ts`)** :
+  - Correction de l'incompatibilité avec la version 2 de `pdf-parse` : `getText()` renvoyant un objet `{ text, pages, total }`, l'accès direct aux chaînes provoquait un crash silencieux et empêchait toute extraction du flux textuel.
+  - Ajout du rendu visuel de page (screenshot) couplé à Tesseract OCR (`fra.traineddata`) pour les PDF scannés dépourvus de texte vectoriel natif.
+  - Suppression définitive des valeurs de substitution génériques inventées (`'Société Identifiée par OCR'` et `'RC-EN-COURS'`), garantissant le strict respect de la règle d'intégrité et de données vérifiables.
+  - Amélioration de l'extraction des extraits Kbis d'Entrepreneurs Individuels (EI) et Avis SIRENE / RNE : détection précise du `Nom commercial` / `Enseigne`, du dirigeant (`Nom, prénoms : ...`), de l'email professionnel et du numéro SIREN / SIRET.
+  - Sécurisation du traitement des chemins locaux : gestion sans quotes parasites et rejet explicite avec message clair en cas de document inaccessible.
+- **Formulaire Acheteur & Générateur RFQ (`src/app/entrepreneurs/page.tsx`, `src/features/entrepreneurs/validation.ts`, `src/features/entrepreneurs/service.ts`)** :
+  - Prise en compte immédiate des besoins d'approvisionnement (`sourcingNeeds`) du générateur de Demande de Cotation (RFQ) : enregistrement direct dans la liste des appels d'offres / RFQ dès la validation du profil.
+  - Rendu d'une fiche récapitulative claire à la validation confirmant l'enregistrement de l'entreprise, du dirigeant, du SIREN/RCCM et de l'appel d'offres RFQ diffusé aux fournisseurs certifiés.
+  - Assouplissement du schéma de validation Zod (`entrepreneurRegistrationSchema`) : champs téléphone, ville et pays rendus optionnels avec valeurs de repli par défaut pour éviter tout blocage silencieux 400.
+  - Ajout des bannières d'information et d'erreur explicites lors du scan OCR et de la soumission.
+
 ## [0.18.5] - 2026-10-31
 ### Ajouté & Corrigé — Neutralisation du Pré-remplissage des Identifiants, Inscription Client Directe & Mentions Légales Dédiées
 - **Formulaire de Connexion & Inscription (`src/app/connexion/page.tsx`)** :

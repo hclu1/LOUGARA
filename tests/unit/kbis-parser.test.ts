@@ -267,4 +267,36 @@ Gérant : BENJELLOUN KARIM ( né le 15/03/1975 à Casablanca)
     const parsed = parseKbisOcrText(rawOcrText);
     expect(parsed.contactName).toBe('BENJELLOUN KARIM');
   });
+
+  it('doit extraire fidèlement les informations d\'un Kbis Entrepreneur Individuel (EI)', () => {
+    const rawOcrText = `
+EXTRAIT D'IMMATRICULATION PRINCIPALE AU REGISTRE DU COMMERCE ET DES SOCIÉTÉS
+Greffe du Tribunal de Commerce de Paris
+IDENTIFICATION DE LA PERSONNE PHYSIQUE
+Immatriculation au RCS, numéro : 132 021 098 R.C.S. Paris
+Nom commercial : App à la Carte
+Nom, prénoms : CHAMPAGNE Hervé
+Forme juridique : Entrepreneur individuel (EI)
+Adresse de l'établissement : 173 rue de Courcelles 75017 Paris
+Activité principale : 6201Z Programmation informatique
+Email professionnel : contact@appalacarte.fr
+    `;
+
+    const parsed = parseKbisOcrText(rawOcrText);
+    expect(parsed.companyName).toBe('App à la Carte');
+    expect(parsed.regNumber).toBe('132 021 098');
+    expect(parsed.contactName).toBe('CHAMPAGNE HERVÉ');
+    expect(parsed.city).toBe('Paris');
+    expect(parsed.country).toBe('France');
+    expect(parsed.sector).toBe('Technologies, Numérique & Télécoms');
+    expect(parsed.email).toBe('contact@appalacarte.fr');
+  });
+
+  it('ne doit jamais renvoyer de fausses valeurs par défaut inventées si le texte est incomplet', () => {
+    const parsed = parseKbisOcrText('Document sans informations');
+    expect(parsed.companyName).not.toBe('Société Identifiée par OCR');
+    expect(parsed.regNumber).not.toBe('RC-EN-COURS');
+    expect(parsed.companyName).toBe('');
+    expect(parsed.regNumber).toBe('');
+  });
 });

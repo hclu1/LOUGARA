@@ -128,9 +128,9 @@ export function cleanCompanyName(text: string): string {
   // 0. Supprimer les symboles et résidus OCR en tout début de chaîne (ex: " / NOM :", "- Dénomination :")
   cleaned = cleaned.replace(/^[\/\-\\:\.\*\#\_\~\|\s\>\•\–\—]+/, '');
 
-  // 1. Supprimer les préfixes de libellés officiels africains & français (Dénomination, Raison Sociale, Nom, Désignation...)
+  // 1. Supprimer les préfixes de libellés officiels africains & français (Dénomination, Raison Sociale, Nom commercial, Enseigne, Nom, Désignation...)
   cleaned = cleaned.replace(
-    /^(?:d[eéè]signation\s+(?:de\s+l'|du\s+|de\s+la\s+)?(?:entreprise|contribuable|soci[eéè]t[eéè])?|d[eéè]nominat(?:ion|lon)|d[eéè]nom|nom\s+(?: commercial|de\s+l'entreprise|du\s+contribuable|de\s+la\s+soci[eéè]t[eéè]|ou\s+raison\s+sociale|\/\s*raison\s+sociale|\/\s*d[eéè]nominat(?:ion)?|ou\s+d[eéè]nominat(?:ion)?|\/\s*nom)?|nom)\s*(?:ou|o[uùú]|et|&|\/)?\s*(?:raison|roion|raion|roison)?\s*(?:sociale|soie|social|soclale)?\s*(?:de\s+l'entreprise|du\s+contribuable|de\s+la\s+soci[eéè]t[eéè])?\s*[:\-\.]*\s*/i,
+    /^(?:d[eéè]signation\s+(?:de\s+l'|du\s+|de\s+la\s+)?(?:entreprise|contribuable|soci[eéè]t[eéè])?|d[eéè]nominat(?:ion|lon)|d[eéè]nom|om\s*commercial|nom\s*commercial|enseigne|nom\s+(?:de\s+l'entreprise|du\s+contribuable|de\s+la\s+soci[eéè]t[eéè]|ou\s+raison\s+sociale|\/\s*raison\s+sociale|\/\s*d[eéè]nominat(?:ion)?|ou\s+d[eéè]nominat(?:ion)?|\/\s*nom)?|nom)\s*(?:ou|o[uùú]|et|&|\/)?\s*(?:raison|roion|raion|roison)?\s*(?:sociale|soie|social|soclale)?\s*(?:de\s+l'entreprise|du\s+contribuable|de\s+la\s+soci[eéè]t[eéè])?\s*[:\-\.]*\s*/i,
     ''
   );
 
@@ -138,7 +138,7 @@ export function cleanCompanyName(text: string): string {
   cleaned = cleaned.replace(/^[\/\-\\:\.\*\#\_\~\|\s\>\•\–\—]+/, '');
   cleaned = cleaned.replace(/^(?:ou|o[uùú])\s+(?:raison|roion|raion|roison)\s+(?:sociale|soie|social|soclale)\s*[:\-\.]*\s*/i, '');
   cleaned = cleaned.replace(/^(?:raison|roion|raion|roison)\s+(?:sociale|soie|social|soclale)\s*[:\-\.]*\s*/i, '');
-  cleaned = cleaned.replace(/^(?:sociale|soie|social|nom\s*commercial|d[eéè]livr[eéè]e?\s+[aà]\s+la\s+soci[eéè]t[eéè])\s*[:\-\.]*\s*/i, '');
+  cleaned = cleaned.replace(/^(?:sociale|soie|social|om\s*commercial|nom\s*commercial|enseigne|d[eéè]livr[eéè]e?\s+[aà]\s+la\s+soci[eéè]t[eéè])\s*[:\-\.]*\s*/i, '');
   cleaned = cleaned.replace(/^(?:soci[eéè]t[eéè]|entreprise|nom)\s*[:\-\.]*\s*/i, '');
   
   // Nettoyage des parenthèses fermées ou ouvertes restées en fin de chaîne
@@ -250,7 +250,8 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   } else if (rcMarocMatch) {
     regNumber = `RC ${rcMarocMatch[1]}`;
   } else {
-    const rcsMatch = rawText.match(/(?:R\.?C\.?S\.?|num[eéè]ro|SIREN|SIRET|Immatriculation|Imation)\s*(?:au\s+R\.?C\.?S\.?,?)?\s*(?:num[eéè]ro)?\s*[:\s]*([0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{3})/i);
+    const siretMatch = rawText.match(/(?:SIRET|Identifiant\s+SIRET)[\s\:\.\-]*([0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{5})/i);
+    const rcsMatch = rawText.match(/(?:R\.?C\.?S\.?|num[eéè]ro|SIREN|Identifiant\s+SIREN|Immatriculation|Imation)\s*(?:au\s+R\.?C\.?S\.?,?)?\s*(?:num[eéè]ro)?\s*[:\s]*([0-9]{3}[ \.\-]?[0-9]{3}[ \.\-]?[0-9]{3})/i);
     if (rcsMatch) {
       const digits = rcsMatch[1].replace(/[\s\.\-]/g, '');
       if (digits.length === 9) {
@@ -258,8 +259,11 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
       } else {
         regNumber = rcsMatch[1].trim();
       }
+    } else if (siretMatch) {
+      const digits = siretMatch[1].replace(/[\s\.\-]/g, '');
+      regNumber = `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
     } else {
-      const genericSirenMatch = rawText.match(/\b(\d{3}\s\d{3}\s\d{3})\b/);
+      const genericSirenMatch = rawText.match(/\b([0-9]{3}\s+[0-9]{3}\s+[0-9]{3})\b/);
       if (genericSirenMatch) {
         regNumber = genericSirenMatch[1].trim();
       }
@@ -283,7 +287,7 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   else if (iceMatch) taxNumber = iceMatch[1].trim();
   else if (nifMatch) taxNumber = nifMatch[1].trim();
 
-  if ((!regNumber || regNumber === 'RC-EN-COURS') && taxNumber) {
+  if (!regNumber && taxNumber) {
     regNumber = taxNumber;
   }
 
@@ -307,12 +311,25 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     );
   };
 
+  // Détection préalable d'un Nom Commercial ou Enseigne explicite (notamment utile pour Entrepreneur Individuel / EI)
+  let explicitCommercialName = '';
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^(?:om\s*commercial|nom\s*commercial|enseigne)\s*[:\-\.]*\s*(.+)/i.test(line)) {
+      const candidate = cleanCompanyName(line);
+      if (candidate && candidate.length > 1 && !isDocumentHeader(candidate)) {
+        explicitCommercialName = candidate;
+        break;
+      }
+    }
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
     if (isDocumentHeader(line)) continue;
 
-    if (/(?:d[eéè]signation|d[eéè]nominat|raison|roion|nom\s*commercial|nom\s*[\:\/\.\-]|nom\s+(?:de\s+l'|du\s+contribuable|de\s+la\s+soci[eéè]t[eéè]|ou\s+d[eéè]nominat|ou\s+raison|\/\s*d[eéè]nominat|\/\s*raison))/i.test(line) && !/nom\s+(?:et|&)\s+pr[eéè]noms?|nom\s+du\s+(?:g[eéè]rant|dirigeant|responsable|promoteur)/i.test(line)) {
+    if (/(?:d[eéè]signation|d[eéè]nominat|raison|roion|nom\s*commercial|enseigne|nom\s*[\:\/\.\-]|nom\s+(?:de\s+l'|du\s+contribuable|de\s+la\s+soci[eéè]t[eéè]|ou\s+d[eéè]nominat|ou\s+raison|\/\s*d[eéè]nominat|\/\s*raison))/i.test(line) && !/nom\s+(?:et|&)\s+pr[eéè]noms?|nom\s*,\s*pr[eéè]noms?|nom\s+du\s+(?:g[eéè]rant|dirigeant|responsable|promoteur)/i.test(line)) {
       const candidate = cleanCompanyName(line);
       if (candidate && candidate.length > 1 && !isDocumentHeader(candidate) && !candidate.toLowerCase().includes('forme') && !candidate.toLowerCase().includes('adresse')) {
         companyName = candidate;
@@ -333,6 +350,11 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     }
   }
 
+  // Si la dénomination n'a pas été trouvée, utilisation du nom commercial / enseigne explicite
+  if (!companyName && explicitCommercialName) {
+    companyName = explicitCommercialName;
+  }
+
   // 5. Extraction Multi-Format du Dirigeant / Représentant Légal / Signataire
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -340,8 +362,8 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
     if (/^[A-Z\s\/,]+$/.test(line) && line.includes('/') && !line.toLowerCase().includes('nom')) continue;
     if (/GESTION|DIRECTION|ADMINISTRATION/i.test(line) && !line.includes(':') && line.length < 40) continue;
 
-    // Pattern A : Match direct sur la ligne (ex: "Président : Mme Amina Diop", "Gérant : M. Cheikh Ndiaye", "Nom et Prénoms : Kouassi Konan")
-    const leaderMatch = line.match(/(?:président(?:e)?|gérant(?:e)?(?:\(s\))?|co-gérant(?:e)?|gérance|directeur(?:\s*général|\s*générale)?|directrice(?:\s*générale)?|administrateur(?:\s*général|\s*délégué)?|promoteur|promotrice|titulaire|signataire|responsable(?:\s*légal)?|représentant(?:\s*légal|\s*légale)?|exploitant(?:e)?|fondateur|fondatrice|nom\s+(?:et|&)\s+pr[eéè]noms?(?:\s+du\s+(?:g[eéè]rant|dirigeant|responsable|promoteur))?|om,?\s*pr[eéè]noms?|nom\s+du\s+gérant|nom\s+du\s+dirigeant|nom\s+du\s+responsable|nom\s+du\s+promoteur|nom\s+du\s+représentant|identité\s+du\s+dirigeant|identité\s+du\s+gérant)\s*[:\-\.]*\s*(.+)/i);
+    // Pattern A : Match direct sur la ligne (ex: "Président : Mme Amina Diop", "Gérant : M. Cheikh Ndiaye", "Nom et Prénoms : Kouassi Konan", "Nom, prénoms : CHAMPAGNE Hervé")
+    const leaderMatch = line.match(/(?:président(?:e)?|gérant(?:e)?(?:\(s\))?|co-gérant(?:e)?|gérance|directeur(?:\s*général|\s*générale)?|directrice(?:\s*générale)?|administrateur(?:\s*général|\s*délégué)?|promoteur|promotrice|titulaire|signataire|responsable(?:\s*légal)?|représentant(?:\s*légal|\s*légale)?|exploitant(?:e)?|fondateur|fondatrice|nom\s*(?:,|&|\/|\+)?\s*pr[eéè]noms?(?:\s+du\s+(?:g[eéè]rant|dirigeant|responsable|promoteur))?|om,?\s*pr[eéè]noms?|nom\s+du\s+gérant|nom\s+du\s+dirigeant|nom\s+du\s+responsable|nom\s+du\s+promoteur|nom\s+du\s+représentant|identité\s+du\s+dirigeant|identité\s+du\s+gérant|dirigeant(?:\s+principal)?|entrepreneur|personne\s+physique)\s*[:\-\.]*\s*(.+)/i);
 
     if (leaderMatch && leaderMatch[1]) {
       let candidate = cleanContactName(leaderMatch[1]);
@@ -534,8 +556,8 @@ export function parseKbisOcrText(rawText: string): ParsedKbisData {
   if (hasOfficialSignature) fieldsCount += 10;
 
   return {
-    companyName: companyName || 'Société Identifiée par OCR',
-    regNumber: regNumber || 'RC-EN-COURS',
+    companyName: companyName || '',
+    regNumber: regNumber || '',
     taxNumber,
     legalForm,
     capital,

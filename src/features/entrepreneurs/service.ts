@@ -192,6 +192,24 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
 
   memoryEntrepreneurs.unshift(newEntrepreneur);
 
+  // Génération automatique et prise en compte de la Demande de Cotation (RFQ) si des besoins sont renseignés
+  if (validated.sourcingNeeds && validated.sourcingNeeds.trim().length > 0) {
+    const rfqTitle = `Demande de Cotation (RFQ) — ${validated.companyName}`;
+    memorySourcingRequests.unshift({
+      id: `req-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      entrepreneurName: validated.fullName,
+      entrepreneurEmail: validated.email,
+      companyName: validated.companyName,
+      sector: validated.targetSectors[0] || 'Commerce B2B & Sourcing',
+      title: rfqTitle,
+      description: validated.sourcingNeeds,
+      targetQuantity: validated.targetQuantity || 'Selon proposition',
+      targetBudget: validated.estimatedBudget,
+      destinationCountry: validated.country || 'France',
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   // 2. Persistance relationnelle en base de données PostgreSQL via Prisma
   try {
     const names = validated.fullName.trim().split(/\s+/);

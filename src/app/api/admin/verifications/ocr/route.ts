@@ -41,12 +41,39 @@ export async function POST(req: NextRequest) {
         try {
           const { PDFParse } = require('pdf-parse');
           const pdfParser = new PDFParse({ data: buffer });
-          extractedText = await pdfParser.getText();
-          if (extractedText && extractedText.trim().length > 20) {
+          const parsedRes = await pdfParser.getText();
+          const parsedText = typeof parsedRes === 'string' ? parsedRes : (parsedRes?.text || '');
+          if (parsedText && parsedText.trim().length > 20) {
+            extractedText = parsedText;
             methodUsed = 'PDF_PARSE_LIBRARY';
           }
         } catch (pdfErr) {
           console.warn('Echec pdf-parse modérateur :', pdfErr);
+        }
+      }
+
+      // Si document PDF scanné sans flux texte natif
+      if (!extractedText || extractedText.trim().length < 20) {
+        try {
+          const { PDFParse } = require('pdf-parse');
+          const pdfParser = new PDFParse({ data: buffer });
+          const screen = await pdfParser.getScreenshot({ page: 1 });
+          if (screen?.pages?.[0]?.data) {
+            const imgBuf = Buffer.from(screen.pages[0].data);
+            const trainedDataPath = path.join(process.cwd(), 'fra.traineddata');
+            const worker = await createWorker('fra', 1, {
+              langPath: fs.existsSync(trainedDataPath) ? process.cwd() : undefined,
+              cachePath: process.cwd(),
+            });
+            const ocrResult = await worker.recognize(imgBuf);
+            if (ocrResult?.data?.text && ocrResult.data.text.trim().length > 10) {
+              extractedText = ocrResult.data.text;
+              methodUsed = 'PDF_SCREENSHOT_TESSERACT_OCR';
+            }
+            await worker.terminate();
+          }
+        } catch (pdfOcrErr) {
+          console.warn('Echec OCR sur rendu PDF scanné modérateur :', pdfOcrErr);
         }
       }
     }
@@ -59,22 +86,15 @@ export async function POST(req: NextRequest) {
           methodUsed = 'TESSERACT_OCR_SERVER';
           const trainedDataPath = path.join(process.cwd(), 'fra.traineddata');
 
-          if (fs.existsSync(trainedDataPath)) {
-            const worker = await createWorker('fra', 1, {
-              langPath: process.cwd(),
-              cachePath: process.cwd(),
-            });
-            const ocrResult = await worker.recognize(buffer);
-            if (ocrResult?.data?.text) {
-              extractedText = ocrResult.data.text;
-            }
-            await worker.terminate();
-          } else {
-            const ocrResult = await recognize(buffer, 'fra');
-            if (ocrResult?.data?.text) {
-              extractedText = ocrResult.data.text;
-            }
+          const worker = await createWorker('fra', 1, {
+            langPath: fs.existsSync(trainedDataPath) ? process.cwd() : undefined,
+            cachePath: process.cwd(),
+          });
+          const ocrResult = await worker.recognize(buffer);
+          if (ocrResult?.data?.text) {
+            extractedText = ocrResult.data.text;
           }
+          await worker.terminate();
         } catch (ocrErr: any) {
           console.warn('Echec Tesseract OCR :', ocrErr?.message);
         }

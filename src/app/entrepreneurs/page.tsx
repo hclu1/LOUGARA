@@ -168,12 +168,15 @@ export default function EspaceEntrepreneursPage() {
     if (data.country) setCountry(data.country);
     if (data.city) setCity(data.city);
     if (data.contactName) setFullName(data.contactName);
+    if (data.email) setEmail(data.email);
+    setErrorMessage('');
   };
 
   const handleProcessFile = async (file: File) => {
     const sizeStr = `${(file.size / 1024 / 1024).toFixed(2)} Mo`;
     setKbisFilePath(null);
     setIsScanning(true);
+    setErrorMessage('');
     setScanStep(locale === 'fr' ? 'Détection et reconnaissance optique du document...' : 'Detecting and analyzing document...');
 
     try {
@@ -184,24 +187,27 @@ export default function EspaceEntrepreneursPage() {
         body: formData,
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          setIsScanning(false);
-          applyParsedData(result.data, file.name, sizeStr, null);
-          return;
-        }
+      const result = await response.json();
+      if (response.ok && result.success && result.data) {
+        setIsScanning(false);
+        applyParsedData(result.data, file.name, sizeStr, null);
+        return;
+      } else {
+        setErrorMessage(result.error || (locale === 'fr' ? 'Échec de la reconnaissance optique OCR.' : 'OCR optical recognition failed.'));
       }
-    } catch (err) {}
+    } catch (err: any) {
+      setErrorMessage(err?.message || (locale === 'fr' ? 'Erreur lors du traitement du document.' : 'Document processing error.'));
+    }
 
     setIsScanning(false);
     setKbisFile(file.name);
     setKbisFileSize(sizeStr);
-    setAutoFilled(true);
+    setAutoFilled(false);
   };
 
   const handleProcessPath = async (pathStr: string) => {
     setIsScanning(true);
+    setErrorMessage('');
     setScanStep(locale === 'fr' ? 'Lecture du chemin et extraction des données...' : 'Reading path and extracting data...');
     setKbisFilePath(pathStr);
 
@@ -213,21 +219,23 @@ export default function EspaceEntrepreneursPage() {
         body: formData,
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          setIsScanning(false);
-          applyParsedData(result.data, result.fileName || pathStr, result.fileSize || 'Chemin validé', pathStr);
-          return;
-        }
+      const result = await response.json();
+      if (response.ok && result.success && result.data) {
+        setIsScanning(false);
+        applyParsedData(result.data, result.fileName || pathStr, result.fileSize || 'Chemin validé', pathStr);
+        return;
+      } else {
+        setErrorMessage(result.error || (locale === 'fr' ? 'Fichier introuvable ou non accessible au chemin indiqué.' : 'File not found at path.'));
       }
-    } catch (err) {}
+    } catch (err: any) {
+      setErrorMessage(err?.message || (locale === 'fr' ? 'Erreur lors de la lecture du chemin.' : 'Path reading error.'));
+    }
 
     setIsScanning(false);
     const fileName = pathStr.split(/[\\/]/).pop() || pathStr;
     setKbisFile(fileName);
     setKbisFileSize('Chemin renseigné');
-    setAutoFilled(true);
+    setAutoFilled(false);
   };
 
   const handleRemoveFile = () => {
@@ -237,11 +245,13 @@ export default function EspaceEntrepreneursPage() {
     setOcrConfidence(null);
     setRawOcrText(null);
     setAutoFilled(false);
+    setErrorMessage('');
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrorMessage('');
     try {
       const res = await fetch('/api/entrepreneurs/register', {
         method: 'POST',
@@ -252,9 +262,9 @@ export default function EspaceEntrepreneursPage() {
           registrationNumber,
           kbisFile,
           email,
-          phone,
-          country,
-          city,
+          phone: phone || '',
+          country: country || 'France',
+          city: city || 'Paris',
           buyerType,
           targetSectors,
           estimatedBudget,
@@ -264,11 +274,14 @@ export default function EspaceEntrepreneursPage() {
         }),
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.success) {
         setRegisteredSuccess(true);
         setRegisteredId(data.entrepreneur?.id || 'OK');
+      } else {
+        setErrorMessage(data.error || (locale === 'fr' ? 'Erreur lors de l\'enregistrement.' : 'Error during registration.'));
       }
-    } catch (e) {
+    } catch (e: any) {
+      setErrorMessage(e?.message || (locale === 'fr' ? 'Erreur de connexion au serveur.' : 'Server connection error.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -383,17 +396,105 @@ export default function EspaceEntrepreneursPage() {
           {activeTab === 'register' && (
             <div className="glass-card p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-8">
               {registeredSuccess ? (
-                <div className="py-8 text-center space-y-4 max-w-lg mx-auto">
-                  <div className="w-16 h-16 rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-                    <CheckCircle2 className="w-10 h-10" />
+                <div className="py-8 space-y-6 max-w-xl mx-auto">
+                  <div className="text-center space-y-3">
+                    <div className="w-16 h-16 rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                      <CheckCircle2 className="w-10 h-10" />
+                    </div>
+                    <h3 className="text-2xl font-black text-white">{t.entrepreneurs.regSuccessTitle}</h3>
+                    <p className="text-sm text-slate-300">
+                      {t.entrepreneurs.regSuccessDesc} (<span className="font-bold text-amber-300">{companyName}</span>)
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-black text-white">{t.entrepreneurs.regSuccessTitle}</h3>
-                  <p className="text-sm text-slate-300">
-                    {t.entrepreneurs.regSuccessDesc} (<span className="font-bold text-amber-300">{companyName}</span>)
-                  </p>
+
+                  {/* Fiche récapitulative acheteur validé */}
+                  <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-4 shadow-xl">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-5 h-5 text-amber-400" />
+                        <span className="font-extrabold text-white text-base">{companyName}</span>
+                      </div>
+                      <BadgeVerified />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-slate-400 block font-semibold">{t.entrepreneurs.registrationNumberLabel} :</span>
+                        <span className="font-mono text-slate-200 font-bold">{registrationNumber || 'Vérifié'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block font-semibold">{t.entrepreneurs.directorNameLabel} :</span>
+                        <span className="text-slate-200 font-bold">{fullName}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block font-semibold">{t.entrepreneurs.proEmailLabel} :</span>
+                        <span className="text-slate-200 font-bold">{email}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block font-semibold">Document Kbis / RCCM :</span>
+                        <span className="text-emerald-400 font-mono font-bold truncate block">{kbisFile || 'Document validé'}</span>
+                      </div>
+                    </div>
+
+                    {/* Bloc RFQ Pris en compte */}
+                    {sourcingNeeds && (
+                      <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-emerald-950/20 border border-amber-500/30 space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-black text-amber-400 uppercase tracking-wider">
+                          <Package className="w-4 h-4 text-emerald-400" />
+                          <span>Demande de Cotation (RFQ) enregistrée &amp; diffusée</span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed italic">
+                          &ldquo;{sourcingNeeds}&rdquo;
+                        </p>
+                        <p className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5 pt-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>Votre demande d'approvisionnement a été enregistrée avec succès et transmise aux grossistes certifiés.</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('suppliers')}
+                      className="flex-1 py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:brightness-110 transition-all text-center"
+                    >
+                      Voir les fournisseurs certifiés &rarr;
+                    </button>
+                    <Link
+                      href="/catalogue"
+                      className="flex-1 py-3 px-4 rounded-xl text-xs font-black text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all text-center"
+                    >
+                      Accéder au catalogue B2B
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-8">
+                  {errorMessage && (
+                    <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 text-xs flex items-start gap-2.5 shadow-sm">
+                      <div className="w-4 h-4 rounded-full bg-rose-500 text-slate-950 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-black">!</div>
+                      <div className="flex-1">
+                        <p className="font-bold">{locale === 'fr' ? 'Information :' : 'Notice:'}</p>
+                        <p className="mt-0.5">{errorMessage}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {autoFilled && (
+                    <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 text-xs flex items-center justify-between gap-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{locale === 'fr' ? 'Données Kbis / RCCM extraites par OCR et appliquées aux champs ci-dessous.' : 'Official legal data extracted via OCR and pre-filled below.'}</span>
+                      </div>
+                      {ocrConfidence && (
+                        <span className="font-mono text-[11px] font-black bg-emerald-900/80 px-2 py-0.5 rounded border border-emerald-500/30 text-amber-300 shrink-0">
+                          ★ OCR {ocrConfidence}%
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {/* Step 1: Kbis Dropzone */}
                   <div className="space-y-4 border-b border-slate-800 pb-6">
                     <span className="text-xs font-black uppercase text-[#D4AF37] tracking-wider">

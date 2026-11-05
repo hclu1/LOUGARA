@@ -28,10 +28,12 @@ export async function POST(req: NextRequest) {
       fileName = file.name.toLowerCase();
       fileSizeStr = `${(file.size / 1024 / 1024).toFixed(2)} Mo`;
     } else if (filePath) {
-      fileName = path.basename(filePath).toLowerCase();
-      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      const cleanPath = filePath.trim().replace(/^["']|["']$/g, '');
+      fileName = path.basename(cleanPath).toLowerCase();
+
+      if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
         try {
-          const res = await fetch(filePath);
+          const res = await fetch(cleanPath);
           if (res.ok) {
             const ab = await res.arrayBuffer();
             buffer = Buffer.from(ab);
@@ -40,26 +42,28 @@ export async function POST(req: NextRequest) {
         } catch (e) {
           console.warn('Erreur fetch URL document:', e);
         }
-      } else if (fs.existsSync(filePath)) {
+      } else if (fs.existsSync(cleanPath)) {
         try {
-          buffer = fs.readFileSync(filePath);
+          buffer = fs.readFileSync(cleanPath);
           fileSizeStr = `${(buffer.length / 1024 / 1024).toFixed(2)} Mo`;
         } catch (e) {
           console.warn('Erreur lecture chemin local:', e);
         }
+      } else {
+        const localRelative = path.join(process.cwd(), 'public', cleanPath.replace(/^[\/\\]+/, ''));
+        if (fs.existsSync(localRelative)) {
+          try {
+            buffer = fs.readFileSync(localRelative);
+            fileSizeStr = `${(buffer.length / 1024 / 1024).toFixed(2)} Mo`;
+          } catch (e) {}
+        }
       }
 
       if (!buffer) {
-        const baseName = path.basename(filePath);
-        const parsedData = parseKbisOcrText(baseName);
         return NextResponse.json({
-          success: true,
-          fileName: baseName,
-          filePath: filePath,
-          fileSize: 'Chemin validé',
-          method: 'FILE_PATH_REFERENCE',
-          data: parsedData,
-        });
+          success: false,
+          error: "Le document est introuvable au chemin indiqué. Veuillez glisser-déposer le document directement dans la zone de dépôt (PDF, PNG, JPG).",
+        }, { status: 404 });
       }
     }
 
@@ -73,9 +77,9 @@ export async function POST(req: NextRequest) {
     let extractedText = '';
     let methodUsed = 'UNKNOWN';
 
-    const isPdf = Boolean((file && file.type === 'application/pdf') || fileName.endsWith('.pdf'));
+    const isPdf = Boolean((file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) || fileName.endsWith('.pdf'));
 
-    // 1. SI FICHIER PDF : Extraction ultra-rapide des flux textuels natifs (< 50ms)
+    // 1. SI FICHIER PDF : Extraction des flux textuels natifs puis OCR Tesseract en cas de document scanné
     if (isPdf) {
       try {
         extractedText = extractTextFromPdfBuffer(buffer);
@@ -90,52 +94,66 @@ export async function POST(req: NextRequest) {
         try {
           const { PDFParse } = require('pdf-parse');
           const pdfParser = new PDFParse({ data: buffer });
-          extractedText = await pdfParser.getText();
-          if (extractedText && extractedText.trim().length > 20) {
+          const parsedRes = await pdfParser.getText();
+          const parsedText = typeof parsedRes === 'string' ? parsedRes : (parsedRes?.text || '');
+          if (parsedText && parsedText.trim().length > 20) {
+            extractedText = parsedText;
             methodUsed = 'PDF_PARSE_LIBRARY';
           }
         } catch (pdfErr) {
           console.warn('Echec pdf-parse :', pdfErr);
         }
       }
-    }
 
-    // 2. SI FICHIER IMAGE OU SCANNÉ : Tesseract OCR serveur avec contrôle de fichier local
-    if (!extractedText || extractedText.trim().length < 20) {
-      if (!isPdf) {
+      // 1.b Si PDF scanné (sans texte natif), rendu image de la page 1 et Tesseract OCR
+      if (!extractedText || extractedText.trim().length < 20) {
         try {
-          methodUsed = 'TESSERACT_OCR_SERVER';
-          const trainedDataPath = path.join(process.cwd(), 'fra.traineddata');
-
-          if (fs.existsSync(trainedDataPath)) {
+          const { PDFParse } = require('pdf-parse');
+          const pdfParser = new PDFParse({ data: buffer });
+          const screen = await pdfParser.getScreenshot({ page: 1 });
+          if (screen?.pages?.[0]?.data) {
+            const imgBuf = Buffer.from(screen.pages[0].data);
+            const trainedDataPath = path.join(process.cwd(), 'fra.traineddata');
             const worker = await createWorker('fra', 1, {
-              langPath: process.cwd(),
+              langPath: fs.existsSync(trainedDataPath) ? process.cwd() : undefined,
               cachePath: process.cwd(),
             });
-            const ocrResult = await worker.recognize(buffer);
-            if (ocrResult?.data?.text) {
+            const ocrResult = await worker.recognize(imgBuf);
+            if (ocrResult?.data?.text && ocrResult.data.text.trim().length > 10) {
               extractedText = ocrResult.data.text;
+              methodUsed = 'PDF_SCREENSHOT_TESSERACT_OCR';
             }
             await worker.terminate();
-          } else {
-            const ocrResult = await recognize(buffer, 'fra');
-            if (ocrResult?.data?.text) {
-              extractedText = ocrResult.data.text;
-            }
           }
-        } catch (ocrErr: any) {
-          console.warn('Echec Tesseract OCR serveur :', ocrErr?.message);
+        } catch (pdfOcrErr) {
+          console.warn('Echec OCR sur rendu PDF scanné :', pdfOcrErr);
         }
+      }
+    } else {
+      // 2. SI FICHIER IMAGE : Tesseract OCR serveur avec fra.traineddata
+      try {
+        methodUsed = 'TESSERACT_OCR_SERVER';
+        const trainedDataPath = path.join(process.cwd(), 'fra.traineddata');
+        const worker = await createWorker('fra', 1, {
+          langPath: fs.existsSync(trainedDataPath) ? process.cwd() : undefined,
+          cachePath: process.cwd(),
+        });
+        const ocrResult = await worker.recognize(buffer);
+        if (ocrResult?.data?.text) {
+          extractedText = ocrResult.data.text;
+        }
+        await worker.terminate();
+      } catch (ocrErr: any) {
+        console.warn('Echec Tesseract OCR serveur :', ocrErr?.message);
       }
     }
 
-    // Si le serveur n'a pas pu extraire de texte
+    // Si le serveur n'a pas pu extraire de texte exploitable
     if (!extractedText || extractedText.trim().length < 10) {
       return NextResponse.json({
         success: false,
-        needClientOcr: true,
-        message: 'Bascule automatique sur l\'OCR client ultra-rapide.',
-      });
+        error: "Impossible d'extraire le texte du document (document protégé, vide ou image trop dégradée). Veuillez renseigner manuellement vos informations d'entreprise.",
+      }, { status: 422 });
     }
 
     const parsedData = parseKbisOcrText(extractedText);
