@@ -7,7 +7,7 @@ import {
   SourcingRequestInput,
   sourcingRequestSchema,
 } from './validation';
-import { UserRole } from '@prisma/client';
+import { UserRole, VerificationStatus } from '@prisma/client';
 
 export interface StoredEntrepreneur {
   id: string;
@@ -128,7 +128,7 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
     const firstName = names[0];
     const lastName = names.slice(1).join(' ') || '';
 
-    await prisma.user.upsert({
+    const user = await prisma.user.upsert({
       where: { email: validated.email },
       update: {
         firstName,
@@ -141,34 +141,45 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
         firstName,
         lastName,
         role: UserRole.BUYER,
-        company: {
-          create: {
-            companyName: validated.companyName,
-            country: validated.country,
-            city: validated.city,
-            registrationNumber: validated.registrationNumber,
-            sector: validated.targetSectors[0] || 'Achat & Sourcing Général',
-            phone: validated.phone,
-            description: `[Acheteur B2B - ${validated.buyerType}] Forfait : ${validated.subscriptionPlan} - Espace Publicitaire : ${validated.hasCatalogAdSpace ? 'ACTIF' : 'NON'}. Budget estimé : ${validated.estimatedBudget}. Besoins : ${validated.sourcingNeeds || 'Non précisé'}${validated.kbisFile ? ` - Kbis/RCCM déposé : ${validated.kbisFile}` : ''}`,
-            documents: validated.kbisFile
-              ? {
-                  create: {
-                    documentType: 'COMMERCIAL_REGISTER',
-                    fileName: validated.kbisFile,
-                    filePath: `/api/documents/preview?file=${encodeURIComponent(validated.kbisFile)}&name=${encodeURIComponent(validated.kbisFile)}&status=PENDING`,
-                    fileSize: 157121,
-                    mimeType: validated.kbisFile.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
-                    status: 'PENDING',
-                    issuingAuthority: 'INPI / Registre National des Entreprises (RNE)',
-                  },
-                }
-              : undefined,
-          },
-        },
       },
     });
+
+    const companyData = {
+      companyName: validated.companyName,
+      country: validated.country,
+      city: validated.city,
+      registrationNumber: validated.registrationNumber,
+      sector: validated.targetSectors[0] || 'Achat & Sourcing Général',
+      phone: validated.phone,
+      description: `[Acheteur B2B - ${validated.buyerType}] Forfait : ${validated.subscriptionPlan} - Espace Publicitaire : ${validated.hasCatalogAdSpace ? 'ACTIF' : 'NON'}. Budget estimé : ${validated.estimatedBudget}. Besoins : ${validated.sourcingNeeds || 'Non précisé'}${validated.kbisFile ? ` - Kbis/RCCM déposé : ${validated.kbisFile}` : ''}`,
+      // Un Kbis déposé place le dossier "en attente" pour validation par l'admin
+      ...(validated.kbisFile ? { verificationStatus: VerificationStatus.PENDING } : {}),
+    };
+
+    // Utilisateur déjà existant (ex: mise en relation antérieure) : la société et le Kbis
+    // doivent quand même être créés / rattachés.
+    const company = await prisma.companyProfile.upsert({
+      where: { userId: user.id },
+      update: companyData,
+      create: { userId: user.id, ...companyData },
+    });
+
+    if (validated.kbisFile) {
+      await prisma.verificationDocument.create({
+        data: {
+          companyId: company.id,
+          documentType: 'COMMERCIAL_REGISTER',
+          fileName: validated.kbisFile,
+          filePath: `/api/documents/preview?file=${encodeURIComponent(validated.kbisFile)}&name=${encodeURIComponent(validated.kbisFile)}&status=PENDING`,
+          fileSize: 157121,
+          mimeType: validated.kbisFile.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+          status: 'PENDING',
+          issuingAuthority: 'INPI / Registre National des Entreprises (RNE)',
+        },
+      });
+    }
   } catch (err: any) {
-    console.warn('Persistance Prisma non disponible en environnement local, sauvegarde cache active :', err.message);
+    console.error('Échec de la persistance Prisma (entrepreneur/Kbis non enregistré en base) :', err);
   }
 
   return newEntrepreneur;

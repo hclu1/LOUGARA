@@ -1,8 +1,14 @@
-# Journal des Modifications (Changelog)
+﻿# Journal des Modifications (Changelog)
 
 Toutes les modifications notables apportées à ce projet sont consignées dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
+
+## [0.18.11] - 2026-11-06
+### Corrigé - Kbis d'entrepreneur absent de la console admin
+- Un utilisateur déjà existant en base n'obtenait ni société ni document Kbis : création/rattachement systématique (upsert).
+- Le dossier passe en statut PENDING dès qu'un Kbis est déposé.
+- Les erreurs de persistance Prisma sont désormais journalisées en erreur (plus masquées).
 
 ## [0.18.10] - 2026-11-06
 ### Corrigé — Éradication Totale des Données Fantômes & Démarrage Base Vierge (0 Artefact)
@@ -766,3 +772,4 @@ et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 ## [0.1.1] - 2026-09-12
 ### Corrigé
 - Correction de l'extraction de l'activité Kbis (PORTAIL INTERNET) et classification automatique du secteur technologique.
+
