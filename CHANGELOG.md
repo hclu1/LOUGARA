@@ -1,4 +1,4 @@
-﻿# Journal des Modifications (Changelog)
+# Journal des Modifications (Changelog)
 
 Toutes les modifications notables apportées à ce projet sont consignées dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
@@ -9,6 +9,7 @@ et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 - Un utilisateur déjà existant en base n'obtenait ni société ni document Kbis : création/rattachement systématique (upsert).
 - Le dossier passe en statut PENDING dès qu'un Kbis est déposé.
 - Les erreurs de persistance Prisma sont désormais journalisées en erreur (plus masquées).
+- Correctif de déploiement Vercel : package.json avait été écrit avec un BOM UTF-8 (JSON illisible), BOM retiré.
 
 ## [0.18.10] - 2026-11-06
 ### Corrigé — Éradication Totale des Données Fantômes & Démarrage Base Vierge (0 Artefact)
