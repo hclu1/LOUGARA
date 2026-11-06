@@ -1,3 +1,3 @@
 // Fichier gÃ©nÃ©rÃ© automatiquement - Gestion de version Lougara
-export const APP_VERSION = '0.18.11';
-export const APP_VERSION_LABEL = 'v0.18.11';
+export const APP_VERSION = '0.18.12';
+export const APP_VERSION_LABEL = 'v0.18.12';

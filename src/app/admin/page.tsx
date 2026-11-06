@@ -82,6 +82,38 @@ export default function AdminHubPage() {
   } | null>(null);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
 
+  // Dossiers KYB en attente : badge sur l'onglet + ouverture automatique de l'onglet KYB
+  const [pendingKybCount, setPendingKybCount] = useState(0);
+  const [kybAutoOpened, setKybAutoOpened] = useState(false);
+
+  useEffect(() => {
+    if (!isModerator) return;
+    let cancelled = false;
+    const loadPendingKyb = async () => {
+      try {
+        const res = await fetch(`/api/admin/verifications?status=PENDING&_t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = Array.isArray(data.companies) ? data.companies.length : 0;
+        if (cancelled) return;
+        setPendingKybCount(count);
+        if (count > 0 && !kybAutoOpened) {
+          setKybAutoOpened(true);
+          setActiveTab('verifications');
+        }
+      } catch {
+        // non bloquant
+      }
+    };
+    loadPendingKyb();
+    const interval = setInterval(loadPendingKyb, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isModerator]);
+
   const fetchMaintenance = async () => {
     try {
       const res = await fetch(`/api/system/maintenance?_t=${Date.now()}`, { cache: 'no-store' });
@@ -378,6 +410,9 @@ export default function AdminHubPage() {
           >
             <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />
             2. Audits KYB & Pièces Légales
+            {pendingKybCount > 0 && (
+              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950">{pendingKybCount}</span>
+            )}
           </button>
 
           <button

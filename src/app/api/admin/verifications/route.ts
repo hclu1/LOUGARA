@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { VerificationStatus, DocumentStatus } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -42,7 +45,10 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, companies });
+    return NextResponse.json(
+      { success: true, companies },
+      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } }
+    );
   } catch (error: any) {
     console.error('Erreur GET /api/admin/verifications :', error);
     return NextResponse.json(

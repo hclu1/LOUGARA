@@ -4,6 +4,12 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.12] - 2026-11-06
+### Corrige - Dossiers KYB invisibles dans la console admin
+- La route /api/admin/verifications est desormais forcee en dynamique (force-dynamic, no-store) : plus de liste obsolete.
+- La console admin ouvre automatiquement l'onglet Audits KYB quand des dossiers sont en attente et affiche un badge de comptage.
+- Les erreurs de chargement des dossiers sont affichees au lieu d'etre ignorees silencieusement.
+
 ## [0.18.11] - 2026-11-06
 ### Corrigé - Kbis d'entrepreneur absent de la console admin
 - Un utilisateur déjà existant en base n'obtenait ni société ni document Kbis : création/rattachement systématique (upsert).

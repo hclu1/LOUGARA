@@ -231,7 +231,8 @@ export default function AdminVerificationsPage() {
   const fetchSuppliers = async (showLoading = false) => {
     try {
       if (showLoading) setIsLoading(true);
-      const res = await fetch('/api/admin/verifications');
+      const res = await fetch(`/api/admin/verifications?_t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) setActionNotice('Erreur de chargement des dossiers KYB (HTTP ' + res.status + ').');
       if (res.ok) {
         const data = await res.json();
         if (data.companies && Array.isArray(data.companies)) {
@@ -247,6 +248,7 @@ export default function AdminVerificationsPage() {
         }
       }
     } catch (err) {
+      setActionNotice('Impossible de joindre le serveur pour charger les dossiers KYB.');
     } finally {
       if (showLoading) setIsLoading(false);
     }
