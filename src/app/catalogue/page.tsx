@@ -24,6 +24,7 @@ import {
   Globe,
   Award,
   ArrowRightLeft,
+  Plus,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { useLanguage } from '@/context/LanguageContext';
@@ -78,170 +79,7 @@ interface SponsoredBuyer {
   hasCatalogAdSpace?: boolean;
 }
 
-const SAMPLE_PRODUCTS: MockProduct[] = [
-  {
-    id: 'prod-1',
-    title: 'Beurre de Karité Bio Brut (Fûts de 25kg)',
-    slug: 'beurre-de-karite-bio-brut-25kg',
-    description: 'Extrait à froid par coopérative féminine au Sénégal. Grade A, certifié sans solvant chimique.',
-    category: 'Cosmétique',
-    originCountry: 'Sénégal',
-    moq: 4,
-    unit: 'fût (25kg)',
-    priceMin: 8.5,
-    priceMax: 12.0,
-    currency: 'EUR',
-    images: [
-      'https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=80&w=800',
-    ],
-    company: {
-      id: 'comp-1',
-      companyName: 'Africa Bio Extracts SARL',
-      country: 'Sénégal',
-      city: 'Dakar',
-      isVerified: true,
-      subscriptionPlan: 'PREMIUM',
-      hasCatalogAdSpace: true,
-    },
-  },
-  {
-    id: 'prod-2',
-    title: 'Huile Pure de Baobab Vierge (Flacons & Vrac)',
-    slug: 'huile-pure-baobab-vierge',
-    description: 'Riche en acides gras oméga-6 et 9. Idéale pour laboratoires cosmétiques et formulateurs de soins.',
-    category: 'Cosmétique',
-    originCountry: 'Sénégal',
-    moq: 20,
-    unit: 'litre',
-    priceMin: 22.0,
-    priceMax: 29.0,
-    currency: 'EUR',
-    images: [
-      'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=800',
-    ],
-    company: {
-      id: 'comp-1',
-      companyName: 'Africa Bio Extracts SARL',
-      country: 'Sénégal',
-      city: 'Dakar',
-      isVerified: true,
-      subscriptionPlan: 'PREMIUM',
-      hasCatalogAdSpace: true,
-    },
-  },
-  {
-    id: 'prod-3',
-    title: 'Tissu Wax Authentique 100% Coton (Pièces de 6 yards)',
-    slug: 'tissu-wax-authentique-coton',
-    description: 'Motifs traditionnels et modernes, tenue des couleurs garantie grand teint. Vente par lots de 50 pièces.',
-    category: 'Textile',
-    originCountry: "Côte d'Ivoire",
-    moq: 50,
-    unit: 'pièce (6 yards)',
-    priceMin: 14.0,
-    priceMax: 18.5,
-    currency: 'EUR',
-    images: [
-      'https://images.unsplash.com/photo-1590736969955-71cc94801759?auto=format&fit=crop&q=80&w=800',
-    ],
-    company: {
-      id: 'comp-2',
-      companyName: 'Ivoire Textiles & Confection',
-      country: "Côte d'Ivoire",
-      city: 'Abidjan',
-      isVerified: true,
-      subscriptionPlan: 'VIP',
-      hasCatalogAdSpace: true,
-    },
-  },
-  {
-    id: 'prod-4',
-    title: 'Noix de Cajou Brutes Décortiquées (Grade W320)',
-    slug: 'noix-de-cajou-brutes-w320',
-    description: 'Noix de cajou de haute qualité, séchage contrôlé, emballage sous vide hermétique pour export.',
-    category: 'Agroalimentaire',
-    originCountry: "Côte d'Ivoire",
-    moq: 200,
-    unit: 'kg',
-    priceMin: 6.8,
-    priceMax: 8.9,
-    currency: 'EUR',
-    images: [
-      'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&q=80&w=800',
-    ],
-    company: {
-      id: 'comp-3',
-      companyName: 'Savanah Agro Trading',
-      country: "Côte d'Ivoire",
-      city: 'Bouaké',
-      isVerified: true,
-      subscriptionPlan: 'STANDARD',
-      hasCatalogAdSpace: true,
-    },
-  },
-  {
-    id: 'prod-5',
-    title: 'Gousses de Vanille Bourbon Gourmet (Affinage traditionnel)',
-    slug: 'vanille-bourbon-gourmet',
-    description: 'Taux d\'humidité 30-35%, vanilline naturelle élevée. Certificats phytosanitaires et traçabilité complète.',
-    category: 'Agroalimentaire',
-    originCountry: 'Madagascar',
-    moq: 5,
-    unit: 'kg',
-    priceMin: 140.0,
-    priceMax: 180.0,
-    currency: 'EUR',
-    images: [
-      'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=800',
-    ],
-    company: {
-      id: 'comp-4',
-      companyName: 'Madagascar Vanilla Export',
-      country: 'Madagascar',
-      city: 'Antananarivo',
-      isVerified: false,
-      subscriptionPlan: 'STANDARD',
-      hasCatalogAdSpace: false,
-    },
-  },
-];
 
-const INITIAL_BUYERS: SponsoredBuyer[] = [
-  {
-    id: 'ent-1',
-    fullName: 'Élodie Laurent',
-    companyName: 'Boutique Botanica Paris',
-    email: 'elodie@botanica-paris.fr',
-    phone: '+33 6 12 34 56 78',
-    country: 'France',
-    city: 'Paris',
-    buyerType: 'Boutique physique & Concept store',
-    targetSectors: ['Cosmétique & Soins', 'Artisanat & Décoration'],
-    estimatedBudget: '1 000 € à 5 000 € / mois',
-    sourcingNeeds: 'Recherche de savons noirs traditionnels et beurre de karité brut certifié biologique.',
-    registrationNumber: '891 234 567 R.C.S. Paris',
-    isKbisVerified: true,
-    subscriptionPlan: 'PREMIUM',
-    hasCatalogAdSpace: true,
-  },
-  {
-    id: 'ent-2',
-    fullName: 'Marc Van Der Beek',
-    companyName: 'Brussels Bio Imports',
-    email: 'm.vanderbeek@brussels-imports.be',
-    phone: '+32 470 12 34 56',
-    country: 'Belgique',
-    city: 'Bruxelles',
-    buyerType: 'Importateur & Distributeur',
-    targetSectors: ['Agroalimentaire & Épices'],
-    estimatedBudget: '5 000 € à 20 000 € / mois',
-    sourcingNeeds: 'Approvisionnement régulier en fèves de cacao Criollo et vanille de Madagascar.',
-    registrationNumber: 'BE 0849.123.456',
-    isKbisVerified: true,
-    subscriptionPlan: 'VIP',
-    hasCatalogAdSpace: true,
-  },
-];
 
 interface SupplierCatalog {
   id: string;
@@ -256,52 +94,7 @@ interface SupplierCatalog {
   products: MockProduct[];
 }
 
-const SAMPLE_SUPPLIER_CATALOGS: SupplierCatalog[] = [
-  {
-    id: 'comp-1',
-    companyName: 'Africa Bio Extracts SARL',
-    country: 'Sénégal',
-    city: 'Dakar',
-    sector: 'Cosmétique',
-    isVerified: true,
-    coverImage: 'https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600',
-    productsCount: 2,
-    products: [SAMPLE_PRODUCTS[0], SAMPLE_PRODUCTS[1]],
-  },
-  {
-    id: 'comp-2',
-    companyName: 'Ivoire Textiles & Confection',
-    country: "Côte d'Ivoire",
-    city: 'Abidjan',
-    sector: 'Textile',
-    isVerified: true,
-    coverImage: 'https://images.unsplash.com/photo-1590736969955-71cc94801759?auto=format&fit=crop&q=75&w=600',
-    productsCount: 1,
-    products: [SAMPLE_PRODUCTS[2]],
-  },
-  {
-    id: 'comp-3',
-    companyName: 'Savanah Agro Trading',
-    country: "Côte d'Ivoire",
-    city: 'Bouaké',
-    sector: 'Agroalimentaire',
-    isVerified: true,
-    coverImage: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&q=75&w=600',
-    productsCount: 1,
-    products: [SAMPLE_PRODUCTS[3]],
-  },
-  {
-    id: 'comp-4',
-    companyName: 'Madagascar Vanilla Export',
-    country: 'Madagascar',
-    city: 'Antananarivo',
-    sector: 'Agroalimentaire',
-    isVerified: true,
-    coverImage: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=75&w=600',
-    productsCount: 1,
-    products: [SAMPLE_PRODUCTS[4]],
-  },
-];
+
 
 export default function CataloguePage() {
   const { t, locale } = useLanguage();
@@ -312,10 +105,10 @@ export default function CataloguePage() {
   const [selectedCorridor, setSelectedCorridor] = useState<string>('all');
   const [onlyVerified, setOnlyVerified] = useState<boolean>(true);
 
-  // Produits & Acheteurs & Catalogues Fournisseurs pré-chargés pour un rendu à 0ms
-  const [productsList, setProductsList] = useState<MockProduct[]>(SAMPLE_PRODUCTS);
-  const [suppliersCatalogList, setSuppliersCatalogList] = useState<SupplierCatalog[]>(SAMPLE_SUPPLIER_CATALOGS);
-  const [buyersList, setBuyersList] = useState<SponsoredBuyer[]>(INITIAL_BUYERS);
+  // Produits & Acheteurs & Catalogues Fournisseurs réels issus de la base (démarrage à 0)
+  const [productsList, setProductsList] = useState<MockProduct[]>([]);
+  const [suppliersCatalogList, setSuppliersCatalogList] = useState<SupplierCatalog[]>([]);
+  const [buyersList, setBuyersList] = useState<SponsoredBuyer[]>([]);
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
   // Modale catalogue complet d'un fournisseur
@@ -438,9 +231,7 @@ export default function CataloguePage() {
           const data = await buyersResult.value.json();
           if (data.entrepreneurs && Array.isArray(data.entrepreneurs)) {
             const sponsored = data.entrepreneurs.filter((e: any) => e.hasCatalogAdSpace === true);
-            if (sponsored.length > 0) {
-              setBuyersList(sponsored);
-            }
+            setBuyersList(sponsored);
           }
         }
       } catch (e) {
@@ -784,6 +575,26 @@ export default function CataloguePage() {
 
         {/* VUE 0 : VITRINES CATALOGUES FOURNISSEURS */}
         {activeTab === 'catalogues' && (
+          filteredCatalogs.length === 0 ? (
+            <div className="glass-card p-12 rounded-3xl border border-slate-800 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-[#D4AF37]/30 flex items-center justify-center text-[#E5A93C] mx-auto">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Aucun catalogue fournisseur disponible</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                La plateforme démarre avec une base de données vierge (0 donnée fictive). Les catalogues des producteurs et grossistes agréés apparaîtront ici dès validation de leur audit KYB.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/devenir-fournisseur"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Déposer un dossier Fournisseur</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCatalogs.map((cat) => (
               <div
@@ -867,10 +678,31 @@ export default function CataloguePage() {
               </div>
             ))}
           </div>
+          )
         )}
 
         {/* VUE 1 : OFFRES PRODUITS */}
         {activeTab === 'products' && (
+          filteredProducts.length === 0 ? (
+            <div className="glass-card p-12 rounded-3xl border border-slate-800 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-950/70 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+                <Package className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Aucun produit au catalogue</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                La plateforme démarre vierge (0 article fictif). Les références certifiées ajoutées par les fournisseurs agréés apparaîtront automatiquement ici.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/devenir-fournisseur"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Ajouter vos produits (Espace Fournisseur)</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((prod) => (
               <div
@@ -960,10 +792,31 @@ export default function CataloguePage() {
               </div>
             ))}
           </div>
+          )
         )}
 
         {/* VUE 2 : APPELS D'OFFRES ACHETEURS */}
         {activeTab === 'buyers' && (
+          filteredBuyers.length === 0 ? (
+            <div className="glass-card p-12 rounded-3xl border border-slate-800 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mx-auto">
+                <Briefcase className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Aucun appel d&apos;offres pour le moment</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                La plateforme démarre vierge (0 demande fictive). Les demandes de cotation (RFQ) et besoins de sourcing exprimés par les acheteurs professionnels apparaîtront ici.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/entrepreneurs"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Publier un appel d&apos;offres (Acheteur)</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredBuyers.map((buyer) => (
               <div
@@ -1020,6 +873,7 @@ export default function CataloguePage() {
               </div>
             ))}
           </div>
+          )
         )}
       </div>
 

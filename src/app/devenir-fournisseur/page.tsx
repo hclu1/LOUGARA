@@ -68,23 +68,8 @@ export default function DevenirFournisseurPage() {
   const [autoFilled, setAutoFilled] = useState(false);
   const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
 
-  // Multi-Produits
-  const [catalogProducts, setCatalogProducts] = useState<CatalogProductItem[]>([
-    {
-      id: 'prod-1',
-      title: 'Beurre de Karité Bio Brut (Fûts de 25kg)',
-      description: 'Extrait à froid par coopérative féminine au Sénégal. Grade A, certifié sans solvant chimique.',
-      category: 'Cosmétique & Soins',
-      priceMin: '8.50',
-      priceMax: '12.00',
-      currency: 'EUR',
-      moq: 4,
-      unit: 'fût (25kg)',
-      images: [
-        'https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=80&w=800',
-      ],
-    },
-  ]);
+  // Multi-Produits (démarrage à 0 sans article fantôme)
+  const [catalogProducts, setCatalogProducts] = useState<CatalogProductItem[]>([]);
 
   // Contact
   const [contactName, setContactName] = useState('');
@@ -442,24 +427,37 @@ export default function DevenirFournisseurPage() {
                   </div>
 
                   <div className="space-y-4">
-                    {catalogProducts.map((p, idx) => (
-                      <div key={p.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-700 space-y-3">
-                        <div className="flex justify-between items-center text-xs font-bold text-[#E5A93C]">
-                          <span>Article #{idx + 1}</span>
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Nom de l'article (ex: Beurre de karité bio brut)"
-                          value={p.title}
-                          onChange={(e) => {
-                            const next = [...catalogProducts];
-                            next[idx].title = e.target.value;
-                            setCatalogProducts(next);
-                          }}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"
-                        />
+                    {catalogProducts.length === 0 ? (
+                      <div className="p-8 text-center rounded-2xl bg-slate-900/40 border border-dashed border-slate-700 text-xs text-slate-400 space-y-2">
+                        <p>Aucun produit ajouté pour le moment.</p>
+                        <button
+                          type="button"
+                          onClick={handleAddProduct}
+                          className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D4AF37]/20 text-[#E5A93C] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/30 transition-all inline-flex items-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Ajouter un premier article
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      catalogProducts.map((p, idx) => (
+                        <div key={p.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-700 space-y-3">
+                          <div className="flex justify-between items-center text-xs font-bold text-[#E5A93C]">
+                            <span>Article #{idx + 1}</span>
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Nom de l'article (ex: Beurre de karité bio brut)"
+                            value={p.title}
+                            onChange={(e) => {
+                              const next = [...catalogProducts];
+                              next[idx].title = e.target.value;
+                              setCatalogProducts(next);
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"
+                          />
+                        </div>
+                      ))
+                    )}
                   </div>
 
                   <div className="flex justify-between pt-4">

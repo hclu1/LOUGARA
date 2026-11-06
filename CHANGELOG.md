@@ -4,6 +4,19 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.10] - 2026-11-06
+### Corrigé — Éradication Totale des Données Fantômes & Démarrage Base Vierge (0 Artefact)
+- **Suppression intégrale des constantes en mémoire et données fictives** :
+  - Élimination des faux produits d'exemple (Beurre de Karité Bio, Wax, Tissus, Vanille) dans `src/app/catalogue/page.tsx` et `src/app/devenir-fournisseur/page.tsx`.
+  - Suppression de la liste codée en dur de faux fournisseurs (`Africa Bio Extracts SARL`, `Ivoire Textiles`, etc.) dans `src/app/entrepreneurs/page.tsx`.
+  - Suppression des faux acheteurs / entrepreneurs en mémoire (`Boutique Botanica Paris`, `Brussels Bio Imports`, `Wax & Chic Abidjan`) dans `src/features/entrepreneurs/service.ts` et `src/app/catalogue/page.tsx`.
+  - Nettoyage des comptes utilisateurs factices (`usr-client-1` à `usr-client-4`) dans `src/features/auth/service.ts` et `src/app/admin/page.tsx` (seuls les 2 comptes administrateurs légitimes sont conservés).
+- **Nettoyage de la base de données PostgreSQL Supabase** :
+  - Purge des 4 profils acheteurs/entreprises de test résiduels en base : compteur ramené exactement à 0 entreprise et 0 produit.
+- **Interface Utilisateur & États Vides Dédiés (Empty States)** :
+  - Mise en place d'écrans d'accueil vides professionnels et contextualisés invitant l'utilisateur à ajouter de vrais produits, fournisseurs certifiés ou demandes de sourcing réelles.
+  - Actualisation dynamique de la carte fournisseur en page d'accueil (`HomePageClient.tsx`) affichant un bloc d'onboarding KYB transparent lorsqu'aucun fournisseur n'est encore enregistré.
+
 ## [0.18.9] - 2026-11-05
 ### Corrigé — Affichage Multi-Formats (PDF / Images) des Pièces Kbis, Téléchargement Direct Admin & Fiabilisation Build Vercel Webpack
 - **Accès et Inspection des Documents Admin (`src/app/admin/verifications/page.tsx`)** :

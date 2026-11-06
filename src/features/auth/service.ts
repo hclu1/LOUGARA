@@ -128,7 +128,7 @@ function initDefaultSecurityStore() {
     updatedAt: new Date().toISOString(),
   });
 
-  // 3. Comptes clients inscrits sur l'application (avec demandes de validation de mot de passe)
+  // 3. Comptes clients inscrits sur l'application (base vierge au démarrage)
   const initialClients: Array<{
     id: string;
     email: string;
@@ -143,62 +143,7 @@ function initDefaultSecurityStore() {
     requestedAt: string;
     reviewedBy?: string;
     reviewedAt?: string;
-  }> = [
-    {
-      id: 'usr-client-1',
-      email: 'contact@africabio.sn',
-      firstName: 'Amadou',
-      lastName: 'Diallo',
-      companyName: 'Africa Bio Extracts SARL',
-      country: 'Sénégal',
-      role: 'supplier',
-      initialPass: 'AfricaBio2026!',
-      reqStatus: 'PENDING',
-      reqType: 'CLIENT_REGISTRATION',
-      requestedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    },
-    {
-      id: 'usr-client-2',
-      email: 'elodie@botanica-paris.fr',
-      firstName: 'Élodie',
-      lastName: 'Laurent',
-      companyName: 'Boutique Botanica Paris',
-      country: 'France',
-      role: 'entrepreneur',
-      initialPass: 'BotanicaParis2026!',
-      reqStatus: 'PENDING',
-      reqType: 'INITIAL_PASSWORD',
-      requestedAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    },
-    {
-      id: 'usr-client-3',
-      email: 'direction@ivoiretextile.ci',
-      firstName: 'Kouassi',
-      lastName: 'Koffi',
-      companyName: 'Ivoire Textiles & Confection',
-      country: "Côte d'Ivoire",
-      role: 'supplier',
-      initialPass: 'IvoireTex2026!',
-      reqStatus: 'PENDING',
-      reqType: 'PASSWORD_RESET',
-      requestedAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-    },
-    {
-      id: 'usr-client-4',
-      email: 'contact@sahel-agro.com',
-      firstName: 'Oumar',
-      lastName: 'Coulibaly',
-      companyName: 'Sahel Agro-Industrie SA',
-      country: 'Mali',
-      role: 'supplier',
-      initialPass: 'SahelAgro2026!',
-      reqStatus: 'APPROVED',
-      reqType: 'CLIENT_REGISTRATION',
-      requestedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      reviewedBy: SUPER_ADMIN_EMAIL,
-      reviewedAt: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
-    },
-  ];
+  }> = [];
 
   for (const c of initialClients) {
     const pHash = hashPassword(c.initialPass, `salt_${c.id}`);

@@ -39,38 +39,8 @@ export default function AdminHubPage() {
     'passwords' | 'verifications' | 'users' | 'catalogs' | 'pricing' | 'audit'
   >('passwords');
 
-  // Gestion des utilisateurs modérés
+  // Gestion des comptes administrateurs officiels (base vierge d'inscriptions)
   const [usersList, setUsersList] = useState<UserAccount[]>([
-    {
-      id: 'usr-1',
-      email: 'contact@africabio.sn',
-      role: 'supplier',
-      name: 'Amadou Diallo',
-      companyName: 'Africa Bio Extracts SARL',
-      country: 'Sénégal',
-      status: 'active',
-      registeredAt: '2026-09-21',
-    },
-    {
-      id: 'usr-2',
-      email: 'direction@ivoiretextile.ci',
-      role: 'supplier',
-      name: 'Kouassi Koffi',
-      companyName: 'Ivoire Textiles & Confection',
-      country: "Côte d'Ivoire",
-      status: 'active',
-      registeredAt: '2026-09-20',
-    },
-    {
-      id: 'usr-3',
-      email: 'elodie@botanica-paris.fr',
-      role: 'entrepreneur',
-      name: 'Élodie Laurent',
-      companyName: 'Boutique Botanica Paris',
-      country: 'France',
-      status: 'active',
-      registeredAt: '2026-09-22',
-    },
     {
       id: 'usr-4',
       email: 'asherilla4@gmail.com',
@@ -676,21 +646,9 @@ export default function AdminHubPage() {
             <h2 className="text-lg font-black text-white">
               Journal d&apos;Activité & Historique de Modération
             </h2>
-            <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex justify-between items-center text-slate-300">
-                <span>
-                  [2026-10-18 10:15] Validation du mot de passe client pour{' '}
-                  <strong>Sahel Agro-Industrie SA</strong>
-                </span>
-                <span className="text-[10px] text-emerald-400 font-bold font-mono">VALIDE</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex justify-between items-center text-slate-300">
-                <span>
-                  [2026-09-25 10:15] Badge &quot;Vérifié Lougara&quot; attribué à{' '}
-                  <strong>Africa Bio Extracts SARL</strong>
-                </span>
-                <span className="text-[10px] text-emerald-400 font-bold font-mono">VALIDE</span>
-              </div>
+            <div className="p-8 text-center rounded-2xl bg-slate-900/40 border border-slate-800 text-slate-400 text-xs">
+              <p>Aucune action enregistrée dans le journal pour le moment.</p>
+              <p className="text-slate-500 mt-1">La base de données démarre vierge (0 artefact / 0 données fictives).</p>
             </div>
           </div>
         )}

@@ -52,48 +52,6 @@ interface VerifiedSupplierItem {
   moqSummary: string;
 }
 
-const VERIFIED_SUPPLIERS_LIST: VerifiedSupplierItem[] = [
-  {
-    id: 'supp-1',
-    companyName: 'Africa Bio Extracts SARL',
-    country: 'Sénégal',
-    city: 'Dakar',
-    sector: 'Cosmétique & Soins',
-    regNumber: 'SN-DKR-2021-B-8912',
-    description: 'Producteur et exportateur agréé de Beurre de Karité Bio Grade A, huile de baobab et savon noir naturel.',
-    verifiedAt: 'Septembre 2026',
-    products: ['Beurre de Karité Bio Brut', 'Huile de Baobab Pure', 'Savon Noir Artisanal'],
-    contactRole: 'Amina Diop (Directrice Export)',
-    moqSummary: 'À partir de 4 fûts (100 kg)',
-  },
-  {
-    id: 'supp-2',
-    companyName: 'Sahel Agro Industries SA',
-    country: 'Sénégal',
-    city: 'Thiès',
-    sector: 'Agroalimentaire & Épices',
-    regNumber: 'SN-THS-2022-B-991',
-    description: 'Transformation et exportation certifiée de noix de cajou, piment séché, arachides et fleur d\'hibiscus (Bissap).',
-    verifiedAt: 'Août 2026',
-    products: ['Noix de Cajou W320', 'Fleurs d\'Hibiscus Séchées (Bissap)', 'Piment d\'Afrique séché'],
-    contactRole: 'Ousmane Sow (Responsable Commercial)',
-    moqSummary: 'À partir de 50 kg',
-  },
-  {
-    id: 'supp-3',
-    companyName: 'Ivoire Cacao & Épices Coop',
-    country: 'Côte d\'Ivoire',
-    city: 'San-Pédro',
-    sector: 'Agroalimentaire & Épices',
-    regNumber: 'CI-SP-2020-B-1402',
-    description: 'Coopérative de producteurs certifiés commerce équitable. Fèves de cacao fermentées et séchées au soleil.',
-    verifiedAt: 'Septembre 2026',
-    products: ['Fèves de Cacao Grade 1', 'Poudre de Cacao Pure', 'Beurre de Cacao'],
-    contactRole: 'Kouassi Konan (Gérant Coopérative)',
-    moqSummary: 'À partir de 1 tonne (palettes)',
-  },
-];
-
 export default function EspaceEntrepreneursPage() {
   const { t, locale } = useLanguage();
   const { user } = useAuth();
@@ -142,7 +100,7 @@ export default function EspaceEntrepreneursPage() {
   const [inquirySentSuccess, setInquirySentSuccess] = useState(false);
 
   const [entrepreneursList, setEntrepreneursList] = useState<any[]>([]);
-  const [suppliersList, setSuppliersList] = useState<VerifiedSupplierItem[]>(VERIFIED_SUPPLIERS_LIST);
+  const [suppliersList, setSuppliersList] = useState<VerifiedSupplierItem[]>([]);
 
   const fetchEntrepreneurs = async () => {
     try {
@@ -154,8 +112,36 @@ export default function EspaceEntrepreneursPage() {
     } catch (e) {}
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const res = await fetch(`/api/suppliers?_t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.suppliers && Array.isArray(data.suppliers)) {
+          const verified = data.suppliers
+            .filter((s: any) => s.verificationStatus === 'VERIFIED' && s.isPublished !== false)
+            .map((s: any) => ({
+              id: s.id,
+              companyName: s.companyName,
+              country: s.country,
+              city: s.city,
+              sector: s.sector,
+              regNumber: s.registrationNumber || '',
+              description: s.description || '',
+              verifiedAt: s.verifiedAt ? new Date(s.verifiedAt).toLocaleDateString() : 'Vérifié',
+              products: (s.products || []).map((p: any) => p.title),
+              contactRole: s.user ? `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim() : 'Direction',
+              moqSummary: 'Selon gamme',
+            }));
+          setSuppliersList(verified);
+        }
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchEntrepreneurs();
+    fetchSuppliers();
   }, []);
 
   useEffect(() => {
@@ -610,28 +596,48 @@ export default function EspaceEntrepreneursPage() {
           )}
 
           {activeTab === 'suppliers' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {suppliersList.map((supp) => (
-                <div key={supp.id} className="glass-card p-6 rounded-3xl border border-slate-800 space-y-4 hover:border-[#D4AF37] transition-all">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-extrabold text-white text-base">{supp.companyName}</h3>
-                      <p className="text-xs text-slate-400">{supp.city}, {supp.country}</p>
-                    </div>
-                    <BadgeVerified />
-                  </div>
-
-                  <p className="text-xs text-slate-300 leading-relaxed">{supp.description}</p>
-
-                  <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
-                    <span className="text-amber-400 font-bold">{supp.moqSummary}</span>
-                    <Link href="/catalogue" className="text-emerald-400 font-bold hover:underline">
-                      {t.entrepreneurs.viewCatalogBtn} &rarr;
-                    </Link>
-                  </div>
+            suppliersList.length === 0 ? (
+              <div className="glass-card p-12 rounded-3xl border border-slate-800 text-center space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-950/70 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+                  <Building2 className="w-6 h-6" />
                 </div>
-              ))}
-            </div>
+                <h3 className="text-lg font-bold text-white">Aucun fournisseur vérifié au catalogue</h3>
+                <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                  La plateforme démarre avec une base de données vierge (0 donnée fictive). Les producteurs et grossistes agréés apparaîtront ici dès que leur dossier KYB sera validé par la modération.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    href="/devenir-fournisseur"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
+                  >
+                    <span>Déposer un dossier Fournisseur</span>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {suppliersList.map((supp) => (
+                  <div key={supp.id} className="glass-card p-6 rounded-3xl border border-slate-800 space-y-4 hover:border-[#D4AF37] transition-all">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-extrabold text-white text-base">{supp.companyName}</h3>
+                        <p className="text-xs text-slate-400">{supp.city}, {supp.country}</p>
+                      </div>
+                      <BadgeVerified />
+                    </div>
+
+                    <p className="text-xs text-slate-300 leading-relaxed">{supp.description}</p>
+
+                    <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
+                      <span className="text-amber-400 font-bold">{supp.moqSummary}</span>
+                      <Link href="/catalogue" className="text-emerald-400 font-bold hover:underline">
+                        {t.entrepreneurs.viewCatalogBtn} &rarr;
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>

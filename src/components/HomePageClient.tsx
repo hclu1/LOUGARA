@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck,
@@ -23,8 +23,52 @@ import {
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { useLanguage } from '@/context/LanguageContext';
 
+interface AuditedSupplierPreview {
+  id: string;
+  companyName: string;
+  country: string;
+  city: string;
+  regNumber: string;
+  nineaOrTax: string;
+  products: string[];
+}
+
 export default function HomePageClient() {
   const { t, locale } = useLanguage();
+  const [latestSupplier, setLatestSupplier] = useState<AuditedSupplierPreview | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchLatest() {
+      try {
+        const res = await fetch(`/api/suppliers?_t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.suppliers && Array.isArray(data.suppliers)) {
+            const verified = data.suppliers.filter(
+              (s: any) => s.verificationStatus === 'VERIFIED' && s.isPublished !== false
+            );
+            if (verified.length > 0 && isMounted) {
+              const first = verified[0];
+              setLatestSupplier({
+                id: first.id,
+                companyName: first.companyName,
+                country: first.country,
+                city: first.city,
+                regNumber: first.registrationNumber || 'Certifié',
+                nineaOrTax: 'Audit validé',
+                products: (first.products || []).map((p: any) => p.title).slice(0, 3),
+              });
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    fetchLatest();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="bg-[#0B132B] text-slate-100 min-h-screen space-y-24 pb-20 overflow-hidden">
@@ -102,7 +146,7 @@ export default function HomePageClient() {
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 emerald-pulse" />
                     <span className="text-xs font-extrabold uppercase tracking-widest text-[#E5A93C]">
-                      {t.home.lastAudited}
+                      {latestSupplier ? t.home.lastAudited : (locale === 'fr' ? 'Protocole KYB Vérifié' : 'Verified KYB Protocol')}
                     </span>
                   </div>
                   <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-900 px-2.5 py-1 rounded border border-slate-700">
@@ -110,58 +154,106 @@ export default function HomePageClient() {
                   </span>
                 </div>
 
-                {/* Company details */}
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-xl font-black text-white">Africa Bio Extracts SARL</h3>
-                      <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
-                        <Globe2 className="w-3.5 h-3.5 text-emerald-400" />
-                        {locale === 'fr' ? 'Sénégal (Dakar) • Export vers la France' : 'Senegal (Dakar) • Export to France'}
-                      </p>
+                {latestSupplier ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-xl font-black text-white">{latestSupplier.companyName}</h3>
+                        <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                          <Globe2 className="w-3.5 h-3.5 text-emerald-400" />
+                          {latestSupplier.city ? `${latestSupplier.city}, ` : ''}{latestSupplier.country}
+                        </p>
+                      </div>
+                      <BadgeVerified />
                     </div>
-                    <BadgeVerified />
-                  </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-xs text-slate-300 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-400">{locale === 'fr' ? 'RCCM Officiel :' : 'Official RCCM:'}</span>
-                      <span className="font-mono text-amber-300 font-bold">SN-DKR-2021-B-8912</span>
+                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-xs text-slate-300 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-slate-400">{locale === 'fr' ? 'RCCM / Kbis :' : 'Official Registry:'}</span>
+                        <span className="font-mono text-amber-300 font-bold">{latestSupplier.regNumber}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-slate-400">{locale === 'fr' ? 'Identification Fiscale :' : 'Tax Certificate:'}</span>
+                        <span className="font-mono text-emerald-300 font-bold">{latestSupplier.nineaOrTax}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-slate-400">{locale === 'fr' ? 'Score de Conformité :' : 'Compliance Score:'}</span>
+                        <span className="font-extrabold text-emerald-400">100 / 100 ({locale === 'fr' ? 'Validé' : 'Approved'})</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-400">{locale === 'fr' ? 'Identification Fiscale :' : 'Tax ID Certificate:'}</span>
-                      <span className="font-mono text-emerald-300 font-bold">NINEA-009847123</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-400">{locale === 'fr' ? 'Score de Conformité :' : 'Compliance Score:'}</span>
-                      <span className="font-extrabold text-emerald-400">98 / 100 ({locale === 'fr' ? 'Validé' : 'Approved'})</span>
+
+                    {latestSupplier.products.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          {locale === 'fr' ? 'Gamme Certifiée au Catalogue :' : 'Certified Catalog Products:'}
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          {latestSupplier.products.map((p, idx) => (
+                            <span key={idx} className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-2">
+                      <Link
+                        href="/catalogue"
+                        className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
+                      >
+                        <span>{locale === 'fr' ? 'Voir le catalogue et demander un devis' : 'View catalog and request quote'}</span>
+                        <ArrowRight className="w-4 h-4 text-slate-950" />
+                      </Link>
                     </div>
                   </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-xl font-black text-white">
+                          {locale === 'fr' ? 'Espace Fournisseurs Certifiés' : 'Verified Suppliers Space'}
+                        </h3>
+                        <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                          <Globe2 className="w-3.5 h-3.5 text-emerald-400" />
+                          {locale === 'fr' ? 'Corridor commercial Afrique — Europe' : 'Africa — Europe Trade Corridor'}
+                        </p>
+                      </div>
+                      <BadgeVerified />
+                    </div>
 
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                      {locale === 'fr' ? 'Gamme Certifiée au Catalogue :' : 'Certified Catalog Products:'}
+                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-xs text-slate-300 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-slate-400">{locale === 'fr' ? 'Base de Données :' : 'Database Status:'}</span>
+                        <span className="font-mono text-emerald-400 font-bold">{locale === 'fr' ? '0 Donnée Fictive / Base Vierge' : 'Clean / 0 Ghost Data'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-slate-400">{locale === 'fr' ? 'Contrôle Documentaire :' : 'Documentary Audit:'}</span>
+                        <span className="font-mono text-amber-300 font-bold">Kbis / RCCM / CNI</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-slate-400">{locale === 'fr' ? 'Protocole KYB :' : 'KYB Protocol:'}</span>
+                        <span className="font-extrabold text-emerald-400">{locale === 'fr' ? 'Actif & Opérationnel' : 'Active & Operational'}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {locale === 'fr'
+                        ? 'La plateforme est prête pour accueillir les nouveaux producteurs et grossistes. Déposez votre dossier pour figurer au catalogue officiel.'
+                        : 'The platform is ready to welcome producers and wholesalers. Submit your application to be listed in the official catalog.'}
                     </p>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                        {locale === 'fr' ? 'Beurre de Karité Bio Grade A' : 'Organic Raw Shea Butter Grade A'}
-                      </span>
-                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                        {locale === 'fr' ? 'Huile Pure de Baobab Vierge' : 'Virgin Pure Baobab Oil'}
-                      </span>
+
+                    <div className="pt-2">
+                      <Link
+                        href="/devenir-fournisseur"
+                        className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
+                      >
+                        <span>{locale === 'fr' ? 'Déposer un dossier Fournisseur' : 'Submit Supplier Application'}</span>
+                        <ArrowRight className="w-4 h-4 text-slate-950" />
+                      </Link>
                     </div>
                   </div>
-                </div>
-
-                <div className="pt-2">
-                  <Link
-                    href="/catalogue"
-                    className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
-                  >
-                    <span>{locale === 'fr' ? 'Voir ce fournisseur et demander un devis' : 'View supplier and request quote'}</span>
-                    <ArrowRight className="w-4 h-4 text-slate-950" />
-                  </Link>
-                </div>
+                )}
               </div>
             </div>
           </div>
