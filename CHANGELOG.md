@@ -4,6 +4,16 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.20.0] - 2026-11-07
+### Ajouté
+- Catalogue : galerie multi-photos interactive sur chaque fiche produit pour visualiser l'ensemble des photos validées (vignettes cliquables, flèches précédent/suivant, compteur de photos).
+- Catalogue : description complète dépliable en un clic (« Lire la description complète ▼ » / « Réduire ▲ »), avec respect intégral de la mise en page et des sauts de ligne.
+- Modale de demande de devis : rappel complet de la fiche produit en tête de formulaire avec galerie de toutes les photos validées et description intégrale certifiée.
+- Modale catalogue complet du fournisseur : intégration du même composant unifié `CatalogProductCard` offrant la consultation de toutes les photos et la lecture intégrale des descriptions.
+
+### Modifié
+- Suppression du tronquage rigide `line-clamp-2` qui masquait les descriptions de produits dans le catalogue.
+- Réinitialisation dynamique du composant `CatalogImage` lors du changement d'image active.
 ## [0.19.2] - 2026-11-07
 ### Corrigé
 - Console admin : confirmation de validation malgré une pièce manquante (« Valider quand même ») désormais 100% effective.

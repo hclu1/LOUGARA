@@ -26,6 +26,8 @@ import {
   ArrowRightLeft,
   Plus,
   ImageOff,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { useLanguage } from '@/context/LanguageContext';
@@ -38,6 +40,11 @@ import {
 /** Photo produit validee par Lougara. Aucun visuel de remplacement : un simple pictogramme neutre si absente. */
 function CatalogImage({ src, alt, className }: { src?: string; alt: string; className?: string }) {
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
   if (!src || failed) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-600" aria-label={alt}>
@@ -48,6 +55,198 @@ function CatalogImage({ src, alt, className }: { src?: string; alt: string; clas
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} className={className} />
+  );
+}
+
+interface CatalogProductCardProps {
+  product: MockProduct;
+  locale: string;
+  onRequestQuote: (p: MockProduct) => void;
+  showCompanyHeader?: boolean;
+}
+
+/** Carte produit avec galerie multi-photos validées et description complète dépliable */
+function CatalogProductCard({
+  product,
+  locale,
+  onRequestQuote,
+  showCompanyHeader = true,
+}: CatalogProductCardProps) {
+  const { t } = useLanguage();
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const images = Array.isArray(product.images) && product.images.length > 0 ? product.images : [];
+  const currentImage = images[activeImageIndex] || '';
+  const isLongDesc = (product.description || '').length > 110;
+
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+  };
+
+  return (
+    <div className="glass-card glass-card-hover rounded-3xl overflow-hidden flex flex-col justify-between group border border-slate-800 hover:border-[#D4AF37] transition-all">
+      {/* ZONE IMAGE DU PRODUIT */}
+      <div className="relative h-56 bg-slate-950 overflow-hidden flex flex-col justify-between">
+        <CatalogImage
+          src={currentImage}
+          alt={product.title}
+          className="w-full h-full object-cover transition-transform duration-300 opacity-90 group-hover:scale-105"
+        />
+
+        {/* BADGES EN HAUT DE L'IMAGE */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
+          {product.company.isVerified ? (
+            <BadgeVerified />
+          ) : (
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-950 text-amber-300 border border-amber-500/30">
+              {t.catalogue.verificationInProgress}
+            </span>
+          )}
+        </div>
+
+        {/* COMPTEUR DE PHOTOS SI PLUSIEURS */}
+        {images.length > 1 && (
+          <div className="absolute top-3 right-3 bg-slate-950/85 backdrop-blur-sm text-[#E5A93C] border border-[#D4AF37]/30 px-2.5 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1 z-10 shadow-md">
+            <span>Photo {activeImageIndex + 1} / {images.length}</span>
+          </div>
+        )}
+
+        {/* FLÈCHES DE NAVIGATION RAPIDE SI PLUSIEURS IMAGES */}
+        {images.length > 1 && (
+          <div className="absolute inset-y-0 inset-x-2 flex items-center justify-between pointer-events-none z-10">
+            <button
+              type="button"
+              onClick={handlePrevImage}
+              className="p-1.5 rounded-full bg-slate-950/80 text-white hover:text-[#D4AF37] hover:bg-slate-900 border border-slate-700/80 pointer-events-auto transition-all shadow-md"
+              aria-label="Photo précédente"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextImage}
+              className="p-1.5 rounded-full bg-slate-950/80 text-white hover:text-[#D4AF37] hover:bg-slate-900 border border-slate-700/80 pointer-events-auto transition-all shadow-md"
+              aria-label="Photo suivante"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* BANDEAU BAS SUR L'IMAGE : VIGNETTES ET ORIGINE */}
+        <div className="absolute bottom-2 inset-x-3 flex items-end justify-between gap-2 z-10">
+          {images.length > 1 ? (
+            <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-sm p-1 rounded-xl border border-slate-800">
+              {images.map((imgUrl, idx) => (
+                <button
+                  key={imgUrl}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex(idx);
+                  }}
+                  className={`w-7 h-7 rounded-lg overflow-hidden border transition-all ${
+                    activeImageIndex === idx
+                      ? 'border-[#D4AF37] ring-1 ring-[#D4AF37] scale-105'
+                      : 'border-slate-700 opacity-60 hover:opacity-100'
+                  }`}
+                  aria-label={`Afficher la photo ${idx + 1}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imgUrl} alt={`Vignette ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div />
+          )}
+
+          <div className="bg-slate-950/90 text-slate-300 px-2.5 py-1 rounded-md text-[11px] font-bold border border-slate-700 shrink-0">
+            {t.catalogue.originLabel} {getLocalizedCountry(product.originCountry, locale)}
+          </div>
+        </div>
+      </div>
+
+      {/* CONTENU TEXTE DU PRODUIT */}
+      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+        <div className="space-y-2">
+          {showCompanyHeader && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-extrabold text-amber-400 bg-amber-950/60 px-2.5 py-0.5 rounded border border-amber-500/30">
+                {getLocalizedSector(product.category, locale)}
+              </span>
+              <span className="font-semibold text-slate-300 truncate max-w-[150px]">
+                {product.company.companyName}
+              </span>
+            </div>
+          )}
+
+          <h3 className="text-base font-black text-white group-hover:text-amber-300 transition-colors">
+            {product.title}
+          </h3>
+
+          {/* DESCRIPTION LISIBLE DANS SON ENSEMBLE */}
+          <div className="space-y-1">
+            <p
+              className={`text-xs text-slate-300 leading-relaxed whitespace-pre-line break-words ${
+                isExpanded ? 'max-h-72 overflow-y-auto pr-1' : isLongDesc ? 'line-clamp-2' : ''
+              }`}
+            >
+              {product.description}
+            </p>
+            {isLongDesc && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-[11px] font-extrabold text-[#E5A93C] hover:text-[#D4AF37] flex items-center gap-1 transition-colors pt-0.5"
+              >
+                <span>{isExpanded ? 'Réduire la description ▲' : 'Lire la description complète ▼'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* TARIFS, MOQ & ACTION DE MISE EN RELATION */}
+        <div className="pt-3 border-t border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
+                {t.catalogue.indicativeB2bPrice}
+              </p>
+              <p className="text-base font-black text-white">
+                {formatPriceRange(product.priceMin, product.priceMax, product.currency)}
+                <span className="text-xs font-normal text-slate-400"> / {getLocalizedProductUnit(product.unit, product.title, locale)}</span>
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
+                {t.catalogue.minOrderMoq}
+              </p>
+              <p className="text-xs font-bold text-emerald-400 flex items-center gap-1 justify-end bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                <Package className="w-3.5 h-3.5" />
+                {product.moq} {getLocalizedProductUnit(product.unit, product.title, locale)}s
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onRequestQuote(product)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
+          >
+            <Send className="w-3.5 h-3.5 text-slate-950" />
+            {t.catalogue.requestWholesaleQuote}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -721,85 +920,16 @@ export default function CataloguePage() {
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((prod) => (
-              <div
+              <CatalogProductCard
                 key={prod.id}
-                className="glass-card glass-card-hover rounded-3xl overflow-hidden flex flex-col justify-between group border border-slate-800 hover:border-[#D4AF37]"
-              >
-                <div className="relative h-48 bg-slate-950 overflow-hidden">
-                  <CatalogImage
-                    src={prod.images[0]}
-                    alt={prod.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
-                  />
-                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
-                    {prod.company.isVerified ? (
-                      <BadgeVerified />
-                    ) : (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-950 text-amber-300 border border-amber-500/30">
-                        {t.catalogue.verificationInProgress}
-                      </span>
-                    )}
-                  </div>
-                  <div className="absolute bottom-3 right-3 bg-slate-950/90 text-slate-300 px-2.5 py-1 rounded-md text-xs font-bold border border-slate-700">
-                    {t.catalogue.originLabel} {getLocalizedCountry(prod.originCountry, locale)}
-                  </div>
-                </div>
-
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-extrabold text-amber-400 bg-amber-950/60 px-2.5 py-0.5 rounded border border-amber-500/30">
-                        {getLocalizedSector(prod.category, locale)}
-                      </span>
-                      <span className="font-semibold text-slate-300">
-                        {prod.company.companyName}
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-black text-white line-clamp-2 group-hover:text-amber-300 transition-colors">
-                      {prod.title}
-                    </h3>
-
-                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                      {prod.description}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-800 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                          {t.catalogue.indicativeB2bPrice}
-                        </p>
-                        <p className="text-base font-black text-white">
-                          {formatPriceRange(prod.priceMin, prod.priceMax, prod.currency)}
-                          <span className="text-xs font-normal text-slate-400"> / {getLocalizedProductUnit(prod.unit, prod.title, locale)}</span>
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                          {t.catalogue.minOrderMoq}
-                        </p>
-                        <p className="text-xs font-bold text-emerald-400 flex items-center gap-1 justify-end bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
-                          <Package className="w-3.5 h-3.5" />
-                          {prod.moq} {getLocalizedProductUnit(prod.unit, prod.title, locale)}s
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setSelectedProductForQuote(prod);
-                        setQuoteQuantity(prod.moq);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
-                    >
-                      <Send className="w-3.5 h-3.5 text-slate-950" />
-                      {t.catalogue.requestWholesaleQuote}
-                    </button>
-                  </div>
-                </div>
-              </div>
+                product={prod}
+                locale={locale}
+                showCompanyHeader={true}
+                onRequestQuote={(p) => {
+                  setSelectedProductForQuote(p);
+                  setQuoteQuantity(p.moq);
+                }}
+              />
             ))}
           </div>
           )
@@ -927,45 +1057,16 @@ export default function CataloguePage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-h-[60vh] overflow-y-auto pr-1">
                 {selectedSupplierCatalog.products.map((p) => (
-                  <div
+                  <CatalogProductCard
                     key={p.id}
-                    className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-[#D4AF37] transition-all p-4 space-y-3"
-                  >
-                    <div className="relative h-36 rounded-xl overflow-hidden bg-slate-950">
-                      <CatalogImage
-                        src={p.images[0]}
-                        alt={p.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="font-black text-sm text-white line-clamp-1">{p.title}</h4>
-                      <p className="text-xs text-slate-400 line-clamp-2">{p.description}</p>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">{t.catalogue.b2bPrice}</span>
-                        <span className="font-black text-white">{formatPriceRange(p.priceMin, p.priceMax, p.currency)}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block">MOQ</span>
-                        <span className="font-bold text-emerald-400">{p.moq} {getLocalizedProductUnit(p.unit, p.title, locale)}s</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setSelectedProductForQuote(p);
-                        setQuoteQuantity(p.moq);
-                      }}
-                      className="w-full py-2 px-3 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Send className="w-3.5 h-3.5 text-slate-950" />
-                      {t.catalogue.requestQuoteBtn}
-                    </button>
-                  </div>
+                    product={p}
+                    locale={locale}
+                    showCompanyHeader={false}
+                    onRequestQuote={(prod) => {
+                      setSelectedProductForQuote(prod);
+                      setQuoteQuantity(prod.moq);
+                    }}
+                  />
                 ))}
               </div>
             )}
@@ -976,10 +1077,10 @@ export default function CataloguePage() {
       {/* MODALE DE DEMANDE DE DEVIS PRODUIT */}
       {selectedProductForQuote && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className="glass-card rounded-3xl max-w-lg w-full p-6 border border-[#D4AF37]/40 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+          <div className="glass-card rounded-3xl max-w-xl w-full p-6 sm:p-7 border border-[#D4AF37]/40 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedProductForQuote(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1"
+              className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 bg-slate-800/80 rounded-full"
             >
               <X className="w-5 h-5" />
             </button>
@@ -997,13 +1098,49 @@ export default function CataloguePage() {
               </div>
             ) : (
               <form onSubmit={handleSendQuote} className="space-y-4">
-                <div className="border-b border-slate-800 pb-3">
+                <div className="border-b border-slate-800 pb-3 pr-8">
                   <span className="text-xs font-extrabold text-[#E5A93C] uppercase tracking-wider">
                     {t.catalogue.b2bConnectionBadge}
                   </span>
                   <h3 className="text-lg font-black text-white mt-1">
                     {t.catalogue.requestQuoteFor} {selectedProductForQuote.title}
                   </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Fournisseur : <strong className="text-amber-300">{selectedProductForQuote.company.companyName}</strong> ({selectedProductForQuote.company.country})
+                  </p>
+                </div>
+
+                {/* FICHE PRODUIT : PHOTOS VALIDÉES ET DESCRIPTION COMPLÈTE LISIBLE */}
+                <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+                  {selectedProductForQuote.images && selectedProductForQuote.images.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-black uppercase text-[#D4AF37] tracking-widest">
+                        Photos certifiées ({selectedProductForQuote.images.length}) :
+                      </span>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {selectedProductForQuote.images.map((imgUrl, i) => (
+                          <div key={imgUrl} className="w-20 h-20 rounded-xl overflow-hidden border border-slate-700 shrink-0 bg-slate-950">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={imgUrl} alt={`${selectedProductForQuote.title} - photo ${i + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase text-[#E5A93C] tracking-widest">
+                      Description complète du produit :
+                    </span>
+                    <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-line break-words max-h-48 overflow-y-auto pr-1">
+                      {selectedProductForQuote.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
+                    <span>Origine : <strong className="text-white">{getLocalizedCountry(selectedProductForQuote.originCountry, locale)}</strong></span>
+                    <span>Tarif indicatif : <strong className="text-white">{formatPriceRange(selectedProductForQuote.priceMin, selectedProductForQuote.priceMax, selectedProductForQuote.currency)}</strong></span>
+                  </div>
                 </div>
 
                 <div>
