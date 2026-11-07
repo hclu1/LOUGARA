@@ -312,32 +312,54 @@ export default function AdminVerificationsPage() {
   const handleApproveSupplier = async (companyId: string, name: string) => {
     const target = suppliers.find((s) => s.id === companyId);
     const missing = target ? getMissingRequiredDocs(target) : [];
+    let overrideMissing = false;
     if (missing.length > 0) {
       const proceed = confirm(
-        `Pièce(s) manquante(s) pour "${name}" : ${missing.join(', ')}.\n\nValider quand même ce dossier ?`
+        `Pièce(s) manquante(s) pour "${name}" : ${missing.join(', ')}.\n\nValider quand même ce dossier (dérogation / dispense accordée) ?`
       );
       if (!proceed) return;
+      overrideMissing = true;
     }
+
     setSuppliers((prev) =>
       prev.map((s) =>
         s.id === companyId
-          ? { ...s, verificationStatus: 'VERIFIED', isPublished: true, verifiedAt: new Date().toISOString() }
+          ? {
+              ...s,
+              verificationStatus: 'VERIFIED',
+              isPublished: true,
+              verifiedAt: new Date().toISOString(),
+              documents: s.documents.map((d) => ({ ...d, status: 'VERIFIED' })),
+              products: s.products.map((p) => ({ ...p, moderationStatus: 'APPROVED' })),
+            }
           : s
       )
     );
+
     try {
-      await fetch('/api/admin/verifications', {
+      const res = await fetch('/api/admin/verifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'UPDATE_STATUS',
           companyId,
           status: 'VERIFIED',
+          overrideMissing,
         }),
       });
-      setActionNotice(`Badge "Vérifié Lougara" attribué à "${name}". Dossier validé.`);
-      setTimeout(() => setActionNotice(null), 4500);
-    } catch (e) {}
+      if (res.ok) {
+        setActionNotice(`Badge "Vérifié Lougara" attribué à "${name}". Dossier et catalogue validés avec succès.`);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setActionNotice(`Erreur lors de la validation de "${name}" : ${data.error || 'Erreur serveur'}`);
+      }
+      await fetchSuppliers(false);
+      setTimeout(() => setActionNotice(null), 5000);
+    } catch (e) {
+      setActionNotice(`Erreur réseau lors de la validation de "${name}".`);
+      await fetchSuppliers(false);
+      setTimeout(() => setActionNotice(null), 5000);
+    }
   };
 
   const handleRejectSupplier = async (companyId: string, name: string) => {
@@ -352,7 +374,7 @@ export default function AdminVerificationsPage() {
       )
     );
     try {
-      await fetch('/api/admin/verifications', {
+      const res = await fetch('/api/admin/verifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -362,9 +384,19 @@ export default function AdminVerificationsPage() {
           rejectionReason: reason,
         }),
       });
-      setActionNotice(`Dossier rejeté pour "${name}".`);
-      setTimeout(() => setActionNotice(null), 4500);
-    } catch (e) {}
+      if (res.ok) {
+        setActionNotice(`Dossier rejeté pour "${name}".`);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setActionNotice(`Erreur lors du rejet de "${name}" : ${data.error || 'Erreur serveur'}`);
+      }
+      await fetchSuppliers(false);
+      setTimeout(() => setActionNotice(null), 5000);
+    } catch (e) {
+      setActionNotice(`Erreur réseau lors du rejet de "${name}".`);
+      await fetchSuppliers(false);
+      setTimeout(() => setActionNotice(null), 5000);
+    }
   };
 
   const handleToggleVisibility = async (companyId: string, willBePublished: boolean, name: string) => {
@@ -788,15 +820,22 @@ export default function AdminVerificationsPage() {
                         onClick={() => handleRejectSupplier(supplier.id, supplier.companyName)}
                         className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-rose-400 bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 transition-colors"
                       >
-                        Rejeter
+                        {supplier.verificationStatus === 'VERIFIED' ? 'Révoquer / Rejeter' : 'Rejeter'}
                       </button>
-                      <button
-                        onClick={() => handleApproveSupplier(supplier.id, supplier.companyName)}
-                        className="px-4 py-1.5 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md flex items-center gap-1"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
-                        Valider & Publier
-                      </button>
+                      {supplier.verificationStatus === 'VERIFIED' ? (
+                        <div className="px-4 py-1.5 rounded-xl text-xs font-black text-emerald-300 bg-emerald-950/90 border border-emerald-500/50 flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span>Dossier Vérifié & Agréé</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleApproveSupplier(supplier.id, supplier.companyName)}
+                          className="px-4 py-1.5 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md flex items-center gap-1"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
+                          Valider & Publier
+                        </button>
+                      )}
                     </div>
 
                     {/* Coche pour rendre la publication invisible quand elle est cochée */}
@@ -826,14 +865,26 @@ export default function AdminVerificationsPage() {
                       { type: 'IDENTITY_DOCUMENT', label: "Pièce d'identité" },
                     ].map(({ type, label }) => {
                       const found = supplier.documents.find((d) => d.documentType === type);
-                      const cls = !found
-                        ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
-                        : found.status === 'VERIFIED'
-                          ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
-                          : found.status === 'REJECTED'
-                            ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
-                            : 'bg-amber-950/60 text-amber-300 border-amber-500/40';
-                      const state = !found ? 'Manquant' : found.status === 'VERIFIED' ? 'Vérifié' : found.status === 'REJECTED' ? 'Non conforme' : 'À vérifier';
+                      const isCompanyVerified = supplier.verificationStatus === 'VERIFIED';
+                      let cls = 'bg-amber-950/60 text-amber-300 border-amber-500/40';
+                      let state = 'À vérifier';
+
+                      if (!found) {
+                        if (isCompanyVerified) {
+                          cls = 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40';
+                          state = 'Dérogation accordée';
+                        } else {
+                          cls = 'bg-rose-950/60 text-rose-300 border-rose-500/40';
+                          state = 'Manquant';
+                        }
+                      } else if (found.status === 'VERIFIED' || isCompanyVerified) {
+                        cls = 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40';
+                        state = found.notes?.includes('Dérogation') ? 'Dérogation accordée' : 'Vérifié';
+                      } else if (found.status === 'REJECTED') {
+                        cls = 'bg-rose-950/60 text-rose-300 border-rose-500/40';
+                        state = 'Non conforme';
+                      }
+
                       return (
                         <span key={type} className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${cls}`}>
                           {label} : {state}

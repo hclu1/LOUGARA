@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.19.2] - 2026-11-07
+### Corrigé
+- Console admin : confirmation de validation malgré une pièce manquante (« Valider quand même ») désormais 100% effective.
+- Enregistrement immédiat en base avec dérogation tracée pour les pièces dispensées par le modérateur.
+- La pastille de document passe en « Dérogation accordée » (vert) au lieu de rester bloquée en rouge « Manquant ».
+- La carte du fournisseur passe au badge « Dossier Vérifié & Agréé » avec suppression du bouton « Valider & Publier » en boucle.
+- Validation automatique de tous les produits du dossier lors de l'approbation globale pour publication immédiate au catalogue.
+- Synchronisation réseau sécurisée avec `await fetchSuppliers()` et messages d'erreurs en cas de rejet API.
 ## [0.19.1] - 2026-11-07
 ### Corrigé
 - La pièce d'identité du dirigeant n'était jamais enregistrée : elle n'apparaissait donc pas dans la console admin (« Manquant »). Kbis et pièce d'identité sont maintenant réellement téléversés (nouvelle API `POST /api/suppliers/kyb-documents`, type vérifié côté serveur, 8 Mo max) et rattachés au dossier pour validation.

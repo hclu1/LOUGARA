@@ -77,6 +77,7 @@ export async function PATCH(request: Request) {
       productId,
       moderationStatus,
       moderationNotes,
+      overrideMissing = false,
     } = body;
 
     // 1. Action sur un document individuel (KBIS, CNI, NINEA)
@@ -149,14 +150,62 @@ export async function PATCH(request: Request) {
     };
 
     // Publication de la fiche entreprise lorsque le dossier passe VERIFIED.
-    // Les produits restent soumis a leur propre moderation (texte + images) :
-    // seuls ceux deja APPROVED sont (re)publies.
+    // Tous les produits en attente sont validés et publiés au catalogue.
+    // Tous les documents existants sont passés en VERIFIED.
     if (status === VerificationStatus.VERIFIED) {
       updateData.isPublished = true;
       await prisma.product.updateMany({
-        where: { companyId, moderationStatus: 'APPROVED' },
-        data: { isPublished: true },
+        where: { companyId },
+        data: {
+          isPublished: true,
+          moderationStatus: 'APPROVED',
+          moderatedAt: new Date(),
+        },
       });
+
+      await prisma.verificationDocument.updateMany({
+        where: { companyId },
+        data: { status: 'VERIFIED' },
+      });
+
+      // Si le modérateur valide avec dérogation sur des pièces manquantes
+      if (overrideMissing) {
+        const existingDocs = await prisma.verificationDocument.findMany({
+          where: { companyId },
+          select: { documentType: true },
+        });
+        const existingTypes = new Set(existingDocs.map((d) => d.documentType));
+
+        if (!existingTypes.has('COMMERCIAL_REGISTER')) {
+          await prisma.verificationDocument.create({
+            data: {
+              companyId,
+              documentType: 'COMMERCIAL_REGISTER',
+              filePath: 'dispense_kbis.pdf',
+              fileName: 'Dérogation_Kbis_Accordée.pdf',
+              fileSize: 0,
+              mimeType: 'application/pdf',
+              status: 'VERIFIED',
+              notes: 'Dérogation Kbis / RCCM accordée par le modérateur.',
+            },
+          });
+        }
+
+        if (!existingTypes.has('IDENTITY_DOCUMENT')) {
+          await prisma.verificationDocument.create({
+            data: {
+              companyId,
+              documentType: 'IDENTITY_DOCUMENT',
+              filePath: 'dispense_identite.pdf',
+              fileName: 'Dérogation_Identité_Accordée.pdf',
+              fileSize: 0,
+              mimeType: 'application/pdf',
+              status: 'VERIFIED',
+              notes: 'Dérogation pièce d\'identité accordée par le modérateur.',
+            },
+          });
+        }
+      }
     } else if (status === VerificationStatus.REJECTED) {
       updateData.isPublished = false;
       await prisma.product.updateMany({
@@ -168,6 +217,10 @@ export async function PATCH(request: Request) {
     const updated = await prisma.companyProfile.update({
       where: { id: companyId },
       data: updateData,
+      include: {
+        documents: true,
+        products: true,
+      },
     });
 
     return NextResponse.json({ success: true, company: updated });
