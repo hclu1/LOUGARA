@@ -124,8 +124,25 @@ export default function AdminHubPage() {
     }
   }, [activeTab, fetchAdminProducts]);
 
-  const handleToggleLinkApproval = async (productId: string, currentStatus: boolean) => {
+  const handleToggleLinkApproval = async (
+    productId: string,
+    currentStatus: boolean,
+    customExternalLink?: string
+  ) => {
+    const nextStatus = !currentStatus;
     setLinkApprovalUpdatingId(productId);
+    // Mise à jour optimiste immédiate de la coche
+    setAdminProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId
+          ? {
+              ...p,
+              isLinkApproved: nextStatus,
+              ...(customExternalLink ? { externalLink: customExternalLink } : {}),
+            }
+          : p
+      )
+    );
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -134,17 +151,23 @@ export default function AdminHubPage() {
       const res = await fetch(`/api/admin/products/${productId}/link-approval`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ isLinkApproved: !currentStatus, adminEmail: user?.email }),
+        body: JSON.stringify({
+          isLinkApproved: nextStatus,
+          externalLink: customExternalLink,
+          adminEmail: user?.email,
+        }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (!data.success) {
         setAdminProducts((prev) =>
-          prev.map((p) => (p.id === productId ? { ...p, isLinkApproved: !currentStatus } : p))
+          prev.map((p) => (p.id === productId ? { ...p, isLinkApproved: currentStatus } : p))
         );
-      } else {
         alert(data.error || 'Erreur lors de la mise à jour du statut.');
       }
     } catch {
+      setAdminProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, isLinkApproved: currentStatus } : p))
+      );
       alert('Erreur réseau.');
     } finally {
       setLinkApprovalUpdatingId(null);
@@ -802,22 +825,28 @@ export default function AdminHubPage() {
                               )}
                             </td>
                             <td className="p-3 text-center">
-                              {hasLink ? (
-                                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                                  <input
-                                    type="checkbox"
-                                    checked={Boolean(prod.isLinkApproved)}
-                                    disabled={isUpdating}
-                                    onChange={() => handleToggleLinkApproval(prod.id, Boolean(prod.isLinkApproved))}
-                                    className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-900 border-slate-700 cursor-pointer"
-                                  />
-                                  <span className={`text-[11px] font-bold ${prod.isLinkApproved ? 'text-emerald-400' : 'text-slate-400'}`}>
-                                    {prod.isLinkApproved ? 'Lien validé ✓' : 'Valider ce lien'}
-                                  </span>
-                                </label>
-                              ) : (
-                                <span className="text-[11px] text-slate-600">—</span>
-                              )}
+                              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(prod.isLinkApproved)}
+                                  disabled={isUpdating}
+                                  onChange={() =>
+                                    handleToggleLinkApproval(
+                                      prod.id,
+                                      Boolean(prod.isLinkApproved),
+                                      prod.externalLink || prod.company?.website || undefined
+                                    )
+                                  }
+                                  className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-900 border-slate-700 cursor-pointer accent-emerald-500"
+                                />
+                                <span
+                                  className={`text-[11px] font-bold ${
+                                    prod.isLinkApproved ? 'text-emerald-400' : 'text-slate-400'
+                                  }`}
+                                >
+                                  {prod.isLinkApproved ? 'Lien validé ✓' : 'Valider ce lien'}
+                                </span>
+                              </label>
                             </td>
                             <td className="p-3 text-right">
                               {prod.isLinkApproved ? (

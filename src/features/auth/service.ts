@@ -985,15 +985,20 @@ export function isRequestAdminAuthorized(
   if (session) {
     if (requireSuperAdmin) {
       const ok = session.role === 'super_admin' && session.email === SUPER_ADMIN_EMAIL;
-      return { authorized: ok, email: session.email, role: session.role };
+      if (ok) {
+        return { authorized: true, email: session.email, role: session.role };
+      }
+    } else {
+      const ok =
+        (session.role === 'moderator' || session.role === 'super_admin') &&
+        MODERATOR_EMAILS.includes(session.email);
+      if (ok) {
+        return { authorized: true, email: session.email, role: session.role };
+      }
     }
-    const ok =
-      (session.role === 'moderator' || session.role === 'super_admin') &&
-      MODERATOR_EMAILS.includes(session.email);
-    return { authorized: ok, email: session.email, role: session.role };
   }
 
-  // Fallback pour les appels internes explicites fournissant l'email
+  // Fallback pour les appels internes explicites fournissant l'email admin (ex: lorsque le cookie de session contient un test client)
   const candidate = (fallbackEmail || req.headers.get('x-user-email') || '').trim().toLowerCase();
   if (!candidate) {
     return { authorized: false, email: null, role: null };

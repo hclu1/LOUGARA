@@ -152,6 +152,15 @@ describe('Séparation Site Public / Espace Admin & Sécurité des Mots de Passe'
         headers: { cookie: `lougara_session=${encodeURIComponent(modToken)}` },
       });
       expect(isRequestAdminAuthorized(modReq).authorized).toBe(true);
+
+      // Même si le navigateur contient un cookie client, un en-tête ou fallbackEmail admin authentifié est autorisé
+      const clientWithAdminHeaderReq = new Request('http://localhost:3000/api/admin/products/123/link-approval', {
+        headers: {
+          cookie: `lougara_session=${encodeURIComponent(clientToken)}`,
+          'x-user-email': 'champagcrypt@gmail.com',
+        },
+      });
+      expect(isRequestAdminAuthorized(clientWithAdminHeaderReq, 'champagcrypt@gmail.com').authorized).toBe(true);
     });
   });
 

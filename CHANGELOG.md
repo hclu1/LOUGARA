@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.22.1] - 2026-11-07
+### Corrigé
+- **Fonctionnement immédiat de la coche de validation du lien de l'application dans l'espace Admin (`/admin` Onglets 1, 2, 4, `/admin/mots-de-passe` et `/admin/verifications`)** :
+  - **Mise à jour optimiste instantanée** dans `AdminPasswordValidationPanel`, `AdminVerificationsPage` et l'onglet `Modération Catalogues` de `/admin` : le clic sur la case à cocher du lien de l'application coche ou décoche immédiatement l'état visuel sans attendre l'aller-retour serveur ni écraser la saisie.
+  - **Correction de l'autorisation Admin (`isRequestAdminAuthorized` dans `src/features/auth/service.ts`)** : lorsqu'un administrateur a préalablement testé une connexion client dans le même navigateur (cookie `lougara_session` client présent), les appels API d'administration (`/api/admin/products/[id]/link-approval`, `/api/admin/products`, `/api/admin/password-validations`) ne sont plus bloqués en `403` et prennent bien en compte l'accréditation admin (`x-user-email` / `adminEmail`).
+  - **Résolution automatique de l'URL (`UPDATE_ONLINE_LINK` et `/api/admin/products/[id]/link-approval`)** : récupération automatique du lien depuis le produit, le site de la société (`CompanyProfile.website`) ou la description si le champ n'était pas pré-rempli, avec double persistance Prisma + Supabase REST.
+  - **Affichage direct du bouton « Visiter le site / l'application en ligne » sur les cartes de catalogues (`/catalogue`)** : dès que la coche du lien est activée dans l'admin, le bouton cliquable vers l'application en ligne s'affiche directement sur la carte du catalogue dans l'onglet principal « Catalogues Entreprises » ainsi que dans l'en-tête de la modale du catalogue et sur les fiches produits.
+
 ## [0.22.0] - 2026-11-07
 ### Ajouté
 - **Connexion directe du client depuis son catalogue avec e-mail pré-rempli (`/catalogue`, `/mon-catalogue`, `/connexion`)** :

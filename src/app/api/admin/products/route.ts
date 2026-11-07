@@ -6,6 +6,17 @@ import { isRequestAdminAuthorized } from '@/features/auth/service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+function extractUrlFromText(text?: string | null): string | null {
+  if (!text) return null;
+  const urlMatch = text.match(/https?:\/\/[^\s,;)"']+/i);
+  if (urlMatch) return urlMatch[0].replace(/[.,;!?]+$/, '');
+  const domainMatch = text.match(
+    /\b([a-z0-9-]+\.(?:fr|com|net|org|io|sn|ci|africa|eu|shop|store)(?:\/[^\s,;)"']*)?)/i
+  );
+  if (domainMatch) return `https://${domainMatch[1].replace(/[.,;!?]+$/, '')}`;
+  return null;
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -49,9 +60,19 @@ export async function GET(req: Request) {
       } catch {}
     }
 
+    const enrichedProducts = products.map((p: any) => ({
+      ...p,
+      externalLink:
+        p.externalLink ||
+        p.company?.website ||
+        extractUrlFromText(p.description) ||
+        null,
+      isLinkApproved: Boolean(p.isLinkApproved),
+    }));
+
     return NextResponse.json({
       success: true,
-      products,
+      products: enrichedProducts,
     });
   } catch (error: any) {
     console.error('Erreur API /api/admin/products :', error);

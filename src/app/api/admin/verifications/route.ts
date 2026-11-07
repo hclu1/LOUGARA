@@ -253,77 +253,144 @@ export async function PATCH(request: Request) {
       const approved = Boolean(isLinkApproved);
 
       if (productId) {
-        let updatedProduct: any;
+        let updatedProduct: any = null;
         try {
+          const existingProd = await prisma.product.findUnique({
+            where: { id: productId },
+            include: { company: true },
+          });
+          const resolvedUrl =
+            cleanUrl ||
+            normalizeUrl(existingProd?.externalLink) ||
+            normalizeUrl(existingProd?.company?.website) ||
+            extractUrlFromText(existingProd?.description) ||
+            extractUrlFromText(existingProd?.company?.description) ||
+            null;
+
           updatedProduct = await prisma.product.update({
             where: { id: productId },
             data: {
-              ...(cleanUrl !== null ? { externalLink: cleanUrl } : {}),
+              ...(resolvedUrl !== null ? { externalLink: resolvedUrl } : {}),
               isLinkApproved: approved,
             },
           });
-          if (companyId && cleanUrl) {
-            await prisma.companyProfile.update({
-              where: { id: companyId },
-              data: { website: cleanUrl },
-            }).catch(() => {});
+          const targetCompanyId = companyId || existingProd?.companyId;
+          if (targetCompanyId && resolvedUrl) {
+            await prisma.companyProfile
+              .update({
+                where: { id: targetCompanyId },
+                data: { website: resolvedUrl },
+              })
+              .catch(() => {});
           }
         } catch {
+          const { data: existingProd } = await supabaseAdmin
+            .from('Product')
+            .select('*, company:CompanyProfile(*)')
+            .eq('id', productId)
+            .maybeSingle();
+
+          const resolvedUrl =
+            cleanUrl ||
+            normalizeUrl(existingProd?.externalLink) ||
+            normalizeUrl(existingProd?.company?.website) ||
+            extractUrlFromText(existingProd?.description) ||
+            extractUrlFromText(existingProd?.company?.description) ||
+            null;
+
           const { data } = await supabaseAdmin
             .from('Product')
             .update({
-              ...(cleanUrl !== null ? { externalLink: cleanUrl } : {}),
+              ...(resolvedUrl !== null ? { externalLink: resolvedUrl } : {}),
               isLinkApproved: approved,
             })
             .eq('id', productId)
             .select()
             .single();
           updatedProduct = data;
-          if (companyId && cleanUrl) {
-            await supabaseAdmin.from('CompanyProfile').update({ website: cleanUrl }).eq('id', companyId);
+          const targetCompanyId = companyId || existingProd?.companyId;
+          if (targetCompanyId && resolvedUrl) {
+            await supabaseAdmin
+              .from('CompanyProfile')
+              .update({ website: resolvedUrl })
+              .eq('id', targetCompanyId);
           }
         }
         return NextResponse.json({
           success: true,
           product: updatedProduct,
+          isLinkApproved: approved,
+          externalLink: updatedProduct?.externalLink || cleanUrl,
           message: approved
-            ? 'Lien du site en ligne validé et activé sur le catalogue.'
-            : 'Lien du site en ligne désactivé sur le catalogue.',
+            ? 'Lien de l’application / site en ligne validé et activé sur le catalogue.'
+            : 'Lien de l’application / site en ligne désactivé sur le catalogue.',
         });
       }
 
       if (companyId) {
+        let resolvedCompanyUrl = cleanUrl;
         try {
-          if (cleanUrl !== null) {
+          if (!resolvedCompanyUrl) {
+            const existingComp = await prisma.companyProfile.findUnique({
+              where: { id: companyId },
+              include: { products: true },
+            });
+            resolvedCompanyUrl =
+              normalizeUrl(existingComp?.website) ||
+              normalizeUrl(existingComp?.products?.find((p) => p.externalLink)?.externalLink) ||
+              extractUrlFromText(existingComp?.description) ||
+              existingComp?.products?.map((p) => extractUrlFromText(p.description)).find(Boolean) ||
+              null;
+          }
+          if (resolvedCompanyUrl !== null) {
             await prisma.companyProfile.update({
               where: { id: companyId },
-              data: { website: cleanUrl },
+              data: { website: resolvedCompanyUrl },
             });
           }
           await prisma.product.updateMany({
             where: { companyId },
             data: {
-              ...(cleanUrl !== null ? { externalLink: cleanUrl } : {}),
+              ...(resolvedCompanyUrl !== null ? { externalLink: resolvedCompanyUrl } : {}),
               isLinkApproved: approved,
             },
           });
         } catch {
-          if (cleanUrl !== null) {
-            await supabaseAdmin.from('CompanyProfile').update({ website: cleanUrl }).eq('id', companyId);
+          if (!resolvedCompanyUrl) {
+            const { data: existingComp } = await supabaseAdmin
+              .from('CompanyProfile')
+              .select('*, products:Product(*)')
+              .eq('id', companyId)
+              .maybeSingle();
+            resolvedCompanyUrl =
+              normalizeUrl(existingComp?.website) ||
+              normalizeUrl((existingComp?.products || []).find((p: any) => p.externalLink)?.externalLink) ||
+              extractUrlFromText(existingComp?.description) ||
+              (existingComp?.products || []).map((p: any) => extractUrlFromText(p.description)).find(Boolean) ||
+              null;
+          }
+          if (resolvedCompanyUrl !== null) {
+            await supabaseAdmin
+              .from('CompanyProfile')
+              .update({ website: resolvedCompanyUrl })
+              .eq('id', companyId);
           }
           await supabaseAdmin
             .from('Product')
             .update({
-              ...(cleanUrl !== null ? { externalLink: cleanUrl } : {}),
+              ...(resolvedCompanyUrl !== null ? { externalLink: resolvedCompanyUrl } : {}),
               isLinkApproved: approved,
             })
             .eq('companyId', companyId);
         }
         return NextResponse.json({
           success: true,
+          companyId,
+          isLinkApproved: approved,
+          externalLink: resolvedCompanyUrl,
           message: approved
-            ? 'Lien du site en ligne validé et activé pour ce catalogue.'
-            : 'Lien du site en ligne désactivé pour ce catalogue.',
+            ? 'Lien de l’application / site en ligne validé et activé pour ce catalogue.'
+            : 'Lien de l’application / site en ligne désactivé pour ce catalogue.',
         });
       }
 

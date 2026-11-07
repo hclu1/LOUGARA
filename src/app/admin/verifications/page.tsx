@@ -523,6 +523,42 @@ export default function AdminVerificationsPage() {
     externalLink: string;
     isLinkApproved: boolean;
   }) => {
+    const normalizedUrl = params.externalLink.trim()
+      ? /^https?:\/\//i.test(params.externalLink.trim())
+        ? params.externalLink.trim()
+        : `https://${params.externalLink.trim()}`
+      : '';
+
+    setSuppliers((prev) =>
+      prev.map((s) => {
+        if (s.id !== params.companyId) return s;
+        if (params.productId) {
+          return {
+            ...s,
+            website: normalizedUrl || s.website,
+            products: s.products.map((p) =>
+              p.id === params.productId
+                ? {
+                    ...p,
+                    externalLink: normalizedUrl || p.externalLink,
+                    isLinkApproved: params.isLinkApproved,
+                  }
+                : p
+            ),
+          };
+        }
+        return {
+          ...s,
+          website: normalizedUrl || s.website,
+          products: s.products.map((p) => ({
+            ...p,
+            externalLink: normalizedUrl || p.externalLink,
+            isLinkApproved: params.isLinkApproved,
+          })),
+        };
+      })
+    );
+
     try {
       const res = await fetch('/api/admin/verifications', {
         method: 'PATCH',
@@ -531,21 +567,23 @@ export default function AdminVerificationsPage() {
           action: 'UPDATE_ONLINE_LINK',
           companyId: params.companyId,
           productId: params.productId,
-          externalLink: params.externalLink,
+          externalLink: normalizedUrl || params.externalLink,
           isLinkApproved: params.isLinkApproved,
         }),
       });
       if (res.ok) {
-        await fetchSuppliers(false);
         setActionNotice(
           params.isLinkApproved
-            ? 'Lien du site en ligne validé et affiché sur le catalogue.'
-            : 'Lien du site en ligne désactivé sur le catalogue.'
+            ? 'Lien de l’application / site en ligne validé et affiché sur le catalogue.'
+            : 'Lien de l’application / site en ligne désactivé sur le catalogue.'
         );
         setTimeout(() => setActionNotice(null), 4000);
+      } else {
+        await fetchSuppliers(false);
       }
     } catch (e) {
       console.error('Erreur validation lien :', e);
+      await fetchSuppliers(false);
     }
   };
 

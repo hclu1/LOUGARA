@@ -51,6 +51,7 @@ export interface PasswordValidationRequestItem {
   reviewedBy?: string;
   rejectionReason?: string;
   isCatalogueActive?: boolean;
+  isCompanyLinkApproved?: boolean;
   website?: string | null;
   products?: PasswordValidationProductItem[];
 }
@@ -193,20 +194,30 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
           }
         }
 
-        // Initialiser les brouillons de liens externes
-        const drafts: Record<string, string> = {};
-        for (const reqItem of mergedRequests) {
-          if (reqItem.companyId) {
-            drafts[`comp-${reqItem.companyId}`] =
-              reqItem.website ||
-              reqItem.products?.find((p) => p.externalLink)?.externalLink ||
-              '';
+        // Initialiser les brouillons de liens externes sans écraser avec une chaîne vide
+        setLinkDrafts((prev) => {
+          const next = { ...prev };
+          for (const reqItem of mergedRequests) {
+            if (reqItem.companyId) {
+              const compKey = `comp-${reqItem.companyId}`;
+              const serverCompUrl =
+                reqItem.website ||
+                reqItem.products?.find((p) => p.externalLink)?.externalLink ||
+                '';
+              if (!next[compKey] || !next[compKey].trim()) {
+                next[compKey] = serverCompUrl;
+              }
+            }
+            for (const prod of reqItem.products || []) {
+              const prodKey = `prod-${prod.id}`;
+              const serverProdUrl = prod.externalLink || reqItem.website || '';
+              if (!next[prodKey] || !next[prodKey].trim()) {
+                next[prodKey] = serverProdUrl;
+              }
+            }
           }
-          for (const prod of reqItem.products || []) {
-            drafts[`prod-${prod.id}`] = prod.externalLink || reqItem.website || '';
-          }
-        }
-        setLinkDrafts((prev) => ({ ...drafts, ...prev }));
+          return next;
+        });
 
         const pendingCount = mergedRequests.filter((r) => r.status === 'PENDING').length;
         const approvedCount = mergedRequests.filter((r) => r.status === 'APPROVED').length;
@@ -336,6 +347,46 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
     setUpdatingControlId(controlKey);
     setErrorMessage(null);
 
+    const normalizedUrl = params.externalLink.trim()
+      ? /^https?:\/\//i.test(params.externalLink.trim())
+        ? params.externalLink.trim()
+        : `https://${params.externalLink.trim()}`
+      : '';
+
+    // Mise à jour optimiste immédiate de l'état de la coche
+    setRequests((prev) =>
+      prev.map((r) => {
+        if (r.companyId !== params.companyId) return r;
+        if (params.productId) {
+          const updatedProds = (r.products || []).map((p) =>
+            p.id === params.productId
+              ? {
+                  ...p,
+                  externalLink: normalizedUrl || p.externalLink,
+                  isLinkApproved: params.isLinkApproved,
+                }
+              : p
+          );
+          return {
+            ...r,
+            website: normalizedUrl || r.website,
+            isCompanyLinkApproved: updatedProds.some((p) => p.isLinkApproved),
+            products: updatedProds,
+          };
+        }
+        return {
+          ...r,
+          website: normalizedUrl || r.website,
+          isCompanyLinkApproved: params.isLinkApproved,
+          products: (r.products || []).map((p) => ({
+            ...p,
+            externalLink: normalizedUrl || p.externalLink,
+            isLinkApproved: params.isLinkApproved,
+          })),
+        };
+      })
+    );
+
     try {
       const res = await fetch('/api/admin/verifications', {
         method: 'PATCH',
@@ -344,23 +395,24 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
           action: 'UPDATE_ONLINE_LINK',
           companyId: params.companyId,
           productId: params.productId,
-          externalLink: params.externalLink,
+          externalLink: normalizedUrl || params.externalLink,
           isLinkApproved: params.isLinkApproved,
         }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        await fetchPasswordRequests(false);
         setSuccessMessage(
           params.isLinkApproved
-            ? 'Lien du site en ligne validé et activé sur le catalogue public.'
-            : 'Lien du site en ligne désactivé sur le catalogue public.'
+            ? 'Lien de l’application / site en ligne validé et activé sur le catalogue public.'
+            : 'Lien de l’application / site en ligne désactivé sur le catalogue public.'
         );
       } else {
         setErrorMessage(data.error || 'Impossible de mettre à jour le lien en ligne.');
+        await fetchPasswordRequests(false);
       }
     } catch {
       setErrorMessage('Erreur réseau lors de la validation du lien.');
+      await fetchPasswordRequests(false);
     } finally {
       setUpdatingControlId(null);
     }
@@ -732,9 +784,12 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
             const products = item.products || [];
             const isCatalogueActive = item.isCatalogueActive !== false;
             const companyLinkDraft = companyId
-              ? linkDrafts[`comp-${companyId}`] ?? item.website ?? products[0]?.externalLink ?? ''
+              ? linkDrafts[`comp-${companyId}`] || item.website || products[0]?.externalLink || ''
               : '';
-            const isAnyLinkApproved = products.some((p) => p.isLinkApproved);
+            const isAnyLinkApproved =
+              products.length > 0
+                ? products.some((p) => p.isLinkApproved)
+                : Boolean(item.isCompanyLinkApproved);
 
             return (
               <div

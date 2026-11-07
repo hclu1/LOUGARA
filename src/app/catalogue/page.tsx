@@ -561,7 +561,7 @@ export default function CataloguePage() {
                 priceMax: Number(p.priceMax) || 0,
                 currency: p.currency || 'EUR',
                 images: Array.isArray(p.images) ? p.images : [],
-                externalLink: p.externalLink || null,
+                externalLink: p.externalLink || p.company?.website || null,
                 isLinkApproved: Boolean(p.isLinkApproved),
                 company: {
                   id: p.company?.id || 'comp-unknown',
@@ -611,7 +611,7 @@ export default function CataloguePage() {
                   priceMax: Number(p.priceMax) || 0,
                   currency: p.currency || 'EUR',
                   images: Array.isArray(p.images) ? p.images : [],
-                  externalLink: p.externalLink || null,
+                  externalLink: p.externalLink || s.website || null,
                   isLinkApproved: Boolean(p.isLinkApproved),
                   company: {
                     id: s.id,
@@ -1067,6 +1067,26 @@ export default function CataloguePage() {
                   </div>
 
                   <div className="pt-3 border-t border-slate-800 space-y-2">
+                    {(() => {
+                      const approvedLink = cat.products.find(
+                        (p) => p.isLinkApproved && p.externalLink
+                      )?.externalLink;
+                      if (!approvedLink) return null;
+                      return (
+                        <a
+                          href={approvedLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-extrabold text-amber-300 bg-amber-950/75 hover:bg-amber-900/80 border border-amber-500/40 transition-all shadow-sm"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Visiter le site / l&apos;application en ligne</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      );
+                    })()}
+
                     <button
                       onClick={() => setSelectedSupplierCatalog(cat)}
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
@@ -1268,7 +1288,26 @@ export default function CataloguePage() {
                 </p>
               </div>
 
-              <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {(() => {
+                  const approvedLink = selectedSupplierCatalog.products.find(
+                    (p) => p.isLinkApproved && p.externalLink
+                  )?.externalLink;
+                  if (!approvedLink) return null;
+                  return (
+                    <a
+                      href={approvedLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black text-amber-300 bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 transition-all shadow-md"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Visiter le site en ligne</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  );
+                })()}
+
                 {user &&
                 selectedSupplierCatalog.email &&
                 user.email.toLowerCase() === selectedSupplierCatalog.email.toLowerCase() ? (
