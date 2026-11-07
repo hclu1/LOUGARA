@@ -113,6 +113,7 @@ export default function AdminVerificationsPage() {
   const [filterTab, setFilterTab] = useState<'ALL' | 'NEW' | 'PENDING' | 'VERIFIED' | 'REJECTED' | 'UNPUBLISHED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [expandedProducts, setExpandedProducts] = useState<string[]>([]);
 
   // Stats Analytics Visiteurs
   const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
@@ -910,7 +911,41 @@ export default function AdminVerificationsPage() {
                                 {st === 'APPROVED' ? 'Validé' : st === 'REJECTED' ? 'Rejeté' : 'À valider'}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-300 whitespace-pre-line line-clamp-4">{prod.description}</p>
+                            {(() => {
+                              const isOpen = expandedProducts.includes(prod.id);
+                              const isLong = (prod.description || '').length > 180;
+                              return (
+                                <div>
+                                  <p
+                                    onClick={() =>
+                                      isLong &&
+                                      setExpandedProducts((prev) =>
+                                        isOpen ? prev.filter((id) => id !== prod.id) : [...prev, prod.id]
+                                      )
+                                    }
+                                    className={`text-[11px] text-slate-300 whitespace-pre-line break-words ${
+                                      isOpen ? 'max-h-72 overflow-y-auto' : 'line-clamp-4'
+                                    } ${isLong ? 'cursor-pointer hover:text-white' : ''}`}
+                                    title={isLong ? (isOpen ? 'Cliquer pour réduire' : 'Cliquer pour lire le texte complet') : undefined}
+                                  >
+                                    {prod.description}
+                                  </p>
+                                  {isLong && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedProducts((prev) =>
+                                          isOpen ? prev.filter((id) => id !== prod.id) : [...prev, prod.id]
+                                        )
+                                      }
+                                      className="mt-1 text-[10px] font-bold text-[#D4AF37] hover:underline"
+                                    >
+                                      {isOpen ? 'Réduire ▲' : 'Lire le texte complet ▼'}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             {prod.images && prod.images.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
                                 {prod.images.map((src) => (

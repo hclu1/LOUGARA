@@ -5,6 +5,29 @@ import { getKybDocumentUrl, getCatalogImagePublicPrefix } from '@/lib/supabase-s
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/** Valide un chemin de stockage renvoye par /api/suppliers/kyb-documents (pas de chemin arbitraire). */
+function safeStoragePath(p: any): string | null {
+  return typeof p === 'string' && /^uploads\/[A-Za-z0-9._-]+$/.test(p) ? p : null;
+}
+
+function buildKycDocument(
+  documentType: 'COMMERCIAL_REGISTER' | 'IDENTITY_DOCUMENT',
+  displayName: any,
+  storagePath: string | null
+) {
+  if (!storagePath) return null;
+  const fileName = typeof displayName === 'string' && displayName.trim() ? displayName.trim().slice(0, 200) : storagePath.split('/').pop()!;
+  const ext = fileName.toLowerCase().split('.').pop();
+  const mimeType =
+    ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+  return {
+    documentType,
+    filePath: getKybDocumentUrl(storagePath, fileName),
+    fileName,
+    fileSize: 0,
+    mimeType,
+  };
+}
 const MAX_PRODUCTS = 10;
 const MAX_IMAGES_PER_PRODUCT = 4;
 
@@ -94,9 +117,16 @@ export async function POST(req: NextRequest) {
       hasCatalogAdSpace = true,
       products = [],
       kbisFile,
+      kbisStoragePath,
+      cniFile,
+      cniStoragePath,
     } = body;
 
     const cleanProducts = sanitizeProducts(products, sector);
+    const kycDocuments = [
+      buildKycDocument('COMMERCIAL_REGISTER', kbisFile, safeStoragePath(kbisStoragePath)),
+      buildKycDocument('IDENTITY_DOCUMENT', cniFile, safeStoragePath(cniStoragePath)),
+    ].filter((d): d is NonNullable<typeof d> => d !== null);
 
     if (!companyName || !email) {
       return NextResponse.json(
@@ -140,22 +170,7 @@ export async function POST(req: NextRequest) {
         verificationStatus: 'PENDING', // Placé en attente de vérification pour la modération
         isPublished: false, // Ne pas publier le site tant que le modérateur ne l'a pas validé/publié
         verifiedAt: null,
-        documents: kbisFile
-          ? {
-              create: [
-                {
-                  documentType: 'COMMERCIAL_REGISTER',
-                  filePath: getKybDocumentUrl(
-                    typeof kbisFile === 'string' ? kbisFile : 'Extrait_Immatriculation.pdf',
-                    typeof kbisFile === 'string' ? kbisFile : 'Extrait_Immatriculation.pdf'
-                  ),
-                  fileName: typeof kbisFile === 'string' ? kbisFile : 'Extrait_Immatriculation.pdf',
-                  fileSize: 1048576,
-                  mimeType: 'application/pdf',
-                },
-              ],
-            }
-          : undefined,
+        documents: kycDocuments.length > 0 ? { create: kycDocuments } : undefined,
         // Produits crees EN ATTENTE de moderation : texte et images ne sont visibles
         // au catalogue qu'apres validation explicite par Lougara.
         products: {

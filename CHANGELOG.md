@@ -4,6 +4,13 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.19.1] - 2026-11-07
+### Corrigé
+- La pièce d'identité du dirigeant n'était jamais enregistrée : elle n'apparaissait donc pas dans la console admin (« Manquant »). Kbis et pièce d'identité sont maintenant réellement téléversés (nouvelle API `POST /api/suppliers/kyb-documents`, type vérifié côté serveur, 8 Mo max) et rattachés au dossier pour validation.
+- Console admin : la description d'un produit trop longue se déplie en un clic (« Lire le texte complet ») au lieu d'être tronquée.
+
+### Modifié
+- Pièce d'identité du dirigeant obligatoire à l'envoi du dossier fournisseur.
 ## [0.19.0] - 2026-11-07
 ### Ajouté - Catalogue fournisseur : photos + modération Lougara
 - Étape 3 « Gamme B2B » : description détaillée, prix optionnels, quantité minimale, unité et jusqu'à 4 photos par produit (JPG/PNG/WEBP, 5 Mo, type vérifié côté serveur).

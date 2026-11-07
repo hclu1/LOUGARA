@@ -64,6 +64,9 @@ export default function DevenirFournisseurPage() {
   const [cniFile, setCniFile] = useState<string | null>(null);
   const [cniFileSize, setCniFileSize] = useState<string>('');
   const [cniFilePath, setCniFilePath] = useState<string | null>(null);
+  const [kbisStoragePath, setKbisStoragePath] = useState<string | null>(null);
+  const [cniStoragePath, setCniStoragePath] = useState<string | null>(null);
+  const [docError, setDocError] = useState<string | null>(null);
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanStep, setScanStep] = useState<string>('');
@@ -99,9 +102,25 @@ export default function DevenirFournisseurPage() {
     if (data.contactName) setContactName(data.contactName);
   };
 
-  const handleProcessKbisFile = async (file: File) => {
-    const sizeStr = `${(file.size / 1024 / 1024).toFixed(2)} Mo`;
+  /** Televerse reellement la piece KYB (Kbis / identite) pour qu'elle soit examinee par Lougara. */
+  const uploadKybPiece = async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/suppliers/kyb-documents', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok && data.success && data.path) return data.path as string;
+      setDocError(data?.error || `Échec du téléversement de « ${file.name} ».`);
+    } catch {
+      setDocError(`Échec du téléversement de « ${file.name} ».`);
+    }
+    return null;
+  };
+
+  const handleProcessKbisFile = async (file: File) => {    const sizeStr = `${(file.size / 1024 / 1024).toFixed(2)} Mo`;
     setKbisFilePath(null);
+    setDocError(null);
+    uploadKybPiece(file).then((storedPath) => setKbisStoragePath(storedPath));
     setIsScanning(true);
     setScanStep(locale === 'fr' ? 'Détection du document et extraction légale...' : 'Detecting document and legal parsing...');
 
@@ -163,6 +182,7 @@ export default function DevenirFournisseurPage() {
     setKbisFile(null);
     setKbisFileSize('');
     setKbisFilePath(null);
+    setKbisStoragePath(null);
     setOcrConfidence(null);
     setAutoFilled(false);
   };
@@ -234,6 +254,11 @@ export default function DevenirFournisseurPage() {
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cniStoragePath) {
+      setDocError("La pièce d'identité du dirigeant est obligatoire : téléversez un fichier (JPG, PNG, WEBP ou PDF).");
+      return;
+    }
+    setDocError(null);
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/suppliers', {
@@ -252,7 +277,9 @@ export default function DevenirFournisseurPage() {
           hasCatalogAdSpace,
           products: catalogProducts,
           kbisFile,
+          kbisStoragePath,
           cniFile,
+          cniStoragePath,
         }),
       });
       if (!res.ok) {
@@ -704,7 +731,7 @@ export default function DevenirFournisseurPage() {
                   <div className="pt-2">
                     <DocumentDropzone
                       id="supplier-cni-dropzone"
-                      label={locale === 'fr' ? 'Pièce d\'identité du dirigeant ou justificatif légal (Optionnel)' : 'Manager ID Card or Legal Certificate (Optional)'}
+                      label={locale === 'fr' ? 'Pièce d\'identité du dirigeant (CNI ou Passeport) *' : 'Manager ID Card or Passport *'}
                       title={locale === 'fr' ? 'Déposez la CNI, Passeport ou justificatif d\'identité' : 'Upload ID Card, Passport or Identity Document'}
                       subtitle={locale === 'fr' ? 'PDF, PNG, JPG, WEBP • Clic, glisser-déposer ou saisie de chemin' : 'PDF, PNG, JPG, WEBP • Click, drag & drop or path'}
                       currentFile={cniFile}
@@ -714,20 +741,29 @@ export default function DevenirFournisseurPage() {
                         setCniFile(file.name);
                         setCniFileSize(`${(file.size / 1024 / 1024).toFixed(2)} Mo`);
                         setCniFilePath(null);
+                        setCniStoragePath(null);
+                        setDocError(null);
+                        uploadKybPiece(file).then((storedPath) => setCniStoragePath(storedPath));
                       }}
                       onPathSelected={(pathStr) => {
                         setCniFilePath(pathStr);
                         setCniFile(pathStr.split(/[\\/]/).pop() || pathStr);
                         setCniFileSize('Chemin renseigné');
+                        setCniStoragePath(null);
                       }}
                       onRemoveFile={() => {
                         setCniFile(null);
                         setCniFileSize('');
                         setCniFilePath(null);
+                        setCniStoragePath(null);
                       }}
                       locale={locale}
                     />
                   </div>
+
+                  {docError && (
+                    <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-300">{docError}</div>
+                  )}
 
                   <button
                     type="submit"
