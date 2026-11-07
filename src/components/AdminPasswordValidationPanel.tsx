@@ -219,7 +219,11 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
           return next;
         });
 
-        const pendingCount = mergedRequests.filter((r) => r.status === 'PENDING').length;
+        const pendingCount = mergedRequests.filter(
+          (r) =>
+            r.status === 'PENDING' ||
+            (r.products || []).some((p) => !p.isPublished || p.moderationStatus !== 'APPROVED')
+        ).length;
         const approvedCount = mergedRequests.filter((r) => r.status === 'APPROVED').length;
         const rejectedCount = mergedRequests.filter((r) => r.status === 'REJECTED').length;
 
@@ -580,7 +584,14 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
   };
 
   const filteredRequests = requests.filter((reqItem) => {
-    if (statusFilter !== 'ALL' && reqItem.status !== statusFilter) return false;
+    const hasPendingPages = (reqItem.products || []).some(
+      (p) => !p.isPublished || p.moderationStatus !== 'APPROVED'
+    );
+    if (statusFilter === 'PENDING') {
+      if (reqItem.status !== 'PENDING' && !hasPendingPages) return false;
+    } else if (statusFilter !== 'ALL' && reqItem.status !== statusFilter) {
+      return false;
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
@@ -935,8 +946,29 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
                     )}
                   </div>
 
-                  {/* ACTIONS VALIDER / REFUSER */}
+                  {/* ACTIONS VALIDER / REFUSER + VALIDATION FINALE DES PAGES VITRINES EN ATTENTE */}
                   <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    {companyId &&
+                      products.some((p) => !p.isPublished || p.moderationStatus !== 'APPROVED') && (
+                        <button
+                          type="button"
+                          disabled={updatingControlId === `approve-all-prods-${companyId}`}
+                          onClick={() => handleApproveAllCatalogPages(companyId, item.companyName)}
+                          className="px-4 py-2 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 shadow-lg transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                          <span>
+                            {updatingControlId === `approve-all-prods-${companyId}`
+                              ? 'Validation en cours...'
+                              : `✓ Valider les nouvelles pages (${
+                                  products.filter(
+                                    (p) => !p.isPublished || p.moderationStatus !== 'APPROVED'
+                                  ).length
+                                } en attente) — Admin Lougara`}
+                          </span>
+                        </button>
+                      )}
+
                     {!isRejected && (
                       <button
                         type="button"

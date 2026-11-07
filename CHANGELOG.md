@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.23.1] - 2026-11-07
+### Corrigé
+- **Validation des Pages Vitrines ajoutées dans « Gérer mon catalogue » (`/mon-catalogue`, `/api/suppliers/my-catalog`, `/admin`)** :
+  - **Enregistrement unifié et sans blocage** : les boutons **« Valider et enregistrer la Page Vitrine N »** et **« Valider mes pages (X/4) »** sauvegardent désormais simultanément toutes les pages renseignées (1 à 4) dès qu'un titre est saisi (avec repli automatique de la description sur le titre si la description est laissée vide), sans jamais écraser les brouillons des autres emplacements.
+  - **Résolution automatique du profil catalogue (`findExistingCompany`)** : prise en compte prioritaire de l'adresse e-mail du catalogue (`?email=...` / `body.email`) et repli automatique sur le catalogue fournisseur actif lorsqu'un administrateur teste `/mon-catalogue`, évitant toute erreur `404` de correspondance de compte.
+  - **Retour visuel immédiat au niveau du bouton de validation** : affichage d'un bandeau de confirmation vert juste au-dessus du bouton cliqué, passage du bouton à l'état vert **« ✓ Page Vitrine N validée et enregistrée »** et ajout d'un bouton direct **« Valider dans Admin Lougara → »** pour effectuer la validation finale en 1 clic.
+  - **Remontée automatique dans les compteurs « À Valider / À Vérifier » de l'Admin (`/admin` Onglets 1 & 2, `/admin/verifications`)** : un catalogue déjà vérifié ayant de nouvelles pages vitrines en attente (`PENDING`) remonte désormais dans le filtre **« À Valider (En attente) »** avec un bouton d'action rapide en haut de la fiche **« ✓ Valider les nouvelles pages (X en attente) — Admin Lougara »**.
+
 ## [0.23.0] - 2026-11-07
 ### Ajouté
 - **Gestion et validation jusqu'à 4 Pages Vitrines dans « Gérer mon catalogue » (`/mon-catalogue` & `/catalogue`)** :

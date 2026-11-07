@@ -234,7 +234,13 @@ export default function AdminHubPage() {
         const companies = Array.isArray(data.companies) ? data.companies : [];
         if (cancelled) return;
 
-        const pending = companies.filter((c: any) => c.verificationStatus === 'PENDING').length;
+        const pending = companies.filter(
+          (c: any) =>
+            c.verificationStatus === 'PENDING' ||
+            (c.products || []).some(
+              (p: any) => p.moderationStatus !== 'APPROVED' || p.isPublished === false
+            )
+        ).length;
         const verified = companies.filter((c: any) => c.verificationStatus === 'VERIFIED').length;
         setPendingKybCount(pending);
         setVerifiedKybCount(verified);

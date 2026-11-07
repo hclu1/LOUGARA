@@ -28,7 +28,6 @@ import {
   Layers,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage } from '@/context/LanguageContext';
 
 const MAX_SHOWCASE_PAGES = 4;
 const MAX_IMAGES_PER_PAGE = 4;
@@ -101,7 +100,7 @@ interface CatalogData {
 
 function createEmptyPageDraft(
   slotIndex: number,
-  defaultCategory = 'Agroalimentaire & Épices',
+  defaultCategory = 'Général',
   defaultOrigin = 'France'
 ): ShowcasePageDraft {
   return {
@@ -109,7 +108,7 @@ function createEmptyPageDraft(
     id: undefined,
     title: '',
     externalLink: '',
-    category: defaultCategory || 'Agroalimentaire & Épices',
+    category: defaultCategory || 'Général',
     originCountry: defaultOrigin || 'France',
     description: '',
     priceMin: '',
@@ -128,7 +127,6 @@ function createEmptyPageDraft(
 
 export default function MonCataloguePage() {
   const { user, loginWithPassword, isLoading: authLoading } = useAuth();
-  const { locale } = useLanguage();
 
   const [catalogData, setCatalogData] = useState<CatalogData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -165,12 +163,12 @@ export default function MonCataloguePage() {
 
   // Formulaire Modale Produit
   const [formTitle, setFormTitle] = useState('');
-  const [formCategory, setFormCategory] = useState('Agroalimentaire & Épices');
+  const [formCategory, setFormCategory] = useState('Général');
   const [formDescription, setFormDescription] = useState('');
   const [formPriceMin, setFormPriceMin] = useState('');
   const [formPriceMax, setFormPriceMax] = useState('');
   const [formCurrency, setFormCurrency] = useState('EUR');
-  const [formMoq, setFormMoq] = useState('10');
+  const [formMoq, setFormMoq] = useState('1');
   const [formUnit, setFormUnit] = useState('pièce');
   const [formOrigin, setFormOrigin] = useState('France');
   const [formImages, setFormImages] = useState<string[]>([]);
@@ -232,81 +230,106 @@ export default function MonCataloguePage() {
     }
   };
 
-  const syncDraftsFromCatalog = useCallback((data: CatalogData) => {
+  const syncDraftsFromCatalog = useCallback((data: CatalogData, preserveUnsaved = true) => {
     const prods = Array.isArray(data.products) ? data.products : [];
-    const defaultCat = prods[0]?.category || data.company?.sector || 'Agroalimentaire & Épices';
+    const defaultCat = prods[0]?.category || data.company?.sector || 'Général';
     const defaultOrig = prods[0]?.originCountry || data.company?.country || 'France';
     const firstLink = prods[0]?.externalLink || '';
 
-    const nextDrafts: ShowcasePageDraft[] = [0, 1, 2, 3].map((slotIdx) => {
-      const existingProd = prods[slotIdx];
-      if (existingProd) {
-        return {
-          slotIndex: slotIdx,
-          id: existingProd.id,
-          title: existingProd.title || '',
-          externalLink: existingProd.externalLink || '',
-          category: existingProd.category || defaultCat,
-          originCountry: existingProd.originCountry || defaultOrig,
-          description: existingProd.description || '',
-          priceMin:
-            existingProd.priceMin !== null && existingProd.priceMin !== undefined
-              ? String(existingProd.priceMin)
-              : '',
-          priceMax:
-            existingProd.priceMax !== null && existingProd.priceMax !== undefined
-              ? String(existingProd.priceMax)
-              : '',
-          currency: existingProd.currency || 'EUR',
-          moq: String(existingProd.moq || 1),
-          unit: existingProd.unit || 'pièce',
-          images: Array.isArray(existingProd.images) ? existingProd.images : [],
-          imageUrlInput: '',
-          moderationStatus: existingProd.moderationStatus || (existingProd.isPublished ? 'APPROVED' : 'PENDING'),
-          moderationNotes: existingProd.moderationNotes || null,
-          isPublished: Boolean(existingProd.isPublished),
-          isLinkApproved: Boolean(existingProd.isLinkApproved),
-          isDirty: false,
-        };
-      }
-      const empty = createEmptyPageDraft(slotIdx, defaultCat, defaultOrig);
-      if (firstLink) {
-        empty.externalLink = firstLink;
-      }
-      return empty;
-    });
-    setPageDrafts(nextDrafts);
+    setPageDrafts((prevDrafts) =>
+      [0, 1, 2, 3].map((slotIdx) => {
+        const existingProd = prods[slotIdx];
+        if (existingProd) {
+          return {
+            slotIndex: slotIdx,
+            id: existingProd.id,
+            title: existingProd.title || '',
+            externalLink: existingProd.externalLink || '',
+            category: existingProd.category || defaultCat,
+            originCountry: existingProd.originCountry || defaultOrig,
+            description: existingProd.description || '',
+            priceMin:
+              existingProd.priceMin !== null && existingProd.priceMin !== undefined
+                ? String(existingProd.priceMin)
+                : '',
+            priceMax:
+              existingProd.priceMax !== null && existingProd.priceMax !== undefined
+                ? String(existingProd.priceMax)
+                : '',
+            currency: existingProd.currency || 'EUR',
+            moq: String(existingProd.moq || 1),
+            unit: existingProd.unit || 'pièce',
+            images: Array.isArray(existingProd.images) ? existingProd.images : [],
+            imageUrlInput: '',
+            moderationStatus:
+              existingProd.moderationStatus || (existingProd.isPublished ? 'APPROVED' : 'PENDING'),
+            moderationNotes: existingProd.moderationNotes || null,
+            isPublished: Boolean(existingProd.isPublished),
+            isLinkApproved: Boolean(existingProd.isLinkApproved),
+            isDirty: false,
+          };
+        }
+
+        // Préserver un brouillon non encore sauvegardé si l'utilisateur a commencé à le remplir
+        const prevSlot = prevDrafts[slotIdx];
+        if (
+          preserveUnsaved &&
+          prevSlot &&
+          !prevSlot.id &&
+          prevSlot.isDirty &&
+          (prevSlot.title.trim() || prevSlot.description.trim() || prevSlot.images.length > 0)
+        ) {
+          return prevSlot;
+        }
+
+        const empty = createEmptyPageDraft(slotIdx, defaultCat, defaultOrig);
+        if (firstLink) {
+          empty.externalLink = firstLink;
+        }
+        return empty;
+      })
+    );
   }, []);
 
-  const fetchCatalog = useCallback(async () => {
-    const targetEmail = (user?.email || loginEmail || '').trim().toLowerCase();
-    if (!targetEmail) return;
-    setIsLoading(true);
-    setErrorNotice(null);
-    try {
-      const res = await fetch(
-        `/api/suppliers/my-catalog?email=${encodeURIComponent(targetEmail)}&_t=${Date.now()}`,
-        {
-          cache: 'no-store',
-        }
-      );
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErrorNotice(data.error || 'Impossible de charger votre catalogue.');
-        return;
-      }
-      setCatalogData(data);
-      syncDraftsFromCatalog(data);
-    } catch {
-      setErrorNotice('Erreur réseau lors de la récupération de votre vitrine.');
-    } finally {
-      setIsLoading(false);
+  const getEffectiveCatalogEmail = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const qEmail = new URLSearchParams(window.location.search).get('email');
+      if (qEmail && qEmail.trim()) return qEmail.trim().toLowerCase();
     }
-  }, [user?.email, loginEmail, syncDraftsFromCatalog]);
+    return (loginEmail || user?.email || '').trim().toLowerCase();
+  }, [loginEmail, user?.email]);
+
+  const fetchCatalog = useCallback(
+    async (preserveUnsaved = true) => {
+      const targetEmail = getEffectiveCatalogEmail();
+      if (!targetEmail) return;
+      setIsLoading(true);
+      try {
+        const res = await fetch(
+          `/api/suppliers/my-catalog?email=${encodeURIComponent(targetEmail)}&_t=${Date.now()}`,
+          {
+            cache: 'no-store',
+          }
+        );
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          setErrorNotice(data.error || 'Impossible de charger votre catalogue.');
+          return;
+        }
+        setCatalogData(data);
+        syncDraftsFromCatalog(data, preserveUnsaved);
+      } catch {
+        setErrorNotice('Erreur réseau lors de la récupération de votre vitrine.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [getEffectiveCatalogEmail, syncDraftsFromCatalog]
+  );
 
   useEffect(() => {
     if (!authLoading && user?.email) {
-      fetchCatalog();
+      fetchCatalog(false);
     }
   }, [authLoading, user?.email, fetchCatalog]);
 
@@ -395,15 +418,19 @@ export default function MonCataloguePage() {
     });
   };
 
-  // Valider une Page Vitrine individuelle (Page 1, 2, 3 ou 4) et l'envoyer à Admin Lougara
+  // Valider la Page Vitrine active (et sauvegarder en même temps toutes les pages renseignées pour ne rien perdre)
   const handleValidateSinglePage = async (slotIndex: number) => {
-    if (!user?.email) return;
+    const targetEmail = getEffectiveCatalogEmail();
+    if (!targetEmail) return;
     const draft = pageDrafts[slotIndex];
     if (!draft) return;
 
-    if (!draft.title.trim() || !draft.description.trim()) {
+    const cleanTitle = draft.title.trim() || draft.description.trim().split('\n')[0]?.slice(0, 120) || '';
+    const cleanDesc = draft.description.trim() || cleanTitle;
+
+    if (!cleanTitle) {
       setErrorNotice(
-        `Veuillez renseigner au moins le titre et la description de la Page Vitrine ${slotIndex + 1} avant de la valider.`
+        `Veuillez renseigner au moins le titre de la Page Vitrine ${slotIndex + 1} avant de la valider.`
       );
       return;
     }
@@ -412,38 +439,55 @@ export default function MonCataloguePage() {
     setErrorNotice(null);
     setSuccessNotice(null);
 
-    const isUpdate = Boolean(draft.id);
-    const payload = {
-      email: user.email,
-      id: draft.id,
-      title: draft.title.trim(),
-      description: draft.description.trim(),
-      category: draft.category,
-      priceMin: draft.priceMin || null,
-      priceMax: draft.priceMax || null,
-      currency: draft.currency,
-      moq: draft.moq ? parseInt(draft.moq, 10) : 1,
-      unit: draft.unit,
-      originCountry: draft.originCountry,
-      images: draft.images,
-      externalLink: draft.externalLink.trim() || null,
-    };
+    // On récupère toutes les pages renseignées (1 à 4) afin d'enregistrer la page courante ET toute autre page remplie
+    const allFilledPages = pageDrafts
+      .map((d, idx) => {
+        const t =
+          idx === slotIndex
+            ? cleanTitle
+            : d.title.trim() || d.description.trim().split('\n')[0]?.slice(0, 120) || '';
+        const desc = idx === slotIndex ? cleanDesc : d.description.trim() || t;
+        return {
+          ...d,
+          title: t,
+          description: desc,
+        };
+      })
+      .filter((d) => d.title.length > 0);
 
     try {
       const res = await fetch('/api/suppliers/my-catalog', {
-        method: isUpdate ? 'PUT' : 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          email: targetEmail,
+          pages: allFilledPages.map((d) => ({
+            id: d.id,
+            title: d.title,
+            description: d.description,
+            category: d.category || 'Général',
+            priceMin: d.priceMin || null,
+            priceMax: d.priceMax || null,
+            currency: d.currency || 'EUR',
+            moq: d.moq ? parseInt(d.moq, 10) : 1,
+            unit: d.unit || 'pièce',
+            originCountry: d.originCountry || 'France',
+            images: d.images,
+            externalLink: d.externalLink.trim() || null,
+          })),
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setErrorNotice(data.error || `Erreur lors de la validation de la Page Vitrine ${slotIndex + 1}.`);
+        setErrorNotice(
+          data.error || `Erreur lors de la validation de la Page Vitrine ${slotIndex + 1}.`
+        );
         return;
       }
       setSuccessNotice(
-        `Page Vitrine ${slotIndex + 1}/4 (« ${draft.title.trim()} ») validée par vous ! Elle est maintenant transmise à l'Admin Lougara pour validation finale.`
+        `✓ Page Vitrine ${slotIndex + 1}/4 (« ${cleanTitle} ») validée et enregistrée avec succès ! Elle est maintenant transmise à l'Admin Lougara pour validation finale.`
       );
-      await fetchCatalog();
+      await fetchCatalog(false);
     } catch {
       setErrorNotice('Erreur réseau lors de la validation de votre page vitrine.');
     } finally {
@@ -453,14 +497,25 @@ export default function MonCataloguePage() {
 
   // Valider toutes les Pages Vitrines renseignées (1 à 4) d'un seul clic et les envoyer à Admin Lougara
   const handleValidateAllPages = async () => {
-    if (!user?.email) return;
-    const filledPages = pageDrafts.filter(
-      (d) => d.title.trim().length > 0 && d.description.trim().length > 0
-    );
+    const targetEmail = getEffectiveCatalogEmail();
+    if (!targetEmail) return;
+
+    const filledPages = pageDrafts
+      .map((d) => {
+        const cleanTitle =
+          d.title.trim() || d.description.trim().split('\n')[0]?.slice(0, 120) || '';
+        const cleanDesc = d.description.trim() || cleanTitle;
+        return {
+          ...d,
+          title: cleanTitle,
+          description: cleanDesc,
+        };
+      })
+      .filter((d) => d.title.length > 0);
 
     if (filledPages.length === 0) {
       setErrorNotice(
-        'Veuillez compléter au moins une page vitrine (titre et description) avant de valider.'
+        'Veuillez renseigner au moins le titre d’une page vitrine avant de valider.'
       );
       return;
     }
@@ -474,18 +529,18 @@ export default function MonCataloguePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: user.email,
+          email: targetEmail,
           pages: filledPages.map((d) => ({
             id: d.id,
-            title: d.title.trim(),
-            description: d.description.trim(),
-            category: d.category,
+            title: d.title,
+            description: d.description,
+            category: d.category || 'Général',
             priceMin: d.priceMin || null,
             priceMax: d.priceMax || null,
-            currency: d.currency,
+            currency: d.currency || 'EUR',
             moq: d.moq ? parseInt(d.moq, 10) : 1,
-            unit: d.unit,
-            originCountry: d.originCountry,
+            unit: d.unit || 'pièce',
+            originCountry: d.originCountry || 'France',
             images: d.images,
             externalLink: d.externalLink.trim() || null,
           })),
@@ -493,14 +548,16 @@ export default function MonCataloguePage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setErrorNotice(data.error || 'Erreur lors de la validation groupée de vos pages vitrines.');
+        setErrorNotice(
+          data.error || 'Erreur lors de la validation groupée de vos pages vitrines.'
+        );
         return;
       }
       setSuccessNotice(
         data.message ||
-          `Vos ${filledPages.length} page(s) vitrine(s) ont été validées et transmises à l'Admin Lougara pour validation finale !`
+          `✓ Vos ${filledPages.length} page(s) vitrine(s) ont bien été validées et transmises à l'Admin Lougara pour validation finale !`
       );
-      await fetchCatalog();
+      await fetchCatalog(false);
     } catch {
       setErrorNotice('Erreur réseau lors de la validation de vos pages.');
     } finally {
@@ -522,25 +579,6 @@ export default function MonCataloguePage() {
     }
   };
 
-  const handleOpenAddModal = () => {
-    setEditingProduct(null);
-    setFormTitle('');
-    setFormCategory(catalogData?.company?.sector || 'Agroalimentaire & Épices');
-    setFormDescription('');
-    setFormPriceMin('');
-    setFormPriceMax('');
-    setFormCurrency('EUR');
-    setFormMoq('10');
-    setFormUnit('pièce');
-    setFormOrigin(catalogData?.company.country || 'France');
-    setFormImages([]);
-    setFormImageInput('');
-    setImageUploadError(null);
-    setFormExternalLink(catalogData?.products?.[0]?.externalLink || '');
-    setIsModalOpen(true);
-    setErrorNotice(null);
-  };
-
   const handleOpenEditModal = (p: ProductItem, slotIndex?: number) => {
     if (typeof slotIndex === 'number' && slotIndex >= 0 && slotIndex < MAX_SHOWCASE_PAGES) {
       setActiveSlot(slotIndex);
@@ -552,7 +590,7 @@ export default function MonCataloguePage() {
     }
     setEditingProduct(p);
     setFormTitle(p.title);
-    setFormCategory(p.category || 'Agroalimentaire & Épices');
+    setFormCategory(p.category || 'Général');
     setFormDescription(p.description || '');
     setFormPriceMin(p.priceMin ? String(p.priceMin) : '');
     setFormPriceMax(p.priceMax ? String(p.priceMax) : '');
@@ -627,10 +665,11 @@ export default function MonCataloguePage() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.email) return;
+    const targetEmail = getEffectiveCatalogEmail();
+    if (!targetEmail) return;
 
-    if (!formTitle.trim() || !formDescription.trim()) {
-      alert('Veuillez renseigner au moins le titre et la description du produit.');
+    if (!formTitle.trim()) {
+      alert('Veuillez renseigner au moins le titre de la page vitrine.');
       return;
     }
 
@@ -639,10 +678,10 @@ export default function MonCataloguePage() {
     setSuccessNotice(null);
 
     const payload = {
-      email: user.email,
+      email: targetEmail,
       id: editingProduct ? editingProduct.id : undefined,
       title: formTitle.trim(),
-      description: formDescription.trim(),
+      description: formDescription.trim() || formTitle.trim(),
       category: formCategory,
       priceMin: formPriceMin || null,
       priceMax: formPriceMax || null,
@@ -670,10 +709,10 @@ export default function MonCataloguePage() {
 
       setSuccessNotice(
         data.message ||
-          'Page vitrine enregistrée et transmise à l’Admin Lougara pour validation finale.'
+          '✓ Page vitrine enregistrée et transmise à l’Admin Lougara pour validation finale.'
       );
       setIsModalOpen(false);
-      await fetchCatalog();
+      await fetchCatalog(false);
     } catch {
       setErrorNotice('Erreur réseau lors de la sauvegarde.');
     } finally {
@@ -686,11 +725,12 @@ export default function MonCataloguePage() {
       return;
     }
 
-    if (!user?.email) return;
+    const targetEmail = getEffectiveCatalogEmail();
+    if (!targetEmail) return;
     setIsLoading(true);
     try {
       const res = await fetch(
-        `/api/suppliers/my-catalog?id=${encodeURIComponent(productId)}&email=${encodeURIComponent(user.email)}`,
+        `/api/suppliers/my-catalog?id=${encodeURIComponent(productId)}&email=${encodeURIComponent(targetEmail)}`,
         { method: 'DELETE' }
       );
       const data = await res.json();
@@ -699,7 +739,7 @@ export default function MonCataloguePage() {
         return;
       }
       setSuccessNotice('Page vitrine supprimée de votre catalogue.');
-      await fetchCatalog();
+      await fetchCatalog(false);
     } catch {
       alert('Erreur réseau lors de la suppression.');
     } finally {
@@ -818,7 +858,11 @@ export default function MonCataloguePage() {
 
           <div className="pt-2 border-t border-slate-800 text-center">
             <Link
-              href={loginEmail ? `/connexion?mode=register_password&email=${encodeURIComponent(loginEmail)}` : '/connexion'}
+              href={
+                loginEmail
+                  ? `/connexion?mode=register_password&email=${encodeURIComponent(loginEmail)}`
+                  : '/connexion'
+              }
               className="text-xs font-bold text-amber-400 hover:underline"
             >
               Créer ou réinitialiser mon mot de passe &rarr;
@@ -829,11 +873,10 @@ export default function MonCataloguePage() {
     );
   }
 
-  const quota = catalogData?.quota;
   const isLimitReached = (catalogData?.products?.length ?? 0) >= MAX_SHOWCASE_PAGES;
   const activeDraft = pageDrafts[activeSlot] || pageDrafts[0];
   const filledDraftsCount = pageDrafts.filter(
-    (d) => d.title.trim().length > 0 && d.description.trim().length > 0
+    (d) => d.title.trim().length > 0 || d.description.trim().length > 0
   ).length;
   const approvedPagesCount = (catalogData?.products || []).filter(
     (p) => p.moderationStatus === 'APPROVED' && p.isPublished
@@ -841,6 +884,12 @@ export default function MonCataloguePage() {
   const pendingPagesCount = (catalogData?.products || []).filter(
     (p) => p.moderationStatus === 'PENDING' || !p.isPublished
   ).length;
+
+  const isActivePageAlreadySaved = Boolean(activeDraft.id) && !activeDraft.isDirty;
+  const isActivePageApprovedByAdmin =
+    Boolean(activeDraft.id) &&
+    activeDraft.moderationStatus === 'APPROVED' &&
+    Boolean(activeDraft.isPublished);
 
   return (
     <div className="min-h-screen bg-[#0B132B] text-slate-100 py-10 px-4 sm:px-6 lg:px-8 space-y-8">
@@ -909,18 +958,27 @@ export default function MonCataloguePage() {
           </div>
         </div>
 
-        {/* NOTICES ALERTE / SUCCÈS */}
+        {/* NOTICES ALERTE / SUCCÈS EN HAUT DE PAGE */}
         {errorNotice && (
-          <div className="p-4 rounded-2xl bg-rose-950/80 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-start gap-3">
+          <div className="p-4 rounded-2xl bg-rose-950/90 border border-rose-500/50 text-rose-200 text-xs font-bold flex items-start gap-3 shadow-lg">
             <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
             <span>{errorNotice}</span>
           </div>
         )}
 
         {successNotice && (
-          <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs font-bold flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-            <span>{successNotice}</span>
+          <div className="p-4 rounded-2xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+              <span>{successNotice}</span>
+            </div>
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 shrink-0 shadow"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Validation Finale Admin Lougara &rarr;</span>
+            </Link>
           </div>
         )}
 
@@ -943,7 +1001,10 @@ export default function MonCataloguePage() {
               <div
                 className="h-full rounded-full transition-all duration-500 bg-emerald-500"
                 style={{
-                  width: `${Math.min(100, (((catalogData?.products.length ?? 0) / MAX_SHOWCASE_PAGES) * 100))}%`,
+                  width: `${Math.min(
+                    100,
+                    ((catalogData?.products.length ?? 0) / MAX_SHOWCASE_PAGES) * 100
+                  )}%`,
                 }}
               />
             </div>
@@ -956,14 +1017,14 @@ export default function MonCataloguePage() {
             </div>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <span className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                ✓ {approvedPagesCount} validée{approvedPagesCount > 1 ? 's' : ''} en ligne
+                ✓ {approvedPagesCount} publiée{approvedPagesCount > 1 ? 's' : ''} en ligne
               </span>
               <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-950 text-amber-300 border border-amber-500/40">
-                ⏳ {pendingPagesCount} en attente Admin Lougara
+                ✓ {pendingPagesCount} validée{pendingPagesCount > 1 ? 's' : ''} client (attente Admin)
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Chaque page validée par vous est transmise à l&apos;Admin Lougara pour validation finale.
+              Chaque page validée par vous est transmise à l&apos;Admin Lougara pour publication finale.
             </p>
           </div>
 
@@ -975,9 +1036,15 @@ export default function MonCataloguePage() {
             <div className="text-xs font-extrabold text-white">
               1. Vous validez vos pages &rarr; 2. Admin Lougara publie
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Modifiez votre 1ère page ou ajoutez les pages 2, 3 et 4 sur le même principe, validez-les, puis l&apos;Admin Lougara effectue la validation finale.
-            </p>
+            <div className="pt-1">
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-1.5 text-[11px] font-black text-amber-300 hover:text-amber-200 underline"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>Ouvrir l&apos;Espace Admin Lougara (Validation Finale) &rarr;</span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -998,7 +1065,7 @@ export default function MonCataloguePage() {
                 <span>Composer, modifier et valider mes 4 Pages Vitrines</span>
               </h2>
               <p className="text-xs text-slate-300 mt-1">
-                Sélectionnez ci-dessous la <strong>Page 1</strong> (votre première page vitrine existante) ou cliquez sur les <strong>Pages 2, 3 et 4</strong> pour en ajouter de nouvelles exactement sur le même principe, puis cliquez sur <strong>« Valider »</strong>.
+                Sélectionnez ci-dessous la <strong>Page 1</strong> (votre première page vitrine existante) ou cliquez sur les <strong>Pages 2, 3 et 4</strong> pour en ajouter de nouvelles sur le même principe, puis cliquez sur <strong>« Valider »</strong>.
               </p>
             </div>
 
@@ -1007,7 +1074,7 @@ export default function MonCataloguePage() {
               {[0, 1, 2, 3].map((slotIdx) => {
                 const slot = pageDrafts[slotIdx];
                 const existsInDb = Boolean(slot?.id);
-                const hasText = Boolean(slot?.title?.trim());
+                const hasText = Boolean(slot?.title?.trim() || slot?.description?.trim());
                 const isApproved = slot?.moderationStatus === 'APPROVED' && slot?.isPublished;
                 const isSelected = activeSlot === slotIdx;
 
@@ -1025,7 +1092,7 @@ export default function MonCataloguePage() {
                         : existsInDb
                           ? isApproved
                             ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40 hover:border-emerald-400'
-                            : 'bg-amber-950/70 text-amber-300 border-amber-500/40 hover:border-amber-400'
+                            : 'bg-emerald-950/40 text-amber-300 border-emerald-500/40 hover:border-amber-400'
                           : hasText
                             ? 'bg-slate-800 text-amber-300 border-amber-500/40'
                             : 'bg-slate-900/90 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
@@ -1045,16 +1112,14 @@ export default function MonCataloguePage() {
                           isSelected
                             ? 'text-slate-900'
                             : existsInDb
-                              ? isApproved
-                                ? 'text-emerald-400'
-                                : 'text-amber-400'
+                              ? 'text-emerald-400'
                               : 'text-slate-400'
                         }`}
                       >
                         {existsInDb
                           ? isApproved
-                            ? '✓ Validée Admin'
-                            : '⏳ En attente Admin'
+                            ? '✓ Publiée en ligne'
+                            : '✓ Validée (Envoi Admin)'
                           : hasText
                             ? 'Brouillon à valider'
                             : '+ À compléter'}
@@ -1071,18 +1136,18 @@ export default function MonCataloguePage() {
             {/* COLONNE GAUCHE (7 cols) : FORMULAIRE IDENTIQUE À LA 1ÈRE PAGE VITRINE */}
             <div className="lg:col-span-7 space-y-4 bg-slate-950/60 p-5 rounded-2xl border border-slate-800">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-[#D4AF37]/20 text-[#E5A93C] border border-[#D4AF37]/40">
                     Page Vitrine {activeSlot + 1} sur 4
                   </span>
                   {activeDraft.id ? (
-                    activeDraft.moderationStatus === 'APPROVED' && activeDraft.isPublished ? (
+                    isActivePageApprovedByAdmin ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Validée &amp; Publiée par Admin Lougara
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Validée &amp; Publiée en ligne
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-950 text-amber-300 border border-amber-500/40">
-                        <Clock className="w-3.5 h-3.5" /> En attente de validation finale Admin Lougara
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Validée par vous &bull; Transmise à Admin Lougara
                       </span>
                     )
                   ) : (
@@ -1106,7 +1171,7 @@ export default function MonCataloguePage() {
               {/* 1. TITRE DE LA PAGE VITRINE / PRODUIT */}
               <div>
                 <label className="block text-xs font-bold text-slate-200 mb-1">
-                  Titre de la Page Vitrine {activeSlot + 1} / Nom du produit ou de l&apos;offre *
+                  Titre de la Page Vitrine {activeSlot + 1} / Nom du produit ou de l&apos;application *
                 </label>
                 <input
                   type="text"
@@ -1148,6 +1213,7 @@ export default function MonCataloguePage() {
                     onChange={(e) => updateSlotDraft(activeSlot, { category: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-xs text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
                   >
+                    <option value="Général">Général / Applications &amp; Services</option>
                     <option value="Agroalimentaire & Épices">Agroalimentaire &amp; Épices</option>
                     <option value="Cosmétique & Soins">Cosmétique &amp; Soins</option>
                     <option value="Textile & Confection">Textile &amp; Confection</option>
@@ -1348,23 +1414,81 @@ export default function MonCataloguePage() {
                 </div>
               </div>
 
-              {/* BOUTONS D'ACTION : VALIDER CETTE PAGE OU TOUTES LES PAGES */}
+              {/* BANDEAU DE CONFIRMATION OU D'ERREUR DIRECTEMENT AU-DESSUS DU BOUTON VALIDER */}
+              {errorNotice && (
+                <div className="p-3.5 rounded-xl bg-rose-950/90 border border-rose-500/50 text-rose-200 text-xs font-bold flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                  <span>{errorNotice}</span>
+                </div>
+              )}
+
+              {successNotice && (
+                <div className="p-3.5 rounded-xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs font-bold space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                    <span>{successNotice}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Link
+                      href="/admin"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 shadow"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Aller à l&apos;Admin Lougara pour la validation finale &rarr;</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {isActivePageAlreadySaved && !successNotice && (
+                <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>
+                      {isActivePageApprovedByAdmin
+                        ? `✓ Page Vitrine ${activeSlot + 1}/4 validée et publiée en ligne au catalogue.`
+                        : `✓ Page Vitrine ${activeSlot + 1}/4 validée par vous ! En attente de validation finale par Admin Lougara.`}
+                    </span>
+                  </div>
+                  {!isActivePageApprovedByAdmin && (
+                    <Link
+                      href="/admin"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black text-slate-950 bg-[#D4AF37] hover:bg-amber-300 shrink-0"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Valider dans Admin Lougara &rarr;</span>
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              {/* BOUTONS D'ACTION : VALIDER CETTE PAGE OU PASSER À LA SUIVANTE */}
               <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => handleValidateSinglePage(activeSlot)}
                   disabled={savingSlot === activeSlot || isSavingAllPages}
-                  className="flex-1 py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className={`flex-1 py-3.5 px-4 rounded-xl text-xs font-black shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer ${
+                    isActivePageAlreadySaved
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+                      : 'bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 text-slate-950'
+                  }`}
                 >
                   {savingSlot === activeSlot ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isActivePageAlreadySaved ? (
+                    <CheckCircle2 className="w-4 h-4" />
                   ) : (
                     <Send className="w-4 h-4" />
                   )}
                   <span>
-                    {activeDraft.id
-                      ? `Valider mes modifications sur la Page Vitrine ${activeSlot + 1} (Envoi Admin Lougara)`
-                      : `Valider et ajouter la Page Vitrine ${activeSlot + 1} (Envoi Admin Lougara)`}
+                    {savingSlot === activeSlot
+                      ? 'Validation et enregistrement en cours...'
+                      : isActivePageAlreadySaved
+                        ? `✓ Page Vitrine ${activeSlot + 1} validée et enregistrée (Cliquer pour mettre à jour)`
+                        : activeDraft.id
+                          ? `Valider mes modifications sur la Page Vitrine ${activeSlot + 1}`
+                          : `Valider et enregistrer la Page Vitrine ${activeSlot + 1}`}
                   </span>
                 </button>
 
@@ -1372,7 +1496,7 @@ export default function MonCataloguePage() {
                   <button
                     type="button"
                     onClick={() => setActiveSlot(activeSlot + 1)}
-                    className="py-3 px-4 rounded-xl text-xs font-bold text-amber-300 bg-slate-900 border border-[#D4AF37]/40 hover:border-[#D4AF37] transition-all cursor-pointer"
+                    className="py-3.5 px-4 rounded-xl text-xs font-bold text-amber-300 bg-slate-900 border border-[#D4AF37]/40 hover:border-[#D4AF37] transition-all cursor-pointer"
                   >
                     Passer à la Page {activeSlot + 2}/4 &rarr;
                   </button>
@@ -1464,7 +1588,9 @@ export default function MonCataloguePage() {
                   <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
                     <span className="font-black text-[#E5A93C]">
                       {activeDraft.priceMin
-                        ? `${activeDraft.priceMin}${activeDraft.priceMax ? ` - ${activeDraft.priceMax}` : ''} ${activeDraft.currency}`
+                        ? `${activeDraft.priceMin}${
+                            activeDraft.priceMax ? ` - ${activeDraft.priceMax}` : ''
+                          } ${activeDraft.currency}`
                         : 'Prix sur demande'}
                     </span>
                     <span className="text-emerald-400 font-bold">
@@ -1481,13 +1607,13 @@ export default function MonCataloguePage() {
                   <span>Validation globale de votre catalogue ({filledDraftsCount}/4 pages renseignées)</span>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Vous pouvez valider uniquement la page en cours ou cliquer ci-dessous pour valider d&apos;un coup toutes vos pages renseignées. L&apos;Admin Lougara effectuera ensuite la validation finale pour les publier.
+                  Cliquez ci-dessous pour enregistrer et valider d&apos;un seul coup toutes vos pages renseignées (1 à 4). L&apos;Admin Lougara effectuera ensuite la validation finale pour les publier.
                 </p>
                 <button
                   type="button"
                   onClick={handleValidateAllPages}
                   disabled={isSavingAllPages || filledDraftsCount === 0}
-                  className="w-full py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3.5 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {isSavingAllPages ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1495,7 +1621,9 @@ export default function MonCataloguePage() {
                     <CheckCircle2 className="w-4 h-4" />
                   )}
                   <span>
-                    Valider mes {filledDraftsCount} page(s) vitrine(s) pour validation finale Admin Lougara
+                    {isSavingAllPages
+                      ? 'Validation en cours...'
+                      : `Valider mes ${filledDraftsCount} page(s) vitrine(s) (Envoi Admin Lougara)`}
                   </span>
                 </button>
               </div>
@@ -1543,7 +1671,7 @@ export default function MonCataloguePage() {
                         </span>
                         <h3 className="text-sm font-bold text-white">Emplacement disponible</h3>
                         <p className="text-[11px] text-slate-400">
-                          Cliquez ici pour créer et faire valider votre {slotIdx + 1}e page vitrine par Admin Lougara.
+                          Cliquez ici pour créer et valider votre {slotIdx + 1}e page vitrine.
                         </p>
                       </div>
                     </div>
@@ -1570,15 +1698,15 @@ export default function MonCataloguePage() {
                         </span>
                         {isApprovedByAdmin ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> Validée Admin
+                            <CheckCircle2 className="w-2.5 h-2.5" /> Publiée Admin
                           </span>
                         ) : isRejectedByAdmin ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-950 text-rose-300 border border-rose-500/40">
                             Refusée Admin
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-950 text-amber-300 border border-amber-500/40">
-                            <Clock className="w-2.5 h-2.5" /> En attente Admin
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-950/70 text-amber-300 border border-emerald-500/40">
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" /> Validée (Attente Admin)
                           </span>
                         )}
                       </div>
@@ -1701,6 +1829,7 @@ export default function MonCataloguePage() {
                     onChange={(e) => setFormCategory(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-xs text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
                   >
+                    <option value="Général">Général / Applications &amp; Services</option>
                     <option value="Agroalimentaire & Épices">Agroalimentaire &amp; Épices</option>
                     <option value="Cosmétique & Soins">Cosmétique &amp; Soins</option>
                     <option value="Textile & Confection">Textile &amp; Confection</option>
@@ -1729,7 +1858,6 @@ export default function MonCataloguePage() {
                   Description détaillée du produit *
                 </label>
                 <textarea
-                  required
                   rows={4}
                   placeholder="Caractéristiques, certifications, conditionnement, usages recommandés..."
                   value={formDescription}
@@ -1824,12 +1952,9 @@ export default function MonCataloguePage() {
                   onChange={(e) => setFormExternalLink(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
                 />
-                <p className="text-[10px] text-slate-400 leading-relaxed">
-                  Ce lien (boutique, site officiel ou plaquette PDF) sera soumis à nos administrateurs. Il apparaîtra sur votre fiche produit dès qu&apos;il aura été validé.
-                </p>
               </div>
 
-              {/* GESTION DES PHOTOS DU PRODUIT (UPLOAD DIRECT + LIEN OPTIONNEL) */}
+              {/* GESTION DES PHOTOS DU PRODUIT */}
               <div className="space-y-3 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
@@ -1911,29 +2036,6 @@ export default function MonCataloguePage() {
                         </button>
                       </div>
                     ))}
-                    {formImages.length < 4 && (
-                      <label className="h-20 rounded-xl border border-dashed border-slate-700 hover:border-[#D4AF37] bg-slate-950/60 flex flex-col items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-amber-300 cursor-pointer transition-colors">
-                        {isUploadingImages ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4 text-[#D4AF37]" />
-                            <span>+ Photo</span>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          multiple
-                          disabled={isUploadingImages}
-                          className="hidden"
-                          onChange={(e) => {
-                            handleUploadDirectPhotos(e.target.files);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-                    )}
                   </div>
                 )}
 

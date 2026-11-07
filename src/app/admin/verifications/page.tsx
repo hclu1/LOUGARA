@@ -749,12 +749,19 @@ export default function AdminVerificationsPage() {
   };
 
   const totalCount = suppliers.length;
-  const pendingCount = suppliers.filter((s) => s.verificationStatus === 'PENDING').length;
+  const pendingCount = suppliers.filter(
+    (s) =>
+      s.verificationStatus === 'PENDING' ||
+      (s.products || []).some((p) => p.moderationStatus !== 'APPROVED' || p.isPublished === false)
+  ).length;
   const verifiedCount = suppliers.filter((s) => s.verificationStatus === 'VERIFIED').length;
   const rejectedCount = suppliers.filter((s) => s.verificationStatus === 'REJECTED').length;
 
   const filteredSuppliers = suppliers.filter((s) => {
-    if (filterTab === 'PENDING' && s.verificationStatus !== 'PENDING') return false;
+    const hasPendingProduct = (s.products || []).some(
+      (p) => p.moderationStatus !== 'APPROVED' || p.isPublished === false
+    );
+    if (filterTab === 'PENDING' && s.verificationStatus !== 'PENDING' && !hasPendingProduct) return false;
     if (filterTab === 'VERIFIED' && s.verificationStatus !== 'VERIFIED') return false;
     if (filterTab === 'REJECTED' && s.verificationStatus !== 'REJECTED') return false;
 
