@@ -119,6 +119,9 @@ model Product {
   originCountry String
   images        String[]
   isPublished   Boolean        @default(true)
+  moderationStatus ModerationStatus @default(PENDING)
+  moderationNotes  String?
+  moderatedAt      DateTime?
   conversations Conversation[]
   contactRequests ContactRequest[]
   createdAt     DateTime       @default(now())
@@ -364,6 +367,9 @@ model Invoice {
   @@unique([year, sequenceNumber])
 }
 
-
-
-
+// Statut de moderation Lougara d'un produit du catalogue (texte + images)
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

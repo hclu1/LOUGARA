@@ -30,6 +30,8 @@ import { DocumentDropzone } from '@/components/DocumentDropzone';
 import { parseKbisOcrText, ParsedKbisData } from '@/features/ocr/kbis-parser';
 import { useLanguage } from '@/context/LanguageContext';
 
+const MAX_IMAGES_PER_PRODUCT = 4;
+
 interface CatalogProductItem {
   id: string;
   title: string;
@@ -51,7 +53,7 @@ export default function DevenirFournisseurPage() {
   const [companyName, setCompanyName] = useState('');
   const [country, setCountry] = useState('Sénégal');
   const [city, setCity] = useState('');
-  const [sector, setSector] = useState('Cosmétique & Soins');
+  const [sector, setSector] = useState('');
   const [companyDescription, setCompanyDescription] = useState('');
   const [regNumber, setRegNumber] = useState('');
 
@@ -70,6 +72,8 @@ export default function DevenirFournisseurPage() {
 
   // Multi-Produits (démarrage à 0 sans article fantôme)
   const [catalogProducts, setCatalogProducts] = useState<CatalogProductItem[]>([]);
+  const [uploadingProductId, setUploadingProductId] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   // Contact
   const [contactName, setContactName] = useState('');
@@ -172,16 +176,62 @@ export default function DevenirFournisseurPage() {
         title: '',
         description: '',
         category: sector,
-        priceMin: '10.00',
-        priceMax: '20.00',
+        priceMin: '',
+        priceMax: '',
         currency: 'EUR',
-        moq: 10,
+        moq: 1,
         unit: 'unité',
         images: [],
       },
     ]);
   };
 
+  const updateProduct = (id: string, patch: Partial<CatalogProductItem>) => {
+    setCatalogProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  };
+
+  const handleRemoveProduct = (id: string) => {
+    setCatalogProducts((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleUploadProductImages = async (productId: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const target = catalogProducts.find((p) => p.id === productId);
+    if (!target) return;
+    const slots = MAX_IMAGES_PER_PRODUCT - target.images.length;
+    if (slots <= 0) return;
+
+    setImageError(null);
+    setUploadingProductId(productId);
+    const uploaded: string[] = [];
+    for (const file of Array.from(files).slice(0, slots)) {
+      if (file.size > 5 * 1024 * 1024) {
+        setImageError(`« ${file.name} » dépasse 5 Mo.`);
+        continue;
+      }
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/suppliers/product-images', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok && data.success && data.url) {
+          uploaded.push(data.url);
+        } else {
+          setImageError(data?.error || `Échec du téléversement de « ${file.name} ».`);
+        }
+      } catch {
+        setImageError(`Échec du téléversement de « ${file.name} ».`);
+      }
+    }
+    if (uploaded.length > 0) {
+      setCatalogProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId ? { ...p, images: [...p.images, ...uploaded].slice(0, MAX_IMAGES_PER_PRODUCT) } : p
+        )
+      );
+    }
+    setUploadingProductId(null);
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -205,9 +255,16 @@ export default function DevenirFournisseurPage() {
           cniFile,
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setImageError(data?.error || "L'envoi du dossier a échoué. Vérifiez les champs et réessayez.");
+        setCurrentStep(3);
+        return;
+      }
       setIsSubmitted(true);
     } catch (err) {
-      setIsSubmitted(true);
+      setImageError("Connexion impossible : le dossier n'a pas été envoyé. Réessayez.");
+      setCurrentStep(3);
     } finally {
       setIsSubmitting(false);
     }
@@ -386,7 +443,23 @@ export default function DevenirFournisseurPage() {
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37]"
                       />
                     </div>
-                  </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Secteur d&apos;activité *</label>
+                      <select
+                        required
+                        value={sector}
+                        onChange={(e) => setSector(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-slate-200 focus:ring-2 focus:ring-[#D4AF37]"
+                      >
+                        <option value="">— Sélectionnez votre secteur —</option>
+                        <option value="Agroalimentaire">Agroalimentaire</option>
+                        <option value="Cosmétique">Cosmétique &amp; Soins</option>
+                        <option value="Textile">Textile</option>
+                        <option value="INDUSTRIE, MATÉRIAUX & BTP">Industrie, Matériaux &amp; BTP</option>
+                        <option value="Négoce & Commerce Général">Négoce &amp; Commerce Général</option>
+                      </select>
+                    </div>                  </div>
 
                   <div className="flex justify-between pt-4">
                     <button
@@ -420,11 +493,25 @@ export default function DevenirFournisseurPage() {
                     <button
                       type="button"
                       onClick={handleAddProduct}
-                      className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1"
+                      disabled={catalogProducts.length >= 10}
+                      className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 disabled:opacity-40"
                     >
                       <Plus className="w-4 h-4 text-emerald-400" /> Ajout Article
                     </button>
                   </div>
+
+                  <div className="p-3 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[11px] text-slate-300 leading-relaxed flex gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#D4AF37] shrink-0 mt-0.5" />
+                    <p>
+                      Lougara est une plateforme de mise en relation : vos textes et vos images sont <strong>contrôlés par Lougara</strong> en même temps que votre Kbis et votre pièce d&apos;identité.
+                      Seuls les contenus validés apparaissent dans le catalogue, et les demandes des acheteurs transitent par Lougara.
+                      N&apos;indiquez ni coordonnées de contact ni lien externe dans vos descriptions.
+                    </p>
+                  </div>
+
+                  {imageError && (
+                    <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-300">{imageError}</div>
+                  )}
 
                   <div className="space-y-4">
                     {catalogProducts.length === 0 ? (
@@ -443,18 +530,120 @@ export default function DevenirFournisseurPage() {
                         <div key={p.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-700 space-y-3">
                           <div className="flex justify-between items-center text-xs font-bold text-[#E5A93C]">
                             <span>Article #{idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveProduct(p.id)}
+                              className="text-rose-400 hover:text-rose-300 flex items-center gap-1"
+                              aria-label={`Supprimer l'article ${idx + 1}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Supprimer
+                            </button>
                           </div>
+
                           <input
                             type="text"
                             placeholder="Nom de l'article (ex: Beurre de karité bio brut)"
+                            maxLength={150}
                             value={p.title}
-                            onChange={(e) => {
-                              const next = [...catalogProducts];
-                              next[idx].title = e.target.value;
-                              setCatalogProducts(next);
-                            }}
+                            onChange={(e) => updateProduct(p.id, { title: e.target.value })}
                             className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"
                           />
+
+                          <textarea
+                            placeholder="Description détaillée : origine, composition, conditionnement, certifications..."
+                            maxLength={2000}
+                            rows={4}
+                            value={p.description}
+                            onChange={(e) => updateProduct(p.id, { description: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white resize-y"
+                          />
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="Prix min (optionnel)"
+                              value={p.priceMin}
+                              onChange={(e) => updateProduct(p.id, { priceMin: e.target.value })}
+                              className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="Prix max (optionnel)"
+                              value={p.priceMax}
+                              onChange={(e) => updateProduct(p.id, { priceMax: e.target.value })}
+                              className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"
+                            />
+                            <input
+                              type="number"
+                              min={1}
+                              placeholder="Commande min."
+                              value={p.moq}
+                              onChange={(e) => updateProduct(p.id, { moq: Math.max(1, Number(e.target.value) || 1) })}
+                              className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Unité (kg, carton...)"
+                              maxLength={30}
+                              value={p.unit}
+                              onChange={(e) => updateProduct(p.id, { unit: e.target.value })}
+                              className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"
+                            />
+                          </div>
+
+                          {/* IMAGES DU PRODUIT (validées par Lougara) */}
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                              <ImageIcon className="w-3.5 h-3.5 text-[#D4AF37]" />
+                              Photos du produit ({p.images.length}/{MAX_IMAGES_PER_PRODUCT}) &bull; JPG, PNG, WEBP &bull; 5 Mo max
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {p.images.map((src) => (
+                                <div key={src} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-700">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={src} alt={p.title || 'Photo produit'} className="w-full h-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateProduct(p.id, { images: p.images.filter((i) => i !== src) })}
+                                    className="absolute top-1 right-1 p-0.5 rounded-full bg-slate-950/90 text-rose-300"
+                                    aria-label="Retirer la photo"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                              {p.images.length < MAX_IMAGES_PER_PRODUCT && (
+                                <label className="w-20 h-20 rounded-xl border border-dashed border-slate-600 hover:border-[#D4AF37] flex flex-col items-center justify-center gap-1 text-[10px] text-slate-400 cursor-pointer">
+                                  {uploadingProductId === p.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                                  ) : (
+                                    <>
+                                      <Upload className="w-4 h-4" />
+                                      Ajouter
+                                    </>
+                                  )}
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    multiple
+                                    className="hidden"
+                                    disabled={uploadingProductId !== null}
+                                    onChange={(e) => {
+                                      handleUploadProductImages(p.id, e.target.files);
+                                      e.target.value = '';
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-slate-500">
+                            Statut après envoi : « En attente de validation Lougara ». Aucun visuel de remplacement n&apos;est affiché.
+                          </p>
                         </div>
                       ))
                     )}
@@ -478,7 +667,6 @@ export default function DevenirFournisseurPage() {
                   </div>
                 </div>
               )}
-
               {/* STEP 4 & 5 SUMMARY & SUBMIT */}
               {(currentStep === 4 || currentStep === 5) && (
                 <div className="space-y-6">

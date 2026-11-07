@@ -4,6 +4,23 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.19.0] - 2026-11-07
+### Ajouté - Catalogue fournisseur : photos + modération Lougara
+- Étape 3 « Gamme B2B » : description détaillée, prix optionnels, quantité minimale, unité et jusqu'à 4 photos par produit (JPG/PNG/WEBP, 5 Mo, type vérifié côté serveur).
+- Nouvelle API `POST /api/suppliers/product-images` (bucket Supabase `catalog-images`).
+- Console admin : modération produit par produit (texte + images) avec validation ou rejet motivé.
+- Champ Secteur d'activité dans l'étape Entreprise (plus de secteur « Cosmétique » imposé).
+- Schéma : `Product.moderationStatus / moderationNotes / moderatedAt` (script SQL : `prisma/manual/2026-11-07_product_moderation.sql`).
+
+### Modifié
+- Un produit n'apparaît au catalogue que si : fournisseur VERIFIED et publié + produit APPROVED par Lougara.
+- « Valider & Publier » un fournisseur ne publie plus automatiquement ses produits.
+- Le catalogue affiche exactement les textes validés (plus de traduction qui remplace la description).
+- Prix affiché « Prix sur demande » si non renseigné ; le message de devis indique que Lougara met en relation.
+
+### Supprimé
+- Image Unsplash de remplacement, description et prix fictifs (10–20 EUR) injectés par défaut.
+- Faux message de succès si l'envoi du dossier échoue.
 ## [0.18.13] - 2026-11-07
 ### Ajoute - Controle des pieces KYB manquantes (console admin)
 - Pastilles Kbis / Piece d'identite par dossier (Manquant, A verifier, Verifie, Non conforme).

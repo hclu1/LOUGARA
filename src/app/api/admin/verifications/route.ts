@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
           },
         },
         products: {
-          take: 5,
+          orderBy: { createdAt: 'asc' },
+          take: 10,
         },
         user: {
           select: {
@@ -73,6 +74,9 @@ export async function PATCH(request: Request) {
       issuingAuthority,
       signatureVerified,
       locationVerified,
+      productId,
+      moderationStatus,
+      moderationNotes,
     } = body;
 
     // 1. Action sur un document individuel (KBIS, CNI, NINEA)
@@ -90,6 +94,25 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: true, document: updatedDoc });
     }
 
+    // 1b. Moderation d'un produit (texte + images) : seule la validation Lougara le rend visible
+    if (action === 'MODERATE_PRODUCT' && productId) {
+      if (!['APPROVED', 'REJECTED', 'PENDING'].includes(moderationStatus)) {
+        return NextResponse.json({ success: false, error: 'moderationStatus invalide' }, { status: 400 });
+      }
+      if (moderationStatus === 'REJECTED' && !String(moderationNotes || '').trim()) {
+        return NextResponse.json({ success: false, error: 'Un motif de rejet est requis' }, { status: 400 });
+      }
+      const product = await prisma.product.update({
+        where: { id: productId },
+        data: {
+          moderationStatus,
+          moderationNotes: moderationStatus === 'APPROVED' ? null : (moderationNotes ?? null),
+          moderatedAt: moderationStatus === 'PENDING' ? null : new Date(),
+          isPublished: moderationStatus === 'APPROVED',
+        },
+      });
+      return NextResponse.json({ success: true, product });
+    }
     // 2. Toggle direct de la publication du site fournisseur et de son catalogue
     if (action === 'TOGGLE_PUBLICATION' && companyId) {
       const willBePublished = Boolean(isPublished);
@@ -100,9 +123,9 @@ export async function PATCH(request: Request) {
         },
       });
 
-      // Synchroniser immédiatement tous les produits rattachés à cette entreprise
+      // Masquer tout si depublication ; sinon ne republier que les produits deja valides par Lougara
       await prisma.product.updateMany({
-        where: { companyId },
+        where: willBePublished ? { companyId, moderationStatus: 'APPROVED' } : { companyId },
         data: {
           isPublished: willBePublished,
         },
@@ -125,11 +148,13 @@ export async function PATCH(request: Request) {
       verifiedAt: status === VerificationStatus.VERIFIED ? new Date() : null,
     };
 
-    // Auto-publication lorsque le dossier passe VERIFIED
+    // Publication de la fiche entreprise lorsque le dossier passe VERIFIED.
+    // Les produits restent soumis a leur propre moderation (texte + images) :
+    // seuls ceux deja APPROVED sont (re)publies.
     if (status === VerificationStatus.VERIFIED) {
       updateData.isPublished = true;
       await prisma.product.updateMany({
-        where: { companyId },
+        where: { companyId, moderationStatus: 'APPROVED' },
         data: { isPublished: true },
       });
     } else if (status === VerificationStatus.REJECTED) {

@@ -110,3 +110,46 @@ export function getKybDocumentUrl(filePath?: string, fileName?: string, docStatu
 
   return `/api/documents/preview?${params.toString()}`;
 }
+
+export const CATALOG_BUCKET_NAME = 'catalog-images';
+
+/** Prefixe d'URL publique autorise pour les images produits (anti-injection d'URL externes). */
+export function getCatalogImagePublicPrefix(): string {
+  return `${supabaseUrl}/storage/v1/object/public/${CATALOG_BUCKET_NAME}/`;
+}
+
+/**
+ * Televerse une image produit sur Supabase Storage (bucket public `catalog-images`).
+ * L'URL n'est exposee au public qu'apres moderation Lougara du produit.
+ * Retourne success=false (sans URL) si l'upload echoue : jamais d'URL fictive.
+ */
+export async function uploadCatalogImageToSupabase(
+  fileBuffer: Buffer,
+  extension: string,
+  mimeType: string
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    const storagePath = `products/${Date.now()}_${Math.random().toString(36).slice(2, 10)}.${extension}`;
+    let { error } = await supabaseAdmin.storage
+      .from(CATALOG_BUCKET_NAME)
+      .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false });
+
+    if (error && (error.message.includes('not found') || error.message.includes('Bucket'))) {
+      await supabaseAdmin.storage.createBucket(CATALOG_BUCKET_NAME, { public: true });
+      ({ error } = await supabaseAdmin.storage
+        .from(CATALOG_BUCKET_NAME)
+        .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false }));
+    }
+
+    if (error) {
+      console.warn('Erreur upload image catalogue :', error.message);
+      return { success: false, error: error.message };
+    }
+
+    const { data } = supabaseAdmin.storage.from(CATALOG_BUCKET_NAME).getPublicUrl(storagePath);
+    return { success: true, url: data.publicUrl };
+  } catch (err: any) {
+    console.error('Exception upload image catalogue :', err);
+    return { success: false, error: err?.message || 'Erreur inconnue' };
+  }
+}

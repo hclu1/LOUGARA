@@ -90,7 +90,7 @@ export const en = {
     b2bPrice: 'B2B Price',
     requestQuoteBtn: 'Request a quote',
     quoteSentSuccessTitle: 'Quote request submitted!',
-    quoteSentSuccessDesc: 'Your request was dispatched directly to supplier',
+    quoteSentSuccessDesc: 'Your request has been sent to Lougara, which connects you with the supplier',
     b2bConnectionBadge: 'B2B Connection',
     requestQuoteFor: 'Request quote:',
     desiredQuantity: 'Desired quantity',

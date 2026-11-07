@@ -25,16 +25,38 @@ import {
   Award,
   ArrowRightLeft,
   Plus,
+  ImageOff,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { useLanguage } from '@/context/LanguageContext';
 import {
   getLocalizedCountry,
   getLocalizedSector,
-  getLocalizedProductTitle,
-  getLocalizedProductDesc,
   getLocalizedProductUnit,
 } from '@/locales';
+
+/** Photo produit validee par Lougara. Aucun visuel de remplacement : un simple pictogramme neutre si absente. */
+function CatalogImage({ src, alt, className }: { src?: string; alt: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-600" aria-label={alt}>
+        <ImageOff className="w-8 h-8" />
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} className={className} />
+  );
+}
+
+/** Prix indicatif uniquement s'il a ete renseigne par le fournisseur. */
+function formatPriceRange(min: number, max: number, currency: string): string {
+  if (!min && !max) return 'Prix sur demande';
+  if (min && max && min !== max) return `${min.toFixed(2)} - ${max.toFixed(2)} ${currency}`;
+  return `${(min || max).toFixed(2)} ${currency}`;
+}
 
 interface MockProduct {
   id: string;
@@ -157,7 +179,7 @@ export default function CataloguePage() {
                 priceMin: Number(p.priceMin) || 0,
                 priceMax: Number(p.priceMax) || 0,
                 currency: p.currency || 'EUR',
-                images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600'],
+                images: Array.isArray(p.images) ? p.images : [],
                 company: {
                   id: p.company?.id || 'comp-unknown',
                   companyName: p.company?.companyName || 'Entreprise Partenaire',
@@ -193,7 +215,7 @@ export default function CataloguePage() {
                   priceMin: Number(p.priceMin) || 0,
                   priceMax: Number(p.priceMax) || 0,
                   currency: p.currency || 'EUR',
-                  images: p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600'],
+                  images: Array.isArray(p.images) ? p.images : [],
                   company: {
                     id: s.id,
                     companyName: s.companyName,
@@ -208,7 +230,7 @@ export default function CataloguePage() {
 
               const coverImg = supplierProds.length > 0 && supplierProds[0].images?.[0]
                 ? supplierProds[0].images[0]
-                : 'https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=75&w=600';
+                : '';
 
               return {
                 id: s.id,
@@ -605,15 +627,9 @@ export default function CataloguePage() {
                   onClick={() => setSelectedSupplierCatalog(cat)}
                   className="relative h-56 bg-slate-950 cursor-pointer overflow-hidden group/img"
                 >
-                  <img
+                  <CatalogImage
                     src={cat.coverImage}
                     alt={cat.companyName}
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=75&w=600';
-                    }}
                     className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 opacity-80 group-hover/img:opacity-100"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0B132B] via-[#0B132B]/30 to-transparent" />
@@ -659,7 +675,7 @@ export default function CataloguePage() {
                     </div>
                     <p className="text-slate-400 leading-relaxed line-clamp-2">
                       {cat.products.length > 0
-                        ? `${t.catalogue.offeringsPrefix} ${cat.products.map(p => getLocalizedProductTitle(p.title, locale)).join(', ')}`
+                        ? `${t.catalogue.offeringsPrefix} ${cat.products.map(p => p.title).join(', ')}`
                         : t.catalogue.defaultCatalogDesc}
                     </p>
                   </div>
@@ -710,15 +726,9 @@ export default function CataloguePage() {
                 className="glass-card glass-card-hover rounded-3xl overflow-hidden flex flex-col justify-between group border border-slate-800 hover:border-[#D4AF37]"
               >
                 <div className="relative h-48 bg-slate-950 overflow-hidden">
-                  <img
+                  <CatalogImage
                     src={prod.images[0]}
                     alt={prod.title}
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=75&w=600';
-                    }}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
                   />
                   <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
@@ -747,11 +757,11 @@ export default function CataloguePage() {
                     </div>
 
                     <h3 className="text-base font-black text-white line-clamp-2 group-hover:text-amber-300 transition-colors">
-                      {getLocalizedProductTitle(prod.title, locale)}
+                      {prod.title}
                     </h3>
 
                     <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                      {getLocalizedProductDesc(prod.description, prod.title, locale)}
+                      {prod.description}
                     </p>
                   </div>
 
@@ -762,7 +772,7 @@ export default function CataloguePage() {
                           {t.catalogue.indicativeB2bPrice}
                         </p>
                         <p className="text-base font-black text-white">
-                          {prod.priceMin.toFixed(2)} - {prod.priceMax.toFixed(2)} {prod.currency}
+                          {formatPriceRange(prod.priceMin, prod.priceMax, prod.currency)}
                           <span className="text-xs font-normal text-slate-400"> / {getLocalizedProductUnit(prod.unit, prod.title, locale)}</span>
                         </p>
                       </div>
@@ -922,28 +932,22 @@ export default function CataloguePage() {
                     className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden flex flex-col justify-between hover:border-[#D4AF37] transition-all p-4 space-y-3"
                   >
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-950">
-                      <img
+                      <CatalogImage
                         src={p.images[0]}
                         alt={p.title}
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=75&w=600';
-                        }}
                         className="w-full h-full object-cover"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <h4 className="font-black text-sm text-white line-clamp-1">{getLocalizedProductTitle(p.title, locale)}</h4>
-                      <p className="text-xs text-slate-400 line-clamp-2">{getLocalizedProductDesc(p.description, p.title, locale)}</p>
+                      <h4 className="font-black text-sm text-white line-clamp-1">{p.title}</h4>
+                      <p className="text-xs text-slate-400 line-clamp-2">{p.description}</p>
                     </div>
 
                     <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase font-bold block">{t.catalogue.b2bPrice}</span>
-                        <span className="font-black text-white">{p.priceMin} - {p.priceMax} {p.currency}</span>
+                        <span className="font-black text-white">{formatPriceRange(p.priceMin, p.priceMax, p.currency)}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-slate-400 uppercase font-bold block">MOQ</span>
@@ -998,7 +1002,7 @@ export default function CataloguePage() {
                     {t.catalogue.b2bConnectionBadge}
                   </span>
                   <h3 className="text-lg font-black text-white mt-1">
-                    {t.catalogue.requestQuoteFor} {getLocalizedProductTitle(selectedProductForQuote.title, locale)}
+                    {t.catalogue.requestQuoteFor} {selectedProductForQuote.title}
                   </h3>
                 </div>
 

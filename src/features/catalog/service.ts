@@ -24,7 +24,8 @@ export async function createProduct(input: CreateProductInput) {
       unit: data.unit,
       originCountry: data.originCountry,
       images: data.images,
-      isPublished: true,
+      isPublished: false,
+      moderationStatus: 'PENDING',
     },
   });
 }
@@ -33,8 +34,10 @@ export async function searchCatalog(filters: SearchCatalogFilters = {}) {
   const validated = searchCatalogSchema.parse(filters);
   const where: any = {
     isPublished: true,
+    moderationStatus: 'APPROVED',
     company: {
       isPublished: true,
+      verificationStatus: VerificationStatus.VERIFIED,
     },
   };
 
@@ -52,6 +55,7 @@ export async function searchCatalog(filters: SearchCatalogFilters = {}) {
 
   if (validated.onlyVerified) {
     where.company = {
+      isPublished: true,
       verificationStatus: VerificationStatus.VERIFIED,
     };
   }

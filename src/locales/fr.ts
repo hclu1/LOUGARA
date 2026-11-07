@@ -90,7 +90,7 @@ export const fr = {
     b2bPrice: 'Prix B2B',
     requestQuoteBtn: 'Demander un devis',
     quoteSentSuccessTitle: 'Demande de devis transmise !',
-    quoteSentSuccessDesc: 'Votre demande a été envoyée directement au fournisseur',
+    quoteSentSuccessDesc: 'Votre demande a été transmise à Lougara, qui vous met en relation avec le fournisseur',
     b2bConnectionBadge: 'Mise en Relation B2B',
     requestQuoteFor: 'Demander un devis :',
     desiredQuantity: 'Quantité souhaitée',

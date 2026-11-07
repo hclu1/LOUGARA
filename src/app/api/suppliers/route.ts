@@ -1,20 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getKybDocumentUrl } from '@/lib/supabase-storage';
+import { getKybDocumentUrl, getCatalogImagePublicPrefix } from '@/lib/supabase-storage';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const MAX_PRODUCTS = 10;
+const MAX_IMAGES_PER_PRODUCT = 4;
+
+/** Nettoie et valide les produits soumis : aucune donnee fictive n'est injectee. */
+function sanitizeProducts(raw: any[], sector?: string) {
+  const prefix = getCatalogImagePublicPrefix();
+  const toNum = (v: any) => {
+    const n = Number(v);
+    return v !== '' && v !== null && v !== undefined && Number.isFinite(n) && n >= 0 ? n : null;
+  };
+  return (Array.isArray(raw) ? raw : [])
+    .slice(0, MAX_PRODUCTS)
+    .map((prod: any) => ({
+      title: String(prod?.title ?? '').trim().slice(0, 150),
+      description: String(prod?.description ?? '').trim().slice(0, 2000),
+      category: String(prod?.category || sector || 'Général').slice(0, 100),
+      priceMin: toNum(prod?.priceMin),
+      priceMax: toNum(prod?.priceMax),
+      currency: String(prod?.currency || 'EUR').slice(0, 5),
+      moq: Math.max(1, Math.floor(toNum(prod?.moq) ?? 1)),
+      unit: String(prod?.unit || 'unité').slice(0, 30),
+      // Seules les images televersees via Lougara sont acceptees (pas d'URL externe)
+      images: (Array.isArray(prod?.images) ? prod.images : [])
+        .filter((u: any) => typeof u === 'string' && u.startsWith(prefix))
+        .slice(0, MAX_IMAGES_PER_PRODUCT) as string[],
+    }))
+    .filter((prod) => prod.title.length > 0 && prod.description.length > 0);
+}
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const includeUnpublished = searchParams.get('includeUnpublished') === 'true';
 
     const suppliers = await prisma.companyProfile.findMany({
-      where: includeUnpublished ? {} : { isPublished: true },
+      where: includeUnpublished ? {} : { isPublished: true, verificationStatus: 'VERIFIED' },
       include: {
         products: {
-          where: { isPublished: true },
+          where: { isPublished: true, moderationStatus: 'APPROVED' },
           take: 10,
         },
         user: {
@@ -67,6 +95,8 @@ export async function POST(req: NextRequest) {
       products = [],
       kbisFile,
     } = body;
+
+    const cleanProducts = sanitizeProducts(products, sector);
 
     if (!companyName || !email) {
       return NextResponse.json(
@@ -126,22 +156,23 @@ export async function POST(req: NextRequest) {
               ],
             }
           : undefined,
+        // Produits crees EN ATTENTE de moderation : texte et images ne sont visibles
+        // au catalogue qu'apres validation explicite par Lougara.
         products: {
-          create: (products || []).slice(0, 10).map((prod: any, idx: number) => ({
-            title: prod.title || `Produit Catalogue #${idx + 1}`,
-            slug: `${(prod.title || 'produit').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${idx}`,
-            description: prod.description || 'Description du produit catalogue B2B.',
-            category: prod.category || sector || 'Général',
-            priceMin: prod.priceMin ? Number(prod.priceMin) : 10,
-            priceMax: prod.priceMax ? Number(prod.priceMax) : 25,
-            currency: prod.currency || 'EUR',
-            moq: prod.moq ? Number(prod.moq) : 10,
-            unit: prod.unit || 'unité',
+          create: cleanProducts.map((prod, idx) => ({
+            title: prod.title,
+            slug: `${prod.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'produit'}-${Date.now()}-${idx}`,
+            description: prod.description,
+            category: prod.category,
+            priceMin: prod.priceMin,
+            priceMax: prod.priceMax,
+            currency: prod.currency,
+            moq: prod.moq,
+            unit: prod.unit,
             originCountry: country || 'Sénégal',
-            images: prod.images && prod.images.length > 0
-              ? prod.images
-              : ['https://images.unsplash.com/photo-1608248597359-54d922336336?auto=format&fit=crop&q=80&w=800'],
-            isPublished: true,
+            images: prod.images,
+            isPublished: false,
+            moderationStatus: 'PENDING' as const,
           })),
         },
       },

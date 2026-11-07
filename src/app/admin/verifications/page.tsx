@@ -93,6 +93,10 @@ interface SupplierItem {
   products: {
     id: string;
     title: string;
+    description?: string;
+    category?: string;
+    moderationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    moderationNotes?: string | null;
     images: string[];
     priceMin?: number;
     priceMax?: number;
@@ -401,6 +405,50 @@ export default function AdminVerificationsPage() {
       }
     } catch (e) {
       console.error('Erreur toggle visibilité :', e);
+    }
+  };
+
+  const handleModerateProduct = async (
+    companyId: string,
+    productId: string,
+    moderationStatus: 'APPROVED' | 'REJECTED'
+  ) => {
+    let moderationNotes: string | undefined;
+    if (moderationStatus === 'REJECTED') {
+      const reason = prompt("Motif du rejet (texte ou images non conformes) :");
+      if (!reason || !reason.trim()) return;
+      moderationNotes = reason.trim();
+    }
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'MODERATE_PRODUCT', productId, moderationStatus, moderationNotes }),
+      });
+      if (!res.ok) throw new Error('moderation');
+      setSuppliers((prev) =>
+        prev.map((s) =>
+          s.id === companyId
+            ? {
+                ...s,
+                products: s.products.map((p) =>
+                  p.id === productId
+                    ? { ...p, moderationStatus, moderationNotes: moderationNotes ?? null }
+                    : p
+                ),
+              }
+            : s
+        )
+      );
+      setActionNotice(
+        moderationStatus === 'APPROVED'
+          ? 'Produit validé (texte + images) : il sera visible au catalogue une fois le fournisseur vérifié et publié.'
+          : 'Produit rejeté : il reste invisible du catalogue.'
+      );
+      setTimeout(() => setActionNotice(null), 4500);
+    } catch (e) {
+      setActionNotice('Erreur lors de la modération du produit.');
+      setTimeout(() => setActionNotice(null), 4500);
     }
   };
 
@@ -831,7 +879,74 @@ export default function AdminVerificationsPage() {
                     ))}
                   </div>
                 </div>
-              </div>
+
+                {/* PRODUITS DU CATALOGUE : modération texte + images */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                    Produits du catalogue à modérer ({supplier.products.length}) :
+                  </span>
+                  {supplier.products.length === 0 ? (
+                    <p className="text-xs text-slate-500">Aucun produit soumis.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {supplier.products.map((prod) => {
+                        const st = prod.moderationStatus || 'PENDING';
+                        const badge =
+                          st === 'APPROVED'
+                            ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                            : st === 'REJECTED'
+                              ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
+                              : 'bg-amber-950/60 text-amber-300 border-amber-500/40';
+                        return (
+                          <div key={prod.id} className="p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-white truncate">{prod.title}</p>
+                                <p className="text-[10px] text-slate-400">
+                                  {prod.category} &bull; MOQ {prod.moq} {prod.unit}
+                                </p>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${badge}`}>
+                                {st === 'APPROVED' ? 'Validé' : st === 'REJECTED' ? 'Rejeté' : 'À valider'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-300 whitespace-pre-line line-clamp-4">{prod.description}</p>
+                            {prod.images && prod.images.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {prod.images.map((src) => (
+                                  <a key={src} href={src} target="_blank" rel="noopener noreferrer">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={src} alt={prod.title} className="w-16 h-16 object-cover rounded-lg border border-slate-700" />
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-slate-500">Aucune image fournie.</p>
+                            )}
+                            {st === 'REJECTED' && prod.moderationNotes && (
+                              <p className="text-[10px] text-rose-300">Motif : {prod.moderationNotes}</p>
+                            )}
+                            <div className="flex gap-2 pt-1">
+                              <button
+                                onClick={() => handleModerateProduct(supplier.id, prod.id, 'REJECTED')}
+                                className="px-3 py-1 rounded-xl text-[11px] font-bold text-rose-400 bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40"
+                              >
+                                Rejeter
+                              </button>
+                              <button
+                                onClick={() => handleModerateProduct(supplier.id, prod.id, 'APPROVED')}
+                                disabled={st === 'APPROVED'}
+                                className="px-3 py-1 rounded-xl text-[11px] font-extrabold text-slate-950 bg-[#D4AF37] hover:bg-amber-300 disabled:opacity-40"
+                              >
+                                Valider texte + images
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>              </div>
             ))}
           </div>
         </div>
