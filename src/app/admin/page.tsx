@@ -124,6 +124,55 @@ export default function AdminHubPage() {
     }
   }, [activeTab, fetchAdminProducts]);
 
+  const handleToggleProductPageValidation = async (
+    productId: string,
+    companyId: string | undefined,
+    currentlyApprovedAndPublished: boolean
+  ) => {
+    const nextActive = !currentlyApprovedAndPublished;
+    setLinkApprovalUpdatingId(`page-${productId}`);
+    setAdminProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId
+          ? {
+              ...p,
+              isPublished: nextActive,
+              moderationStatus: nextActive ? 'APPROVED' : p.moderationStatus,
+            }
+          : p
+      )
+    );
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'TOGGLE_PRODUCT_ACTIVE',
+          companyId,
+          productId,
+          isPublished: nextActive,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAdminProducts((prev) =>
+          prev.map((p) =>
+            p.id === productId
+              ? {
+                  ...p,
+                  isPublished: currentlyApprovedAndPublished,
+                }
+              : p
+          )
+        );
+      }
+    } catch {
+      // non bloquant
+    } finally {
+      setLinkApprovalUpdatingId(null);
+    }
+  };
+
   const handleToggleLinkApproval = async (
     productId: string,
     currentStatus: boolean,
@@ -786,17 +835,21 @@ export default function AdminHubPage() {
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-800 text-slate-400 font-bold">
-                        <th className="p-3">Produit & Fournisseur</th>
+                        <th className="p-3">Page Vitrine &amp; Fournisseur</th>
                         <th className="p-3">Catégorie</th>
                         <th className="p-3">Lien Externe Proposé</th>
-                        <th className="p-3 text-center">Validation Admin (Coche)</th>
+                        <th className="p-3 text-center">Validation Lien (Coche)</th>
+                        <th className="p-3 text-center">Validation Finale Page (Admin Lougara)</th>
                         <th className="p-3 text-right">Statut Diffusion</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
                       {adminProducts.map((prod) => {
                         const isUpdating = linkApprovalUpdatingId === prod.id;
+                        const isPageUpdating = linkApprovalUpdatingId === `page-${prod.id}`;
                         const hasLink = Boolean(prod.externalLink);
+                        const isPageValidated =
+                          prod.isPublished !== false && prod.moderationStatus === 'APPROVED';
                         return (
                           <tr key={prod.id} className="hover:bg-slate-900/40 transition-colors">
                             <td className="p-3">
@@ -848,18 +901,38 @@ export default function AdminHubPage() {
                                 </span>
                               </label>
                             </td>
-                            <td className="p-3 text-right">
-                              {prod.isLinkApproved ? (
-                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                                  Visible au catalogue
+                            <td className="p-3 text-center">
+                              <label className="inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-emerald-500/40">
+                                <input
+                                  type="checkbox"
+                                  checked={isPageValidated}
+                                  disabled={isPageUpdating}
+                                  onChange={() =>
+                                    handleToggleProductPageValidation(
+                                      prod.id,
+                                      prod.companyId || prod.company?.id,
+                                      isPageValidated
+                                    )
+                                  }
+                                  className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-900 border-slate-700 cursor-pointer accent-emerald-500"
+                                />
+                                <span
+                                  className={`text-[11px] font-bold ${
+                                    isPageValidated ? 'text-emerald-300' : 'text-amber-300'
+                                  }`}
+                                >
+                                  {isPageValidated ? 'Page validée ✓' : 'Valider la page'}
                                 </span>
-                              ) : hasLink ? (
-                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-950 text-amber-300 border border-amber-500/40">
-                                  En attente
+                              </label>
+                            </td>
+                            <td className="p-3 text-right">
+                              {isPageValidated ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                                  En ligne au catalogue
                                 </span>
                               ) : (
-                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900 text-slate-500">
-                                  Sans lien
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-950 text-amber-300 border border-amber-500/40">
+                                  En attente validation Admin
                                 </span>
                               )}
                             </td>

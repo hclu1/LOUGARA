@@ -197,6 +197,14 @@ export async function PATCH(request: Request) {
             isPublished: moderationStatus === 'APPROVED',
           },
         });
+        if (moderationStatus === 'APPROVED' && (companyId || product?.companyId)) {
+          await prisma.companyProfile
+            .update({
+              where: { id: companyId || product.companyId },
+              data: { isPublished: true },
+            })
+            .catch(() => {});
+        }
       } catch {
         const { data } = await supabaseAdmin
           .from('Product')
@@ -210,8 +218,54 @@ export async function PATCH(request: Request) {
           .select()
           .single();
         product = data;
+        if (moderationStatus === 'APPROVED' && (companyId || product?.companyId)) {
+          await supabaseAdmin
+            .from('CompanyProfile')
+            .update({ isPublished: true })
+            .eq('id', companyId || product.companyId);
+        }
       }
       return NextResponse.json({ success: true, product });
+    }
+
+    // 1b-bis. Validation finale groupée de toutes les pages / produits d'un catalogue par Admin Lougara
+    if (action === 'APPROVE_ALL_PRODUCTS' && companyId) {
+      const now = new Date();
+      try {
+        await prisma.product.updateMany({
+          where: { companyId },
+          data: {
+            moderationStatus: 'APPROVED',
+            moderationNotes: null,
+            moderatedAt: now,
+            isPublished: true,
+          },
+        });
+        await prisma.companyProfile
+          .update({
+            where: { id: companyId },
+            data: { isPublished: true },
+          })
+          .catch(() => {});
+      } catch {
+        await supabaseAdmin
+          .from('Product')
+          .update({
+            moderationStatus: 'APPROVED',
+            moderationNotes: null,
+            moderatedAt: now.toISOString(),
+            isPublished: true,
+          })
+          .eq('companyId', companyId);
+        await supabaseAdmin
+          .from('CompanyProfile')
+          .update({ isPublished: true })
+          .eq('id', companyId);
+      }
+      return NextResponse.json({
+        success: true,
+        message: 'Toutes les pages vitrines du catalogue ont été validées et publiées par Admin Lougara.',
+      });
     }
 
     // 1c. Activer ou désactiver une partie du catalogue (un produit spécifique via case à cocher)

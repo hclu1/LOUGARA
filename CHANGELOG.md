@@ -4,6 +4,17 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.23.0] - 2026-11-07
+### Ajouté
+- **Gestion et validation jusqu'à 4 Pages Vitrines dans « Gérer mon catalogue » (`/mon-catalogue` & `/catalogue`)** :
+  - Ajout d'un constructeur visuel interactif à **4 emplacements (`Page Vitrine 1` à `Page Vitrine 4`)** sur le même principe que la première page vitrine du catalogue (nom de la référence, lien externe sous le titre, catégorie, pays d'origine, description commerciale complète, fourchette tarifaire Min/Max, devise, MOQ, unité, téléversement direct jusqu'à 4 photos et aperçu vitrine en direct côte à côte).
+  - Possibilité pour le client de **modifier ses pages existantes** (ex: Page 1) et **d'en ajouter de nouvelles jusqu'à 4 pages**, puis de **valider une seule page ou l'ensemble de ses 4 pages en 1 clic** (`PUT /api/suppliers/my-catalog` avec support unitaire et lot `pages[]`).
+  - Lorsqu'une page est créée ou modifiée par le client, elle est soumise en statut `PENDING` (`isPublished: false`) pour validation finale par l'administration Lougara, tout en maintenant en ligne les pages déjà approuvées qui n'ont pas été modifiées.
+  - Mise à jour des cartes et modales de `/catalogue` avec l'indicateur `{productsCount} / 4` pages et le bouton d'accès direct **« Gérer mon catalogue (X/4 pages) »**.
+- **Validation Finale par Admin Lougara (`/admin`, `/admin/mots-de-passe`, `/admin/verifications`)** :
+  - Ajout de l'action `APPROVE_ALL_PRODUCTS` dans `PATCH /api/admin/verifications` permettant à l'administrateur Lougara de valider et publier en 1 clic l'intégralité des 4 pages vitrines d'un catalogue client.
+  - Ajout des badges `Page Vitrine 1/4` à `4/4`, des boutons **« ✓ Valider cette page »** et **« ✓ Valider toutes les pages (X/4) — Validation Finale Admin »** dans `AdminPasswordValidationPanel`, `/admin/verifications` et l'onglet 4 de `/admin`.
+
 ## [0.22.2] - 2026-11-07
 ### Ajouté
 - **Téléversement direct de photos dans la modale « Ajouter un nouveau produit » / « Modifier la référence » (`/mon-catalogue`)** :

@@ -30,7 +30,7 @@ async function findExistingCompany(email: string): Promise<any | null> {
           company: {
             include: {
               products: {
-                orderBy: { createdAt: 'desc' },
+                orderBy: { createdAt: 'asc' },
               },
             },
           },
@@ -60,9 +60,15 @@ async function findExistingCompany(email: string): Promise<any | null> {
         .maybeSingle();
 
       if (compRow) {
+        const sortedProds = Array.isArray(compRow.products)
+          ? [...compRow.products].sort(
+              (a: any, b: any) =>
+                new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+            )
+          : [];
         return {
           ...compRow,
-          products: Array.isArray(compRow.products) ? compRow.products : [],
+          products: sortedProds,
         };
       }
     }
@@ -207,9 +213,9 @@ export async function POST(req: Request) {
       originCountry: originCountry || company.country || 'France',
       images: Array.isArray(images) ? images : [],
       externalLink: externalLink ? externalLink.trim() : null,
-      isLinkApproved: false, // Nécessite validation d'un administrateur
-      isPublished: true,
-      moderationStatus: 'APPROVED' as const,
+      isLinkApproved: false, // Nécessite validation finale d'un administrateur Lougara
+      isPublished: false, // En attente de validation finale par Admin Lougara
+      moderationStatus: 'PENDING' as const,
     };
 
     let newProduct: any;
@@ -236,7 +242,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       product: newProduct,
-      message: 'Produit ajouté à votre vitrine avec succès !' + (externalLink ? ' Le lien externe sera vérifié par notre équipe avant d’être affiché.' : ''),
+      message:
+        'Nouvelle page vitrine validée et transmise à l’administration Lougara pour validation finale !',
     });
   } catch (error: any) {
     console.error('Erreur API POST /api/suppliers/my-catalog:', error);
@@ -267,6 +274,142 @@ export async function PUT(req: Request) {
         { status: 404 }
       );
     }
+
+    // CAS 1 : Validation groupée de plusieurs pages du catalogue (jusqu'à 4 pages)
+    if (Array.isArray(body.pages)) {
+      const maxProducts = company.subscription?.plan?.maxProducts ?? 4;
+      const incomingPages = body.pages
+        .filter((p: any) => p && String(p.title || '').trim() && String(p.description || '').trim())
+        .slice(0, maxProducts === -1 ? 10 : maxProducts);
+
+      if (incomingPages.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Veuillez renseigner au moins le titre et la description d’une page.' },
+          { status: 400 }
+        );
+      }
+
+      const savedProducts: any[] = [];
+      let submittedToAdminCount = 0;
+
+      for (let i = 0; i < incomingPages.length; i++) {
+        const page = incomingPages[i];
+        const pageId = typeof page.id === 'string' && !page.id.startsWith('new-') ? page.id : null;
+        const existing = pageId
+          ? (company.products || []).find((p: any) => p.id === pageId) || null
+          : null;
+
+        const cleanTitle = String(page.title).trim();
+        const cleanDesc = String(page.description).trim();
+        const cleanCat = String(page.category || company.sector || 'Agroalimentaire & Épices').trim();
+        const cleanPriceMin = page.priceMin !== '' && page.priceMin !== null && page.priceMin !== undefined ? parseFloat(String(page.priceMin)) : null;
+        const cleanPriceMax = page.priceMax !== '' && page.priceMax !== null && page.priceMax !== undefined ? parseFloat(String(page.priceMax)) : null;
+        const cleanCurrency = page.currency || 'EUR';
+        const cleanMoq = page.moq ? Math.max(1, parseInt(String(page.moq), 10) || 1) : 1;
+        const cleanUnit = page.unit || 'pièce';
+        const cleanOrigin = page.originCountry || company.country || 'France';
+        const cleanImages = Array.isArray(page.images) ? page.images.slice(0, 4) : [];
+        const cleanLink = page.externalLink ? String(page.externalLink).trim() : null;
+
+        if (existing) {
+          const contentChanged =
+            cleanTitle !== existing.title ||
+            cleanDesc !== existing.description ||
+            cleanCat !== existing.category ||
+            cleanLink !== (existing.externalLink || null) ||
+            JSON.stringify(cleanImages) !== JSON.stringify(existing.images || []);
+          const linkChanged = cleanLink !== (existing.externalLink || null);
+          const needsAdminValidation =
+            contentChanged || existing.moderationStatus !== 'APPROVED' || !existing.isPublished;
+
+          if (needsAdminValidation) submittedToAdminCount++;
+
+          const updateData = {
+            title: cleanTitle,
+            description: cleanDesc,
+            category: cleanCat,
+            priceMin: Number.isFinite(cleanPriceMin as number) ? cleanPriceMin : null,
+            priceMax: Number.isFinite(cleanPriceMax as number) ? cleanPriceMax : null,
+            currency: cleanCurrency,
+            moq: cleanMoq,
+            unit: cleanUnit,
+            originCountry: cleanOrigin,
+            images: cleanImages,
+            externalLink: cleanLink,
+            isLinkApproved: linkChanged ? false : Boolean(existing.isLinkApproved),
+            moderationStatus: needsAdminValidation ? ('PENDING' as const) : ('APPROVED' as const),
+            isPublished: needsAdminValidation ? false : true,
+          };
+
+          try {
+            const up = await prisma.product.update({
+              where: { id: existing.id },
+              data: updateData,
+            });
+            savedProducts.push(up);
+          } catch {
+            const { data } = await supabaseAdmin
+              .from('Product')
+              .update({ ...updateData, updatedAt: new Date().toISOString() })
+              .eq('id', existing.id)
+              .eq('companyId', company.id)
+              .select('*')
+              .single();
+            if (data) savedProducts.push(data);
+          }
+        } else {
+          // Nouvelle page vitrine ajoutée
+          submittedToAdminCount++;
+          const slug = `${cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}-${i}`;
+          const createData = {
+            companyId: company.id,
+            title: cleanTitle,
+            slug,
+            description: cleanDesc,
+            category: cleanCat,
+            priceMin: Number.isFinite(cleanPriceMin as number) ? cleanPriceMin : null,
+            priceMax: Number.isFinite(cleanPriceMax as number) ? cleanPriceMax : null,
+            currency: cleanCurrency,
+            moq: cleanMoq,
+            unit: cleanUnit,
+            originCountry: cleanOrigin,
+            images: cleanImages,
+            externalLink: cleanLink,
+            isLinkApproved: false,
+            isPublished: false,
+            moderationStatus: 'PENDING' as const,
+          };
+          try {
+            const created = await prisma.product.create({ data: createData });
+            savedProducts.push(created);
+          } catch {
+            const nowIso = new Date().toISOString();
+            const { data } = await supabaseAdmin
+              .from('Product')
+              .insert({
+                id: `prod_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`,
+                ...createData,
+                createdAt: nowIso,
+                updatedAt: nowIso,
+              })
+              .select('*')
+              .single();
+            if (data) savedProducts.push(data);
+          }
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        products: savedProducts,
+        message:
+          submittedToAdminCount > 0
+            ? `Vos pages vitrines (${savedProducts.length}/4) ont été enregistrées ! ${submittedToAdminCount} page(s) ont été transmise(s) à l’administration Lougara pour validation finale.`
+            : `Vos ${savedProducts.length} page(s) vitrine(s) sont à jour et validées.`,
+      });
+    }
+
+    // CAS 2 : Validation / modification d'une page individuelle
     const { id, title, description, category, priceMin, priceMax, currency, moq, unit, originCountry, images, externalLink } = body;
 
     if (!id) {
@@ -309,6 +452,9 @@ export async function PUT(req: Request) {
       externalLink: cleanLink,
       // Si le lien a changé, on réinitialise l'approbation pour modération
       isLinkApproved: linkChanged ? false : existing.isLinkApproved,
+      // Toute validation/modification par le client soumet la page à la validation finale de l'Admin Lougara
+      moderationStatus: 'PENDING' as const,
+      isPublished: false,
     };
 
     let updated: any;
@@ -332,7 +478,8 @@ export async function PUT(req: Request) {
     return NextResponse.json({
       success: true,
       product: updated,
-      message: 'Produit mis à jour avec succès.' + (linkChanged && cleanLink ? ' Le nouveau lien est soumis à modération.' : ''),
+      message:
+        'Page vitrine enregistrée et envoyée à l’administration Lougara pour validation finale !',
     });
   } catch (error: any) {
     console.error('Erreur API PUT /api/suppliers/my-catalog:', error);

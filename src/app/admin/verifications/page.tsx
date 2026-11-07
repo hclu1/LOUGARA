@@ -473,6 +473,42 @@ export default function AdminVerificationsPage() {
     }
   };
 
+  const handleApproveAllProducts = async (companyId: string, companyName: string) => {
+    setSuppliers((prev) =>
+      prev.map((s) =>
+        s.id === companyId
+          ? {
+              ...s,
+              isPublished: true,
+              products: s.products.map((p) => ({
+                ...p,
+                isPublished: true,
+                moderationStatus: 'APPROVED',
+              })),
+            }
+          : s
+      )
+    );
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'APPROVE_ALL_PRODUCTS',
+          companyId,
+        }),
+      });
+      if (res.ok) {
+        setActionNotice(
+          `Validation finale Admin effectuée : toutes les pages vitrines du catalogue « ${companyName} » sont validées et publiées !`
+        );
+        setTimeout(() => setActionNotice(null), 4500);
+      }
+    } catch (e) {
+      console.error('Erreur validation globale des pages :', e);
+    }
+  };
+
   const handleToggleProductActive = async (
     companyId: string,
     productId: string,
@@ -1088,19 +1124,33 @@ export default function AdminVerificationsPage() {
                   </div>
                 </div>
 
-                {/* PRODUITS DU CATALOGUE : modération texte + images */}
+                {/* PRODUITS / PAGES VITRINES DU CATALOGUE (JUSQU'À 4 PAGES) : VALIDATION FINALE ADMIN LOUGARA */}
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                    Produits du catalogue à modérer ({supplier.products.length}) :
-                  </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                      Pages Vitrines du catalogue à valider ({supplier.products.length}/4 max) :
+                    </span>
+                    {supplier.products.some(
+                      (p) => p.moderationStatus !== 'APPROVED' || p.isPublished === false
+                    ) && (
+                      <button
+                        type="button"
+                        onClick={() => handleApproveAllProducts(supplier.id, supplier.companyName)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 shadow-md cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>✓ Valider toutes les pages ({supplier.products.length}/4) — Validation Finale Admin</span>
+                      </button>
+                    )}
+                  </div>
                   {supplier.products.length === 0 ? (
                     <p className="text-xs text-slate-500">Aucun produit soumis.</p>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      {supplier.products.map((prod) => {
+                      {supplier.products.map((prod, prodIdx) => {
                         const st = prod.moderationStatus || 'PENDING';
                         const badge =
-                          st === 'APPROVED'
+                          st === 'APPROVED' && prod.isPublished !== false
                             ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
                             : st === 'REJECTED'
                               ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
@@ -1109,13 +1159,22 @@ export default function AdminVerificationsPage() {
                           <div key={prod.id} className="p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-2">
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <p className="text-xs font-bold text-white truncate">{prod.title}</p>
-                                <p className="text-[10px] text-slate-400">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="px-1.5 py-0.5 rounded bg-[#D4AF37]/20 text-[#E5A93C] border border-[#D4AF37]/40 text-[9px] font-black uppercase shrink-0">
+                                    Page {prodIdx + 1}/4
+                                  </span>
+                                  <p className="text-xs font-bold text-white truncate">{prod.title}</p>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-0.5">
                                   {prod.category} &bull; MOQ {prod.moq} {prod.unit}
                                 </p>
                               </div>
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${badge}`}>
-                                {st === 'APPROVED' ? 'Validé' : st === 'REJECTED' ? 'Rejeté' : 'À valider'}
+                                {st === 'APPROVED' && prod.isPublished !== false
+                                  ? '✓ Validée Admin'
+                                  : st === 'REJECTED'
+                                    ? 'Rejetée'
+                                    : '⏳ À valider Admin'}
                               </span>
                             </div>
                             {(() => {

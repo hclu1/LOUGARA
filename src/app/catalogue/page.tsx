@@ -364,7 +364,7 @@ interface SupplierCatalog {
 
 export default function CataloguePage() {
   const { t, locale } = useLanguage();
-  const { user, loginWithPassword } = useAuth();
+  const { user, isModerator, loginWithPassword } = useAuth();
   const [activeTab, setActiveTab] = useState<'catalogues' | 'products' | 'buyers'>('catalogues');
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -1036,7 +1036,7 @@ export default function CataloguePage() {
                   <div className="absolute top-3 right-3 bg-emerald-950/90 text-emerald-300 font-extrabold px-3 py-1 rounded-xl text-xs shadow-md flex items-center gap-1.5 border border-emerald-500/40">
                     <Package className="w-4 h-4 text-emerald-400" />
                     <span>
-                      {cat.productsCount} / 10{' '}
+                      {cat.productsCount} / 4{' '}
                       {cat.productsCount > 1
                         ? t.catalogue.productsAvailable
                         : t.catalogue.productsAvailableSingular}
@@ -1096,13 +1096,13 @@ export default function CataloguePage() {
                       {cat.productsCount > 1 ? t.catalogue.productUnit : t.catalogue.productUnitSingular})
                     </button>
 
-                    {user && cat.email && user.email.toLowerCase() === cat.email.toLowerCase() ? (
+                    {user && cat.email && (user.email.toLowerCase() === cat.email.toLowerCase() || isModerator) ? (
                       <Link
-                        href="/mon-catalogue"
+                        href={`/mon-catalogue?email=${encodeURIComponent(cat.email)}`}
                         className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-extrabold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/40 transition-all"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Gérer mon catalogue (Connecté)</span>
+                        <span>Gérer mon catalogue ({cat.productsCount}/4 pages)</span>
                       </Link>
                     ) : (
                       <button
@@ -1118,7 +1118,7 @@ export default function CataloguePage() {
                         className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-extrabold text-amber-300 bg-slate-950/90 hover:bg-slate-900 border border-[#D4AF37]/40 hover:border-[#D4AF37] transition-all cursor-pointer"
                       >
                         <Lock className="w-3.5 h-3.5 text-[#D4AF37]" />
-                        <span>Connexion (Propriétaire du catalogue)</span>
+                        <span>Gérer mon catalogue ({cat.productsCount}/4 pages)</span>
                       </button>
                     )}
                   </div>
@@ -1310,13 +1310,13 @@ export default function CataloguePage() {
 
                 {user &&
                 selectedSupplierCatalog.email &&
-                user.email.toLowerCase() === selectedSupplierCatalog.email.toLowerCase() ? (
+                (user.email.toLowerCase() === selectedSupplierCatalog.email.toLowerCase() || isModerator) ? (
                   <Link
-                    href="/mon-catalogue"
+                    href={`/mon-catalogue?email=${encodeURIComponent(selectedSupplierCatalog.email)}`}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black text-emerald-300 bg-emerald-950/90 border border-emerald-500/40 hover:bg-emerald-900"
                   >
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Gérer mon catalogue</span>
+                    <span>Gérer mon catalogue ({selectedSupplierCatalog.productsCount}/4 pages)</span>
                   </Link>
                 ) : (
                   <button
@@ -1332,7 +1332,7 @@ export default function CataloguePage() {
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black text-amber-300 bg-slate-900 hover:bg-slate-800 border border-[#D4AF37]/50 hover:border-[#D4AF37] transition-all cursor-pointer shadow-md"
                   >
                     <Lock className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>Connexion</span>
+                    <span>Gérer mon catalogue ({selectedSupplierCatalog.productsCount}/4 pages)</span>
                   </button>
                 )}
               </div>
@@ -1401,20 +1401,32 @@ export default function CataloguePage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleOpenCatalogLogin({
-                      companyName: viewProduct.company.companyName,
-                      email: viewProduct.company.email || '',
-                      country: viewProduct.company.country,
-                    })
-                  }
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-[#D4AF37]/50 hover:border-[#D4AF37] text-xs font-black text-amber-300 hover:text-amber-200 transition-all cursor-pointer"
-                >
-                  <Lock className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  <span>Connexion</span>
-                </button>
+                {user &&
+                viewProduct.company.email &&
+                (user.email.toLowerCase() === viewProduct.company.email.toLowerCase() || isModerator) ? (
+                  <Link
+                    href={`/mon-catalogue?email=${encodeURIComponent(viewProduct.company.email)}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/90 border border-emerald-500/40 hover:bg-emerald-900 text-xs font-black text-emerald-300 transition-all"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Gérer mon catalogue (4 pages)</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleOpenCatalogLogin({
+                        companyName: viewProduct.company.companyName,
+                        email: viewProduct.company.email || '',
+                        country: viewProduct.company.country,
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-[#D4AF37]/50 hover:border-[#D4AF37] text-xs font-black text-amber-300 hover:text-amber-200 transition-all cursor-pointer"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <span>Gérer mon catalogue</span>
+                  </button>
+                )}
 
                 {/* BOUTON BASCULE PLEIN ÉCRAN / ÉCRAN PARTAGÉ (SI PLUSIEURS PRODUITS) */}
                 {sameSupplierProducts.length > 1 && (
@@ -1981,10 +1993,10 @@ export default function CataloguePage() {
                 {user ? (
                   <div className="flex flex-col gap-2.5">
                     <Link
-                      href="/mon-catalogue"
+                      href={`/mon-catalogue?email=${encodeURIComponent(catalogLoginEmail || catalogLoginTarget.email || '')}`}
                       className="w-full py-3.5 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 shadow-lg text-center block"
                     >
-                      Gérer ma Vitrine &amp; Mon Catalogue
+                      Gérer mon catalogue (Modifier / Ajouter mes 4 pages)
                     </Link>
                     <button
                       type="button"
