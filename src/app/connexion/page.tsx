@@ -16,16 +16,18 @@ import {
   UserPlus,
   Globe,
   Sparkles,
+  Package,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function ConnexionPage() {
-  const { user, loginWithPassword, logout } = useAuth();
+  const { user, loginWithPassword, changePassword, logout } = useAuth();
   const { t, locale } = useLanguage();
 
-  // Mode principal : 'login' (Connexion) | 'register' (S'inscrire) | 'register_password' (Activer mot de passe)
-  const [mode, setMode] = useState<'login' | 'register' | 'register_password'>('login');
+  // Mode principal : 'login' (Connexion) | 'register' (S'inscrire) | 'register_password' (Activer mot de passe) | 'forgot_password' (Mot de passe oublié)
+  const [mode, setMode] = useState<'login' | 'register' | 'register_password' | 'forgot_password'>('login');
 
   // Champs de saisie (initialisés strictement vides, sans pré-remplissage)
   const [emailInput, setEmailInput] = useState('');
@@ -38,6 +40,11 @@ export default function ConnexionPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Première connexion : changement de mot de passe obligatoire
+  const [firstLoginNewPassword, setFirstLoginNewPassword] = useState('');
+  const [firstLoginConfirmPassword, setFirstLoginConfirmPassword] = useState('');
+  const [showFirstLoginPass, setShowFirstLoginPass] = useState(false);
 
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
@@ -76,6 +83,80 @@ export default function ConnexionPage() {
           ? `Bienvenue ! Vous êtes connecté en toute sécurité sous ${cleanEmail}.`
           : `Welcome! You are securely signed in as ${cleanEmail}.`
       );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Soumission Première Connexion : Changement de mot de passe obligatoire
+  const handleFirstLoginChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorNotice(null);
+    setSuccessNotice(null);
+
+    if (!firstLoginNewPassword || firstLoginNewPassword.trim().length < 8) {
+      setErrorNotice('Le nouveau mot de passe doit comporter au moins 8 caractères.');
+      return;
+    }
+    if (firstLoginNewPassword !== firstLoginConfirmPassword) {
+      setErrorNotice('La confirmation du nouveau mot de passe ne correspond pas.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await changePassword(firstLoginNewPassword);
+      if (!res.success) {
+        setErrorNotice(res.error || 'Erreur lors de la mise à jour de votre mot de passe personnel.');
+        return;
+      }
+      setSuccessNotice(
+        'Votre mot de passe personnel a été enregistré avec succès ! L’ancien mot de passe fourni a été définitivement désactivé.'
+      );
+      setFirstLoginNewPassword('');
+      setFirstLoginConfirmPassword('');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Soumission Mot de passe oublié
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorNotice(null);
+    setSuccessNotice(null);
+
+    const cleanEmail = emailInput.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorNotice('Veuillez saisir votre adresse e-mail professionnelle.');
+      return;
+    }
+    if (!passwordInput || passwordInput.trim().length < 8) {
+      setErrorNotice('Veuillez saisir le nouveau mot de passe souhaité (minimum 8 caractères).');
+      return;
+    }
+    if (passwordInput !== confirmPasswordInput) {
+      setErrorNotice('La confirmation du nouveau mot de passe ne correspond pas.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, newPassword: passwordInput }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setErrorNotice(data.error || 'Erreur lors de la prise en compte de la demande.');
+        return;
+      }
+      setSuccessNotice(data.message);
+      setPasswordInput('');
+      setConfirmPasswordInput('');
+    } catch {
+      setErrorNotice('Erreur réseau lors de la soumission de la demande.');
     } finally {
       setIsSubmitting(false);
     }
@@ -265,43 +346,156 @@ export default function ConnexionPage() {
 
         {/* LOGGED IN CARD */}
         {user ? (
-          <div className="glass-card gold-glow-border p-6 rounded-3xl space-y-5 text-center">
-            <div className="w-12 h-12 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-lg font-black text-white">
-                {locale === 'fr' ? 'Session active et sécurisée' : 'Active & secure session'}
-              </h2>
-              <p className="text-sm text-amber-300 font-bold mt-1">{user.email}</p>
-              {user.companyName && (
-                <p className="text-xs text-slate-300 mt-0.5">{user.companyName}</p>
-              )}
-              <p className="text-[11px] text-slate-400 mt-1 uppercase tracking-wider font-mono">
-                {locale === 'fr' ? 'Profil :' : 'Profile:'}{' '}
-                {user.role === 'supplier'
-                  ? 'Fournisseur B2B'
-                  : user.role === 'entrepreneur'
-                  ? 'Entrepreneur / Acheteur'
-                  : 'Compte vérifié'}
-              </p>
-            </div>
+          user.mustChangePassword ? (
+            /* PREMIÈRE CONNEXION : CHANGEMENT DE MOT DE PASSE OBLIGATOIRE */
+            <div className="glass-card border-2 border-amber-500/70 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl animate-in fade-in duration-300">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto">
+                <KeyRound className="w-7 h-7" />
+              </div>
+              <div className="text-center space-y-2">
+                <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  Première Connexion Requise
+                </span>
+                <h2 className="text-xl font-black text-white">
+                  Définissez votre mot de passe personnel
+                </h2>
+                <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
+                  Par mesure de sécurité, le mot de passe initial fourni doit être remplacé. Il sera immédiatement désactivé dès la validation de votre nouveau mot de passe personnel.
+                </p>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-              <Link
-                href="/catalogue"
-                className="py-2.5 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 transition-all text-center"
-              >
-                {locale === 'fr' ? 'Accéder au Catalogue' : 'Browse Catalog'}
-              </Link>
-              <button
-                onClick={logout}
-                className="py-2.5 px-4 rounded-xl text-xs font-bold text-slate-300 hover:text-rose-300 bg-slate-900 border border-slate-700 transition-colors cursor-pointer"
-              >
-                {t.nav.logout}
-              </button>
+              {errorNotice && (
+                <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                  <span>{errorNotice}</span>
+                </div>
+              )}
+
+              {successNotice && (
+                <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs font-bold flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                  <span>{successNotice}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleFirstLoginChange} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Nouveau mot de passe personnel *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showFirstLoginPass ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      placeholder="Minimum 8 caractères"
+                      value={firstLoginNewPassword}
+                      onChange={(e) => setFirstLoginNewPassword(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowFirstLoginPass((prev) => !prev)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    >
+                      {showFirstLoginPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Confirmez votre nouveau mot de passe *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showFirstLoginPass ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      placeholder="Retapez le mot de passe identique"
+                      value={firstLoginConfirmPassword}
+                      onChange={(e) => setFirstLoginConfirmPassword(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                  <div className="font-bold text-slate-300">Critères de sécurité requis :</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={firstLoginNewPassword.length >= 8 ? 'text-emerald-400' : 'text-slate-500'}>
+                      {firstLoginNewPassword.length >= 8 ? '✓' : '○'} Au moins 8 caractères
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={firstLoginNewPassword && firstLoginNewPassword === firstLoginConfirmPassword ? 'text-emerald-400' : 'text-slate-500'}>
+                      {firstLoginNewPassword && firstLoginNewPassword === firstLoginConfirmPassword ? '✓' : '○'} Mots de passe identiques
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 transition-all shadow-md disabled:opacity-50 cursor-pointer"
+                >
+                  {isSubmitting ? 'Enregistrement sécurisé...' : 'Valider et désactiver le mot de passe initial'}
+                </button>
+              </form>
             </div>
-          </div>
+          ) : (
+            <div className="glass-card gold-glow-border p-6 rounded-3xl space-y-5 text-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-white">
+                  {locale === 'fr' ? 'Session active et sécurisée' : 'Active & secure session'}
+                </h2>
+                <p className="text-sm text-amber-300 font-bold mt-1">{user.email}</p>
+                {user.companyName && (
+                  <p className="text-xs text-slate-300 mt-0.5">{user.companyName}</p>
+                )}
+                <p className="text-[11px] text-slate-400 mt-1 uppercase tracking-wider font-mono">
+                  {locale === 'fr' ? 'Profil :' : 'Profile:'}{' '}
+                  {user.role === 'supplier'
+                    ? 'Fournisseur B2B'
+                    : user.role === 'entrepreneur'
+                    ? 'Entrepreneur / Acheteur'
+                    : 'Compte vérifié'}
+                </p>
+              </div>
+
+              <div className="space-y-2.5 pt-2">
+                <Link
+                  href="/mon-catalogue"
+                  className="w-full py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Package className="w-4 h-4" />
+                  <span>Gérer ma Vitrine & Mon Catalogue B2B</span>
+                </Link>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <Link
+                    href="/catalogue"
+                    className="py-2.5 px-4 rounded-xl text-xs font-black text-slate-200 bg-slate-900 border border-slate-700 hover:border-amber-400/60 transition-all text-center"
+                  >
+                    {locale === 'fr' ? 'Accéder au Catalogue' : 'Browse Catalog'}
+                  </Link>
+                  <button
+                    onClick={logout}
+                    className="py-2.5 px-4 rounded-xl text-xs font-bold text-slate-300 hover:text-rose-300 bg-slate-900 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    {t.nav.logout}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         ) : (
           /* FORMULAIRE SÉCURISÉ CLIENT : CONNEXION / INSCRIPTION */
           <div className="glass-card gold-glow-border p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl">
@@ -432,6 +626,20 @@ export default function ConnexionPage() {
                   </div>
                 </div>
 
+                <div className="flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('forgot_password');
+                      setErrorNotice(null);
+                      setSuccessNotice(null);
+                    }}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer"
+                  >
+                    Mot de passe oublié ?
+                  </button>
+                </div>
+
                 <button
                   type="submit"
                   disabled={isSubmitting}
@@ -456,7 +664,7 @@ export default function ConnexionPage() {
                     </button>
                   </p>
                   <p className="text-[11px] text-slate-400">
-                    Première activation ou mot de passe oublié ?{' '}
+                    Première activation ou configuration ?{' '}
                     <button
                       type="button"
                       onClick={() => {
@@ -466,9 +674,116 @@ export default function ConnexionPage() {
                       }}
                       className="text-slate-300 font-bold hover:text-amber-300 hover:underline cursor-pointer"
                     >
-                      Activer ou réinitialiser
+                      Activer un mot de passe
                     </button>
                   </p>
+                </div>
+              </form>
+            )}
+
+            {/* CAS : MOT DE PASSE OUBLIÉ */}
+            {mode === 'forgot_password' && (
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('login');
+                      setErrorNotice(null);
+                      setSuccessNotice(null);
+                    }}
+                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <h3 className="text-sm font-black text-white">Réinitialisation de mot de passe</h3>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Indiquez votre adresse e-mail professionnelle et choisissez votre nouveau mot de passe. Votre demande sera soumise pour validation par les administrateurs.
+                </p>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Adresse e-mail professionnelle *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="contact@entreprise.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Nouveau mot de passe souhaité *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      placeholder="Minimum 8 caractères"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Confirmation du nouveau mot de passe *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      placeholder="Retapez le mot de passe"
+                      value={confirmPasswordInput}
+                      onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 transition-all shadow-md disabled:opacity-50 cursor-pointer"
+                >
+                  {isSubmitting ? 'Envoi de la demande...' : 'Envoyer la demande de réinitialisation'}
+                </button>
+
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('login');
+                      setErrorNotice(null);
+                      setSuccessNotice(null);
+                    }}
+                    className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    ← Retourner à la connexion
+                  </button>
                 </div>
               </form>
             )}

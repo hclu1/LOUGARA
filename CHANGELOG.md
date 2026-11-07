@@ -4,6 +4,31 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.21.0] - 2026-11-07
+### Ajouté
+- **Espace Vitrine & Gestion du Catalogue Fournisseur (`/mon-catalogue`)** :
+  - Reconnexion de l'entrepreneur ou fournisseur avec contrôle d'accès et détection automatique de l'abonnement actif.
+  - Jauge de quota en temps réel selon le forfait (gratuit = 4 produits, essentiel = 15 produits, VIP = illimité).
+  - Gestion complète du catalogue : ajout, modification et suppression de produits (titre, catégorie, description, tarifs, MOQ, pays d'origine, galerie jusqu'à 4 photos).
+  - Nouveau champ « Lien externe du produit » (boutique, site officiel, plaquette PDF) avec statut de modération transparent.
+- **Sécurité & Changement de mot de passe obligatoire à la première connexion** :
+  - Détection automatique des comptes accédant pour la première fois avec un mot de passe initial fourni.
+  - Interface bloquante exigeant la définition d'un nouveau mot de passe personnel sécurisé (règles de politique de sécurité conformes).
+  - Désactivation immédiate et définitive de l'ancien mot de passe fourni dès validation.
+- **Lien & Flux « Mot de passe oublié ? »** :
+  - Nouveau lien accessible directement depuis le formulaire de connexion (`/connexion`).
+  - Formulaire dédié de demande de réinitialisation sécurisée transmise à la file d'attente de modération admin.
+  - Message de retour sécurisé et uniforme prévenant l'énumération des comptes clients.
+- **Console Administrateur : Modération des liens avec coche interactive** :
+  - Onglet « Catalogues » (`/admin`) enrichi de la liste de toutes les références proposant un lien externe.
+  - Case à cocher (coche interactive) permettant aux administrateurs d'autoriser ou suspendre en 1 clic la diffusion publique de chaque lien.
+  - Mise à jour en temps réel via l'API dédiée `PATCH /api/admin/products/[id]/link-approval`.
+- **Catalogue Public : Mode Plein Écran & Écran Partagé (Split-Screen)** :
+  - Clic sur un produit du catalogue déclenchant une modale immersive adaptée au profil du fournisseur :
+    - *Plein écran immersif* : Grande visionneuse HD, fiche technique certifiée, bouton de devis, et bouton cliquable vers le lien officiel validé.
+    - *Écran partagé (Split-screen multi-produits)* : Volet gauche 60% avec le produit actif, et volet droit 40% présentant toute la gamme de la marque avec bascule instantanée d'un produit à l'autre sans rechargement.
+    - Bouton de bascule fluide entre mode Plein Écran et Écran Partagé à tout moment.
+
 ## [0.20.1] - 2026-11-07
 ### Corrigé
 - Suppression définitive du cache navigateur parasite (`lougara_hidden_companies` dans `localStorage`) qui masquait à tort les entreprises validées dans le catalogue du client.

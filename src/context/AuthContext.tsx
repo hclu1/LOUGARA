@@ -12,6 +12,7 @@ export interface UserProfile {
   lastName?: string;
   companyName?: string;
   accountStatus: 'pending' | 'active' | 'suspended' | 'rejected' | 'archived';
+  mustChangePassword?: boolean;
 }
 
 export const MODERATOR_EMAILS = [
@@ -36,6 +37,10 @@ interface AuthContextType {
     password: string,
     requireAdmin?: boolean
   ) => Promise<LoginResult>;
+  changePassword: (
+    newPassword: string,
+    currentPassword?: string
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isModerator: boolean;
   isSuperAdmin: boolean;
@@ -155,6 +160,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const changePassword = async (
+    newPassword: string,
+    currentPassword?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user?.email,
+          newPassword,
+          currentPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.user) {
+        return {
+          success: false,
+          error: data.error || 'Erreur lors du changement de mot de passe.',
+        };
+      }
+
+      setUser(data.user);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+        }
+      } catch {}
+
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: 'Erreur réseau lors du changement de mot de passe.',
+      };
+    }
+  };
+
   const login = async (email: string, password?: string): Promise<boolean> => {
     const result = await loginWithPassword(email, password || '', false);
     return result.success;
@@ -189,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         loginWithPassword,
+        changePassword,
         logout,
         isModerator,
         isSuperAdmin,

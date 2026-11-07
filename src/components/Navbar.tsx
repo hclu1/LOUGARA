@@ -224,6 +224,16 @@ export const Navbar = () => {
             )}
 
             {/* User Session Info / Connexion */}
+            {user && !isAdminRoute && (
+              <Link
+                href="/mon-catalogue"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 shadow transition-all"
+                title="Gérer mes produits et ma vitrine"
+              >
+                <span>Mon Catalogue</span>
+              </Link>
+            )}
+
             {user && (!isModerator || showAdminTabs) ? (
               <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs">
                 <div className="flex flex-col text-right">

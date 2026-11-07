@@ -10,6 +10,7 @@ export interface SessionUser {
   lastName?: string;
   companyName?: string;
   accountStatus: 'pending' | 'active' | 'suspended' | 'rejected' | 'archived';
+  mustChangePassword?: boolean;
 }
 
 export type PasswordRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -45,6 +46,7 @@ interface StoredAccountCredential {
   passwordHash: string;
   accountStatus: 'pending' | 'active' | 'suspended' | 'rejected' | 'archived';
   pendingPasswordHash?: string;
+  mustChangePassword?: boolean;
   updatedAt: string;
 }
 
@@ -305,6 +307,7 @@ export function authenticateAccount(params: {
         lastName: stored.lastName,
         companyName: stored.companyName,
         accountStatus: stored.accountStatus,
+        mustChangePassword: Boolean(stored.mustChangePassword),
       },
     };
   }
@@ -508,6 +511,9 @@ export function reviewPasswordValidationRequest(params: {
         account.pendingPasswordHash = undefined;
       }
       account.accountStatus = 'active';
+      if (reqItem.requestType === 'INITIAL_PASSWORD' || reqItem.requestType === 'CLIENT_REGISTRATION') {
+        account.mustChangePassword = true;
+      }
       account.updatedAt = new Date().toISOString();
     }
   } else if (params.action === 'REJECT') {
@@ -546,6 +552,7 @@ export function createSessionToken(user: SessionUser): string {
     lastName: user.lastName,
     companyName: user.companyName,
     accountStatus: user.accountStatus,
+    mustChangePassword: Boolean(user.mustChangePassword),
     exp: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 jours
   };
   const payloadBase64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
@@ -601,6 +608,7 @@ export function verifySessionToken(token?: string | null): SessionUser | null {
       lastName: decoded.lastName,
       companyName: decoded.companyName,
       accountStatus: decoded.accountStatus || 'active',
+      mustChangePassword: Boolean(decoded.mustChangePassword),
     };
   } catch {
     return null;
@@ -666,3 +674,59 @@ export function isRequestAdminAuthorized(
         : null;
   return { authorized: ok, email: ok ? candidate : null, role };
 }
+
+/**
+ * Changement de mot de passe (première connexion ou mise à jour volontaire).
+ * Désactive définitivement le mot de passe temporaire fourni.
+ */
+export function changeAccountPassword(params: {
+  email: string;
+  currentPassword?: string;
+  newPassword: string;
+}): {
+  success: boolean;
+  user?: SessionUser;
+  error?: string;
+} {
+  initDefaultSecurityStore();
+  const cleanEmail = (params.email || '').trim().toLowerCase();
+  const account = accountsStore.get(cleanEmail);
+
+  if (!account) {
+    return { success: false, error: 'Compte client introuvable.' };
+  }
+
+  if (params.currentPassword) {
+    const isValid =
+      verifyPassword(params.currentPassword, account.passwordHash) ||
+      verifyPassword(params.currentPassword.trim(), account.passwordHash);
+    if (!isValid) {
+      return { success: false, error: 'Le mot de passe actuel ou fourni est incorrect.' };
+    }
+  }
+
+  const newPass = (params.newPassword || '').trim();
+  if (newPass.length < 8) {
+    return { success: false, error: 'Le nouveau mot de passe doit comporter au moins 8 caractères.' };
+  }
+
+  // Désactiver l'ancien mot de passe fourni et valider le nouveau
+  account.passwordHash = hashPassword(newPass);
+  account.pendingPasswordHash = undefined;
+  account.mustChangePassword = false;
+  account.updatedAt = new Date().toISOString();
+
+  const updatedUser: SessionUser = {
+    id: account.id,
+    email: account.email,
+    role: account.role,
+    firstName: account.firstName,
+    lastName: account.lastName,
+    companyName: account.companyName,
+    accountStatus: account.accountStatus,
+    mustChangePassword: false,
+  };
+
+  return { success: true, user: updatedUser };
+}
+

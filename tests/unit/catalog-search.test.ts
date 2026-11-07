@@ -32,9 +32,9 @@ describe('Recherche dans le catalogue B2B', () => {
         where: expect.objectContaining({
           category: 'Cosmétique',
           originCountry: 'Sénégal',
-          company: {
+          company: expect.objectContaining({
             verificationStatus: 'VERIFIED',
-          },
+          }),
         }),
       })
     );

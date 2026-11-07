@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Lock,
@@ -15,6 +15,11 @@ import {
   Power,
   Sparkles,
   KeyRound,
+  ExternalLink,
+  Globe,
+  CheckCircle2,
+  Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth, MODERATOR_EMAILS } from '@/context/AuthContext';
 import { AdminRoleLoginGate, AdminRoleChoice } from '@/components/AdminRoleLoginGate';
@@ -85,6 +90,56 @@ export default function AdminHubPage() {
   // Dossiers KYB en attente : badge sur l'onglet + ouverture automatique de l'onglet KYB
   const [pendingKybCount, setPendingKybCount] = useState(0);
   const [kybAutoOpened, setKybAutoOpened] = useState(false);
+
+  // Modération des produits et validation des liens externes
+  const [adminProducts, setAdminProducts] = useState<any[]>([]);
+  const [loadingAdminProducts, setLoadingAdminProducts] = useState(false);
+  const [linkApprovalUpdatingId, setLinkApprovalUpdatingId] = useState<string | null>(null);
+
+  const fetchAdminProducts = useCallback(async () => {
+    if (!isModerator) return;
+    setLoadingAdminProducts(true);
+    try {
+      const res = await fetch(`/api/admin/products?_t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.products)) {
+        setAdminProducts(data.products);
+      }
+    } catch {
+      // non bloquant
+    } finally {
+      setLoadingAdminProducts(false);
+    }
+  }, [isModerator]);
+
+  useEffect(() => {
+    if (activeTab === 'catalogs') {
+      fetchAdminProducts();
+    }
+  }, [activeTab, fetchAdminProducts]);
+
+  const handleToggleLinkApproval = async (productId: string, currentStatus: boolean) => {
+    setLinkApprovalUpdatingId(productId);
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/link-approval`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isLinkApproved: !currentStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAdminProducts((prev) =>
+          prev.map((p) => (p.id === productId ? { ...p, isLinkApproved: !currentStatus } : p))
+        );
+      } else {
+        alert(data.error || 'Erreur lors de la mise à jour du statut.');
+      }
+    } catch {
+      alert('Erreur réseau.');
+    } finally {
+      setLinkApprovalUpdatingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!isModerator) return;
@@ -606,6 +661,122 @@ export default function AdminHubPage() {
                   {anonymityEnforced ? 'Anonymat Strict Activé ✓' : 'Désactivé ✗'}
                 </button>
               </div>
+            </div>
+
+            {/* VALIDATION DES LIENS EXTERNES DES PRODUITS DU CATALOGUE */}
+            <div className="glass-card p-6 rounded-3xl border border-slate-800 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div>
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-[#D4AF37]" />
+                    Validation des Liens Externes du Catalogue ({adminProducts.length} références)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Cochez la case pour valider la diffusion publique du lien d&apos;un produit. Les liens non cochés restent masqués aux visiteurs.
+                  </p>
+                </div>
+                <button
+                  onClick={fetchAdminProducts}
+                  disabled={loadingAdminProducts}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingAdminProducts ? 'animate-spin' : ''}`} />
+                  <span>Actualiser</span>
+                </button>
+              </div>
+
+              {loadingAdminProducts ? (
+                <div className="p-8 text-center text-slate-400 text-xs">
+                  <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  Chargement des produits...
+                </div>
+              ) : adminProducts.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs italic">
+                  Aucun produit enregistré dans le catalogue.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 font-bold">
+                        <th className="p-3">Produit & Fournisseur</th>
+                        <th className="p-3">Catégorie</th>
+                        <th className="p-3">Lien Externe Proposé</th>
+                        <th className="p-3 text-center">Validation Admin (Coche)</th>
+                        <th className="p-3 text-right">Statut Diffusion</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {adminProducts.map((prod) => {
+                        const isUpdating = linkApprovalUpdatingId === prod.id;
+                        const hasLink = Boolean(prod.externalLink);
+                        return (
+                          <tr key={prod.id} className="hover:bg-slate-900/40 transition-colors">
+                            <td className="p-3">
+                              <div className="font-bold text-white line-clamp-1">{prod.title}</div>
+                              <div className="text-[11px] text-[#E5A93C]">
+                                {prod.company?.companyName || 'Fournisseur inconnu'}
+                              </div>
+                            </td>
+                            <td className="p-3 text-slate-300">{prod.category}</td>
+                            <td className="p-3">
+                              {hasLink ? (
+                                <div className="flex items-center gap-2 max-w-xs">
+                                  <a
+                                    href={prod.externalLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-amber-400 hover:underline truncate text-[11px] font-mono flex items-center gap-1"
+                                    title={prod.externalLink}
+                                  >
+                                    <ExternalLink className="w-3 h-3 shrink-0" />
+                                    <span className="truncate">{prod.externalLink}</span>
+                                  </a>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-slate-500 italic">Aucun lien</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
+                              {hasLink ? (
+                                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(prod.isLinkApproved)}
+                                    disabled={isUpdating}
+                                    onChange={() => handleToggleLinkApproval(prod.id, Boolean(prod.isLinkApproved))}
+                                    className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-900 border-slate-700 cursor-pointer"
+                                  />
+                                  <span className={`text-[11px] font-bold ${prod.isLinkApproved ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                    {prod.isLinkApproved ? 'Lien validé ✓' : 'Valider ce lien'}
+                                  </span>
+                                </label>
+                              ) : (
+                                <span className="text-[11px] text-slate-600">—</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right">
+                              {prod.isLinkApproved ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                                  Visible au catalogue
+                                </span>
+                              ) : hasLink ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-950 text-amber-300 border border-amber-500/40">
+                                  En attente
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900 text-slate-500">
+                                  Sans lien
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
