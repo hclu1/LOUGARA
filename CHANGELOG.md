@@ -4,6 +4,11 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.18.13] - 2026-11-07
+### Ajoute - Controle des pieces KYB manquantes (console admin)
+- Pastilles Kbis / Piece d'identite par dossier (Manquant, A verifier, Verifie, Non conforme).
+- Confirmation avant 'Valider & Publier' si une piece obligatoire (Kbis, identite) est manquante.
+
 ## [0.18.12] - 2026-11-06
 ### Corrige - Dossiers KYB invisibles dans la console admin
 - La route /api/admin/verifications est desormais forcee en dynamique (force-dynamic, no-store) : plus de liste obsolete.

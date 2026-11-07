@@ -297,7 +297,22 @@ export default function AdminVerificationsPage() {
     }
   };
 
+  const getMissingRequiredDocs = (supplier: SupplierItem) => {
+    const missing: string[] = [];
+    if (!supplier.documents.some((d) => d.documentType === 'COMMERCIAL_REGISTER')) missing.push('Extrait Kbis / RCCM');
+    if (!supplier.documents.some((d) => d.documentType === 'IDENTITY_DOCUMENT')) missing.push("Pièce d'identité du gérant");
+    return missing;
+  };
+
   const handleApproveSupplier = async (companyId: string, name: string) => {
+    const target = suppliers.find((s) => s.id === companyId);
+    const missing = target ? getMissingRequiredDocs(target) : [];
+    if (missing.length > 0) {
+      const proceed = confirm(
+        `Pièce(s) manquante(s) pour "${name}" : ${missing.join(', ')}.\n\nValider quand même ce dossier ?`
+      );
+      if (!proceed) return;
+    }
     setSuppliers((prev) =>
       prev.map((s) =>
         s.id === companyId
@@ -756,6 +771,27 @@ export default function AdminVerificationsPage() {
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                     Pièces Légales Téléversées :
                   </span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { type: 'COMMERCIAL_REGISTER', label: 'Kbis / RCCM' },
+                      { type: 'IDENTITY_DOCUMENT', label: "Pièce d'identité" },
+                    ].map(({ type, label }) => {
+                      const found = supplier.documents.find((d) => d.documentType === type);
+                      const cls = !found
+                        ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
+                        : found.status === 'VERIFIED'
+                          ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                          : found.status === 'REJECTED'
+                            ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
+                            : 'bg-amber-950/60 text-amber-300 border-amber-500/40';
+                      const state = !found ? 'Manquant' : found.status === 'VERIFIED' ? 'Vérifié' : found.status === 'REJECTED' ? 'Non conforme' : 'À vérifier';
+                      return (
+                        <span key={type} className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${cls}`}>
+                          {label} : {state}
+                        </span>
+                      );
+                    })}
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {supplier.documents.map((doc) => (
                       <div
