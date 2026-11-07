@@ -22,6 +22,7 @@ import {
   X,
   Upload,
   Image as ImageIcon,
+  Loader2,
   Mail,
   Eye,
   EyeOff,
@@ -160,6 +161,8 @@ export default function MonCataloguePage() {
   const [formOrigin, setFormOrigin] = useState('France');
   const [formImages, setFormImages] = useState<string[]>([]);
   const [formImageInput, setFormImageInput] = useState('');
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [formExternalLink, setFormExternalLink] = useState('');
 
   const fetchCatalog = useCallback(async () => {
@@ -202,6 +205,7 @@ export default function MonCataloguePage() {
     setFormOrigin(catalogData?.company.country || 'France');
     setFormImages([]);
     setFormImageInput('');
+    setImageUploadError(null);
     setFormExternalLink('');
     setIsModalOpen(true);
     setErrorNotice(null);
@@ -220,18 +224,61 @@ export default function MonCataloguePage() {
     setFormOrigin(p.originCountry || 'France');
     setFormImages(p.images || []);
     setFormImageInput('');
+    setImageUploadError(null);
     setFormExternalLink(p.externalLink || '');
     setIsModalOpen(true);
     setErrorNotice(null);
+  };
+
+  const handleUploadDirectPhotos = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    const remainingSlots = 4 - formImages.length;
+    if (remainingSlots <= 0) {
+      setImageUploadError('Maximum 4 photos par produit.');
+      return;
+    }
+
+    setImageUploadError(null);
+    setIsUploadingImages(true);
+    const uploadedUrls: string[] = [];
+
+    for (const file of Array.from(files).slice(0, remainingSlots)) {
+      if (file.size > 5 * 1024 * 1024) {
+        setImageUploadError(`« ${file.name} » dépasse la taille maximale de 5 Mo.`);
+        continue;
+      }
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/suppliers/product-images', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.url) {
+          uploadedUrls.push(data.url);
+        } else {
+          setImageUploadError(data?.error || `Échec du téléversement de « ${file.name} ».`);
+        }
+      } catch {
+        setImageUploadError(`Erreur réseau lors de l’envoi de « ${file.name} ».`);
+      }
+    }
+
+    if (uploadedUrls.length > 0) {
+      setFormImages((prev) => [...prev, ...uploadedUrls].slice(0, 4));
+    }
+    setIsUploadingImages(false);
   };
 
   const handleAddImage = () => {
     const url = formImageInput.trim();
     if (!url) return;
     if (formImages.length >= 4) {
-      alert('Maximum 4 photos par produit.');
+      setImageUploadError('Maximum 4 photos par produit.');
       return;
     }
+    setImageUploadError(null);
     setFormImages([...formImages, url]);
     setFormImageInput('');
   };
@@ -893,46 +940,139 @@ export default function MonCataloguePage() {
                 </p>
               </div>
 
-              {/* GESTION DES PHOTOS DU PRODUIT */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-300">
-                  Photos du produit (Jusqu&apos;à 4 photos)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    placeholder="URL de l'image (https://...)"
-                    value={formImageInput}
-                    onChange={(e) => setFormImageInput(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-xl border border-slate-700 bg-slate-900 text-xs text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddImage}
-                    disabled={formImages.length >= 4}
-                    className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50 cursor-pointer"
-                  >
-                    Ajouter
-                  </button>
+              {/* GESTION DES PHOTOS DU PRODUIT (UPLOAD DIRECT + LIEN OPTIONNEL) */}
+              <div className="space-y-3 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-[#D4AF37]" />
+                    Photos du produit ({formImages.length}/4)
+                  </label>
+                  <span className="text-[10px] font-bold text-slate-400">
+                    JPG, PNG, WEBP &bull; 5 Mo max
+                  </span>
                 </div>
 
+                {imageUploadError && (
+                  <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-500/40 text-rose-200 text-[11px] font-bold flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    <span>{imageUploadError}</span>
+                  </div>
+                )}
+
+                {/* BOUTON / ZONE DE TÉLÉVERSEMENT DIRECT DE PHOTOS */}
+                {formImages.length < 4 && (
+                  <label
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isUploadingImages && e.dataTransfer?.files?.length) {
+                        handleUploadDirectPhotos(e.dataTransfer.files);
+                      }
+                    }}
+                    className={`w-full py-3.5 px-4 rounded-xl border-2 border-dashed transition-all flex items-center justify-center gap-2.5 text-xs font-black cursor-pointer ${
+                      isUploadingImages
+                        ? 'border-[#D4AF37]/60 bg-slate-950/70 text-amber-300 cursor-wait'
+                        : 'border-[#D4AF37]/50 hover:border-[#D4AF37] bg-[#D4AF37]/10 hover:bg-[#D4AF37]/15 text-[#E5A93C]'
+                    }`}
+                  >
+                    {isUploadingImages ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                        <span>Téléversement des photos en cours...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-[#D4AF37]" />
+                        <span>Ajouter directement des photos depuis mon appareil (ou glisser-déposer)</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      disabled={isUploadingImages || formImages.length >= 4}
+                      className="hidden"
+                      onChange={(e) => {
+                        handleUploadDirectPhotos(e.target.files);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+
+                {/* GRILLE D'APERÇU DES PHOTOS AJOUTÉES */}
                 {formImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 pt-2">
+                  <div className="grid grid-cols-4 gap-2.5 pt-1">
                     {formImages.map((img, idx) => (
-                      <div key={idx} className="relative h-16 rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
+                      <div
+                        key={idx}
+                        className="relative h-20 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 group"
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img} alt="Aperçu" className="w-full h-full object-cover" />
+                        <img src={img} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(idx)}
-                          className="absolute top-1 right-1 p-1 rounded-full bg-slate-950/80 text-rose-400 hover:bg-rose-950"
+                          aria-label={`Supprimer la photo ${idx + 1}`}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-slate-950/90 text-rose-400 hover:bg-rose-950 cursor-pointer"
                         >
                           <X className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
+                    {formImages.length < 4 && (
+                      <label className="h-20 rounded-xl border border-dashed border-slate-700 hover:border-[#D4AF37] bg-slate-950/60 flex flex-col items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-amber-300 cursor-pointer transition-colors">
+                        {isUploadingImages ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 text-[#D4AF37]" />
+                            <span>+ Photo</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          multiple
+                          disabled={isUploadingImages}
+                          className="hidden"
+                          onChange={(e) => {
+                            handleUploadDirectPhotos(e.target.files);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
                 )}
+
+                {/* OPTION SECONDAIRE : AJOUTER VIA UN LIEN URL */}
+                <div className="pt-1 border-t border-slate-800/80 space-y-1.5">
+                  <span className="block text-[10px] font-bold text-slate-400">
+                    Ou joindre un lien d&apos;image (optionnel) :
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="URL de l'image (https://...)"
+                      value={formImageInput}
+                      onChange={(e) => setFormImageInput(e.target.value)}
+                      className="flex-1 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddImage}
+                      disabled={formImages.length >= 4 || !formImageInput.trim()}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50 cursor-pointer"
+                    >
+                      Ajouter le lien
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">

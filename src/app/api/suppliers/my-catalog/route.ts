@@ -193,27 +193,45 @@ export async function POST(req: Request) {
     }
 
     const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`;
+    const productData = {
+      companyId: company.id,
+      title: title.trim(),
+      slug,
+      description: description.trim(),
+      category: category.trim(),
+      priceMin: priceMin ? parseFloat(priceMin) : null,
+      priceMax: priceMax ? parseFloat(priceMax) : null,
+      currency: currency || 'EUR',
+      moq: moq ? parseInt(moq, 10) : 1,
+      unit: unit || 'pièce',
+      originCountry: originCountry || company.country || 'France',
+      images: Array.isArray(images) ? images : [],
+      externalLink: externalLink ? externalLink.trim() : null,
+      isLinkApproved: false, // Nécessite validation d'un administrateur
+      isPublished: true,
+      moderationStatus: 'APPROVED' as const,
+    };
 
-    const newProduct = await prisma.product.create({
-      data: {
-        companyId: company.id,
-        title: title.trim(),
-        slug,
-        description: description.trim(),
-        category: category.trim(),
-        priceMin: priceMin ? parseFloat(priceMin) : null,
-        priceMax: priceMax ? parseFloat(priceMax) : null,
-        currency: currency || 'EUR',
-        moq: moq ? parseInt(moq, 10) : 1,
-        unit: unit || 'pièce',
-        originCountry: originCountry || company.country || 'France',
-        images: Array.isArray(images) ? images : [],
-        externalLink: externalLink ? externalLink.trim() : null,
-        isLinkApproved: false, // Nécessite validation d'un administrateur
-        isPublished: true,
-        moderationStatus: 'APPROVED',
-      },
-    });
+    let newProduct: any;
+    try {
+      newProduct = await prisma.product.create({
+        data: productData,
+      });
+    } catch {
+      const nowIso = new Date().toISOString();
+      const { data, error } = await supabaseAdmin
+        .from('Product')
+        .insert({
+          id: `prod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          ...productData,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        })
+        .select('*')
+        .single();
+      if (error) throw error;
+      newProduct = data;
+    }
 
     return NextResponse.json({
       success: true,
@@ -259,9 +277,14 @@ export async function PUT(req: Request) {
     }
 
     // Vérifier que le produit appartient bien à la société
-    const existing = await prisma.product.findFirst({
-      where: { id, companyId: company.id },
-    });
+    let existing: any = null;
+    try {
+      existing = await prisma.product.findFirst({
+        where: { id, companyId: company.id },
+      });
+    } catch {
+      existing = (company.products || []).find((p: any) => p.id === id) || null;
+    }
 
     if (!existing) {
       return NextResponse.json(
@@ -272,25 +295,39 @@ export async function PUT(req: Request) {
 
     const cleanLink = externalLink ? externalLink.trim() : null;
     const linkChanged = cleanLink !== existing.externalLink;
+    const updateData = {
+      title: title ? title.trim() : existing.title,
+      description: description ? description.trim() : existing.description,
+      category: category ? category.trim() : existing.category,
+      priceMin: priceMin !== undefined ? (priceMin ? parseFloat(priceMin) : null) : existing.priceMin,
+      priceMax: priceMax !== undefined ? (priceMax ? parseFloat(priceMax) : null) : existing.priceMax,
+      currency: currency || existing.currency,
+      moq: moq !== undefined ? parseInt(moq, 10) : existing.moq,
+      unit: unit || existing.unit,
+      originCountry: originCountry || existing.originCountry,
+      images: Array.isArray(images) ? images : existing.images,
+      externalLink: cleanLink,
+      // Si le lien a changé, on réinitialise l'approbation pour modération
+      isLinkApproved: linkChanged ? false : existing.isLinkApproved,
+    };
 
-    const updated = await prisma.product.update({
-      where: { id },
-      data: {
-        title: title ? title.trim() : existing.title,
-        description: description ? description.trim() : existing.description,
-        category: category ? category.trim() : existing.category,
-        priceMin: priceMin !== undefined ? (priceMin ? parseFloat(priceMin) : null) : existing.priceMin,
-        priceMax: priceMax !== undefined ? (priceMax ? parseFloat(priceMax) : null) : existing.priceMax,
-        currency: currency || existing.currency,
-        moq: moq !== undefined ? parseInt(moq, 10) : existing.moq,
-        unit: unit || existing.unit,
-        originCountry: originCountry || existing.originCountry,
-        images: Array.isArray(images) ? images : existing.images,
-        externalLink: cleanLink,
-        // Si le lien a changé, on réinitialise l'approbation pour modération
-        isLinkApproved: linkChanged ? false : existing.isLinkApproved,
-      },
-    });
+    let updated: any;
+    try {
+      updated = await prisma.product.update({
+        where: { id },
+        data: updateData,
+      });
+    } catch {
+      const { data, error } = await supabaseAdmin
+        .from('Product')
+        .update({ ...updateData, updatedAt: new Date().toISOString() })
+        .eq('id', id)
+        .eq('companyId', company.id)
+        .select('*')
+        .single();
+      if (error) throw error;
+      updated = data;
+    }
 
     return NextResponse.json({
       success: true,
@@ -328,9 +365,14 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const existing = await prisma.product.findFirst({
-      where: { id: productId, companyId: company.id },
-    });
+    let existing: any = null;
+    try {
+      existing = await prisma.product.findFirst({
+        where: { id: productId, companyId: company.id },
+      });
+    } catch {
+      existing = (company.products || []).find((p: any) => p.id === productId) || null;
+    }
 
     if (!existing) {
       return NextResponse.json(
@@ -339,9 +381,18 @@ export async function DELETE(req: Request) {
       );
     }
 
-    await prisma.product.delete({
-      where: { id: productId },
-    });
+    try {
+      await prisma.product.delete({
+        where: { id: productId },
+      });
+    } catch {
+      const { error } = await supabaseAdmin
+        .from('Product')
+        .delete()
+        .eq('id', productId)
+        .eq('companyId', company.id);
+      if (error) throw error;
+    }
 
     return NextResponse.json({
       success: true,

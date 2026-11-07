@@ -4,6 +4,13 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.22.2] - 2026-11-07
+### Ajouté
+- **Téléversement direct de photos dans la modale « Ajouter un nouveau produit » / « Modifier la référence » (`/mon-catalogue`)** :
+  - Ajout d'une zone de sélection et glisser-déposer (`drag & drop`) permettant d'ajouter directement jusqu'à 4 photos depuis son ordinateur ou son smartphone (`JPG`, `PNG`, `WEBP` jusqu'à 5 Mo) via l'API `/api/suppliers/product-images` et Supabase Storage (`catalog-images`).
+  - Ajout d'une vignette interactive `+ Photo` dans la grille d'aperçu pour compléter facilement les photos d'un produit, tout en conservant l'option secondaire de saisie d'un lien URL d'image.
+  - Renforcement de `/api/suppliers/my-catalog` (`POST`, `PUT`, `DELETE`) avec secours automatique Supabase REST (`PostgREST`) pour garantir l'enregistrement des produits et de leurs photos.
+
 ## [0.22.1] - 2026-11-07
 ### Corrigé
 - **Fonctionnement immédiat de la coche de validation du lien de l'application dans l'espace Admin (`/admin` Onglets 1, 2, 4, `/admin/mots-de-passe` et `/admin/verifications`)** :
