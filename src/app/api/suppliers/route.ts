@@ -42,6 +42,15 @@ function buildKycDocument(
 const MAX_PRODUCTS = 10;
 const MAX_IMAGES_PER_PRODUCT = 4;
 
+/** Normalise un lien externe renseigné sous le nom de l'article. */
+function normalizeExternalLink(raw: any): string | null {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim().slice(0, 500);
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 /** Nettoie et valide les produits soumis : aucune donnee fictive n'est injectee. */
 function sanitizeProducts(raw: any[], sector?: string) {
   const prefix = getCatalogImagePublicPrefix();
@@ -53,6 +62,7 @@ function sanitizeProducts(raw: any[], sector?: string) {
     .slice(0, MAX_PRODUCTS)
     .map((prod: any) => ({
       title: String(prod?.title ?? '').trim().slice(0, 150),
+      externalLink: normalizeExternalLink(prod?.externalLink),
       description: String(prod?.description ?? '').trim().slice(0, 2000),
       category: String(prod?.category || sector || 'Général').slice(0, 100),
       priceMin: toNum(prod?.priceMin),
@@ -197,6 +207,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const firstExternalLink = cleanProducts.find((p) => p.externalLink)?.externalLink || null;
+
     // Création du profil d'entreprise
     const company = await prisma.companyProfile.create({
       data: {
@@ -206,6 +218,7 @@ export async function POST(req: NextRequest) {
         city: city || 'Dakar',
         sector: sector || 'Négoce & Commerce Général',
         registrationNumber: registrationNumber || null,
+        website: firstExternalLink,
         phone: phone || null,
         verificationStatus: 'PENDING',
         isPublished: false,
@@ -224,6 +237,8 @@ export async function POST(req: NextRequest) {
             unit: prod.unit,
             originCountry: country || 'Sénégal',
             images: prod.images,
+            externalLink: prod.externalLink,
+            isLinkApproved: false,
             isPublished: false,
             moderationStatus: 'PENDING' as const,
           })),

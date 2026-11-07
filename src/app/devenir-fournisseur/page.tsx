@@ -35,6 +35,7 @@ const MAX_IMAGES_PER_PRODUCT = 4;
 interface CatalogProductItem {
   id: string;
   title: string;
+  externalLink: string;
   description: string;
   category: string;
   priceMin: string;
@@ -194,6 +195,7 @@ export default function DevenirFournisseurPage() {
       {
         id: `prod-${Date.now()}`,
         title: '',
+        externalLink: '',
         description: '',
         category: sector,
         priceMin: '',
@@ -530,9 +532,8 @@ export default function DevenirFournisseurPage() {
                   <div className="p-3 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[11px] text-slate-300 leading-relaxed flex gap-2">
                     <ShieldCheck className="w-4 h-4 text-[#D4AF37] shrink-0 mt-0.5" />
                     <p>
-                      Lougara est une plateforme de mise en relation : vos textes et vos images sont <strong>contrôlés par Lougara</strong> en même temps que votre Kbis et votre pièce d&apos;identité.
-                      Seuls les contenus validés apparaissent dans le catalogue, et les demandes des acheteurs transitent par Lougara.
-                      N&apos;indiquez ni coordonnées de contact ni lien externe dans vos descriptions.
+                      Lougara est une plateforme de mise en relation : vos textes, vos images et le lien externe de chaque article sont <strong>contrôlés par Lougara</strong> en même temps que votre Kbis et votre pièce d&apos;identité.
+                      Seuls les contenus et liens autorisés par Lougara apparaissent dans le catalogue public. Renseignez votre lien uniquement dans le champ dédié sous le nom de l&apos;article.
                     </p>
                   </div>
 
@@ -575,6 +576,29 @@ export default function DevenirFournisseurPage() {
                             onChange={(e) => updateProduct(p.id, { title: e.target.value })}
                             className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white"
                           />
+
+                          <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <label className="text-[11px] font-bold text-[#E5A93C] flex items-center gap-1.5">
+                                <Globe2 className="w-3.5 h-3.5 text-[#D4AF37]" />
+                                Lien externe de l&apos;article (Optionnel &bull; Autorisé après validation par Lougara)
+                              </label>
+                              <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/30">
+                                Soumis à validation Lougara
+                              </span>
+                            </div>
+                            <input
+                              type="text"
+                              placeholder="https://votre-site.com/fiche-article"
+                              maxLength={500}
+                              value={p.externalLink}
+                              onChange={(e) => updateProduct(p.id, { externalLink: e.target.value })}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-900 text-xs text-white font-mono focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                            />
+                            <p className="text-[10px] text-slate-400">
+                              Ce lien vers votre site ou la fiche de l&apos;article sera contrôlé par Lougara et activé dans le catalogue dès son approbation.
+                            </p>
+                          </div>
 
                           <textarea
                             placeholder="Description détaillée : origine, composition, conditionnement, certifications..."

@@ -4,6 +4,12 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.21.4] - 2026-11-07
+### Ajouté
+- **Formulaire « Devenir Fournisseur » (`/devenir-fournisseur` — Étape 3/5 Catalogue)** :
+  - Ajout du champ dédié **« Lien externe de l'article (Optionnel • Autorisé après validation par Lougara) »** placé directement sous le nom de chaque article dans le créateur de catalogue (Étape 3 sur 5).
+  - Enregistrement et normalisation automatique de `externalLink` (`isLinkApproved: false` par défaut) dans `POST /api/suppliers` afin que le lien soit directement soumis et visible dans les consoles de modération et de validation Lougara.
+
 ## [0.21.3] - 2026-11-07
 ### Corrigé
 - **Prise en compte garantie des données existantes dans Supabase en production (Vercel & Local)** :
