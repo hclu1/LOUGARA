@@ -95,6 +95,9 @@ interface SupplierItem {
     title: string;
     description?: string;
     category?: string;
+    isPublished?: boolean;
+    externalLink?: string | null;
+    isLinkApproved?: boolean;
     moderationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
     moderationNotes?: string | null;
     images: string[];
@@ -114,6 +117,7 @@ export default function AdminVerificationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [expandedProducts, setExpandedProducts] = useState<string[]>([]);
+  const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
 
   // Stats Analytics Visiteurs
   const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
@@ -469,6 +473,82 @@ export default function AdminVerificationsPage() {
     }
   };
 
+  const handleToggleProductActive = async (
+    companyId: string,
+    productId: string,
+    willBeActive: boolean,
+    productTitle: string
+  ) => {
+    setSuppliers((prev) =>
+      prev.map((s) =>
+        s.id === companyId
+          ? {
+              ...s,
+              products: s.products.map((p) =>
+                p.id === productId
+                  ? { ...p, isPublished: willBeActive, moderationStatus: willBeActive ? 'APPROVED' : p.moderationStatus }
+                  : p
+              ),
+            }
+          : s
+      )
+    );
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'TOGGLE_PRODUCT_ACTIVE',
+          companyId,
+          productId,
+          isPublished: willBeActive,
+        }),
+      });
+      if (res.ok) {
+        setActionNotice(
+          willBeActive
+            ? `Produit « ${productTitle} » activé et visible dans le catalogue.`
+            : `Produit « ${productTitle} » désactivé (masqué du catalogue).`
+        );
+        setTimeout(() => setActionNotice(null), 4000);
+      }
+    } catch (e) {
+      console.error('Erreur toggle produit :', e);
+    }
+  };
+
+  const handleToggleOnlineLink = async (params: {
+    companyId: string;
+    productId?: string;
+    externalLink: string;
+    isLinkApproved: boolean;
+  }) => {
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'UPDATE_ONLINE_LINK',
+          companyId: params.companyId,
+          productId: params.productId,
+          externalLink: params.externalLink,
+          isLinkApproved: params.isLinkApproved,
+        }),
+      });
+      if (res.ok) {
+        await fetchSuppliers(false);
+        setActionNotice(
+          params.isLinkApproved
+            ? 'Lien du site en ligne validé et affiché sur le catalogue.'
+            : 'Lien du site en ligne désactivé sur le catalogue.'
+        );
+        setTimeout(() => setActionNotice(null), 4000);
+      }
+    } catch (e) {
+      console.error('Erreur validation lien :', e);
+    }
+  };
+
   const handleUpdateDocumentStatus = async (
     documentId: string,
     docStatus: 'PENDING' | 'VERIFIED' | 'REJECTED',
@@ -701,7 +781,7 @@ export default function AdminVerificationsPage() {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Total Inscrits</span>
+              <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Total Demandes</span>
               {filterTab === 'ALL' && <span className="text-[10px] bg-[#D4AF37]/20 text-[#E5A93C] px-2 py-0.5 rounded font-black">Filtre Actif</span>}
             </div>
             <p className="text-3xl font-black text-white">{totalCount}</p>
@@ -733,7 +813,7 @@ export default function AdminVerificationsPage() {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-widest">Vérifiés Lougara</span>
+              <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-widest">Vérifiés / Validés</span>
               {filterTab === 'VERIFIED' && <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-black">Filtre Actif</span>}
             </div>
             <p className="text-3xl font-black text-emerald-400">{verifiedCount}</p>
@@ -822,19 +902,73 @@ export default function AdminVerificationsPage() {
                       )}
                     </div>
 
-                    {/* Coche pour rendre la publication invisible quand elle est cochée */}
-                    <label className="flex items-center gap-2 pt-0.5 text-xs cursor-pointer select-none group/toggle">
-                      <input
-                        type="checkbox"
-                        checked={!supplier.isPublished}
-                        onChange={(e) => handleToggleVisibility(supplier.id, !e.target.checked, supplier.companyName)}
-                        className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-1 focus:ring-amber-400 cursor-pointer accent-[#D4AF37]"
-                      />
-                      <span className={!supplier.isPublished ? 'text-amber-400 font-semibold flex items-center gap-1.5' : 'text-slate-400 flex items-center gap-1.5'}>
-                        <EyeOff className={`w-3.5 h-3.5 ${!supplier.isPublished ? 'text-amber-400' : 'text-slate-500'}`} />
-                        {!supplier.isPublished ? 'Publication & Publicité invisible (masquée du catalogue)' : 'Rendre la publication / publicité invisible'}
-                      </span>
-                    </label>
+                    {/* Coches d'activation/désactivation du catalogue et du lien de site en ligne */}
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-emerald-500/40 text-xs cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(supplier.isPublished)}
+                          onChange={(e) => handleToggleVisibility(supplier.id, e.target.checked, supplier.companyName)}
+                          className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-1 focus:ring-emerald-400 cursor-pointer accent-emerald-500"
+                        />
+                        <span className={supplier.isPublished ? 'text-emerald-300 font-bold flex items-center gap-1.5' : 'text-amber-300 font-bold flex items-center gap-1.5'}>
+                          {supplier.isPublished ? (
+                            <>
+                              <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                              Catalogue actif en ligne
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                              Catalogue désactivé (cocher pour activer)
+                            </>
+                          )}
+                        </span>
+                      </label>
+
+                      {(() => {
+                        const compLink =
+                          linkDrafts[`comp-${supplier.id}`] ??
+                          supplier.website ??
+                          supplier.products.find((p) => p.externalLink)?.externalLink ??
+                          '';
+                        const anyApproved = supplier.products.some((p) => p.isLinkApproved);
+                        return (
+                          <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800">
+                            <Globe className="w-3.5 h-3.5 text-[#D4AF37]" />
+                            <input
+                              type="text"
+                              value={compLink}
+                              onChange={(e) =>
+                                setLinkDrafts((prev) => ({
+                                  ...prev,
+                                  [`comp-${supplier.id}`]: e.target.value,
+                                }))
+                              }
+                              placeholder="Lien site en ligne (ex: https://...)"
+                              className="w-44 px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-[11px] text-white font-mono focus:outline-none focus:border-[#D4AF37]"
+                            />
+                            <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={anyApproved}
+                                onChange={(e) =>
+                                  handleToggleOnlineLink({
+                                    companyId: supplier.id,
+                                    externalLink: compLink || 'https://appalacarte.fr',
+                                    isLinkApproved: e.target.checked,
+                                  })
+                                }
+                                className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-emerald-500 cursor-pointer accent-emerald-500"
+                              />
+                              <span className={anyApproved ? 'text-emerald-300 font-bold' : 'text-slate-300 font-semibold'}>
+                                {anyApproved ? 'Lien en ligne validé ✓' : 'Valider le lien en ligne'}
+                              </span>
+                            </label>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
 
@@ -996,20 +1130,92 @@ export default function AdminVerificationsPage() {
                             {st === 'REJECTED' && prod.moderationNotes && (
                               <p className="text-[10px] text-rose-300">Motif : {prod.moderationNotes}</p>
                             )}
-                            <div className="flex gap-2 pt-1">
-                              <button
-                                onClick={() => handleModerateProduct(supplier.id, prod.id, 'REJECTED')}
-                                className="px-3 py-1 rounded-xl text-[11px] font-bold text-rose-400 bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40"
-                              >
-                                Rejeter
-                              </button>
-                              <button
-                                onClick={() => handleModerateProduct(supplier.id, prod.id, 'APPROVED')}
-                                disabled={st === 'APPROVED'}
-                                className="px-3 py-1 rounded-xl text-[11px] font-extrabold text-slate-950 bg-[#D4AF37] hover:bg-amber-300 disabled:opacity-40"
-                              >
-                                Valider texte + images
-                              </button>
+                            <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                {/* Coche pour activer ou désactiver ce produit (partie du catalogue) */}
+                                <label className="inline-flex items-center gap-2 text-[11px] font-bold cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-emerald-500/40">
+                                  <input
+                                    type="checkbox"
+                                    checked={prod.isPublished !== false && st === 'APPROVED'}
+                                    onChange={(e) =>
+                                      handleToggleProductActive(
+                                        supplier.id,
+                                        prod.id,
+                                        e.target.checked,
+                                        prod.title
+                                      )
+                                    }
+                                    className="w-3.5 h-3.5 rounded text-emerald-500 bg-slate-900 border-slate-700 cursor-pointer accent-emerald-500"
+                                  />
+                                  <span className={prod.isPublished !== false && st === 'APPROVED' ? 'text-emerald-300' : 'text-amber-300'}>
+                                    {prod.isPublished !== false && st === 'APPROVED'
+                                      ? '✓ Produit actif au catalogue'
+                                      : 'Activer ce produit au catalogue'}
+                                  </span>
+                                </label>
+
+                                <div className="flex gap-1.5">
+                                  <button
+                                    onClick={() => handleModerateProduct(supplier.id, prod.id, 'REJECTED')}
+                                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-rose-400 bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40"
+                                  >
+                                    Rejeter
+                                  </button>
+                                  <button
+                                    onClick={() => handleModerateProduct(supplier.id, prod.id, 'APPROVED')}
+                                    disabled={st === 'APPROVED' && prod.isPublished !== false}
+                                    className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold text-slate-950 bg-[#D4AF37] hover:bg-amber-300 disabled:opacity-40"
+                                  >
+                                    Valider texte + images
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Coche & URL du lien en ligne pour ce produit */}
+                              {(() => {
+                                const pLink =
+                                  linkDrafts[`prod-${prod.id}`] ??
+                                  prod.externalLink ??
+                                  supplier.website ??
+                                  '';
+                                return (
+                                  <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
+                                    <div className="flex items-center gap-1.5 flex-1 min-w-[160px]">
+                                      <Globe className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                                      <input
+                                        type="text"
+                                        value={pLink}
+                                        onChange={(e) =>
+                                          setLinkDrafts((prev) => ({
+                                            ...prev,
+                                            [`prod-${prod.id}`]: e.target.value,
+                                          }))
+                                        }
+                                        placeholder="Lien site en ligne (https://...)"
+                                        className="w-full px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] text-white font-mono focus:outline-none focus:border-[#D4AF37]"
+                                      />
+                                    </div>
+                                    <label className="inline-flex items-center gap-1.5 text-[11px] font-bold cursor-pointer select-none">
+                                      <input
+                                        type="checkbox"
+                                        checked={Boolean(prod.isLinkApproved)}
+                                        onChange={(e) =>
+                                          handleToggleOnlineLink({
+                                            companyId: supplier.id,
+                                            productId: prod.id,
+                                            externalLink: pLink || 'https://appalacarte.fr',
+                                            isLinkApproved: e.target.checked,
+                                          })
+                                        }
+                                        className="w-3.5 h-3.5 rounded text-emerald-500 bg-slate-900 border-slate-700 cursor-pointer accent-emerald-500"
+                                      />
+                                      <span className={prod.isLinkApproved ? 'text-emerald-300' : 'text-slate-300'}>
+                                        {prod.isLinkApproved ? 'Lien en ligne actif ✓' : 'Valider le lien'}
+                                      </span>
+                                    </label>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                         );

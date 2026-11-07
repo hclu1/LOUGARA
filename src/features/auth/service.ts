@@ -16,9 +16,20 @@ export interface SessionUser {
 export type PasswordRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type PasswordRequestType = 'INITIAL_PASSWORD' | 'PASSWORD_RESET' | 'CLIENT_REGISTRATION';
 
+export interface PasswordValidationProductItem {
+  id: string;
+  title: string;
+  category: string;
+  isPublished: boolean;
+  moderationStatus: string;
+  externalLink?: string | null;
+  isLinkApproved: boolean;
+}
+
 export interface PasswordValidationRequest {
   id: string;
   userId: string;
+  companyId?: string;
   email: string;
   fullName: string;
   companyName: string;
@@ -33,6 +44,9 @@ export interface PasswordValidationRequest {
   reviewedAt?: string;
   reviewedBy?: string;
   rejectionReason?: string;
+  isCatalogueActive?: boolean;
+  website?: string | null;
+  products?: PasswordValidationProductItem[];
 }
 
 interface StoredAccountCredential {
@@ -147,12 +161,17 @@ export async function syncClientsFromDatabase(): Promise<void> {
   }
 
   try {
-    const { prisma, ensureSchemaSynced } = await import('@/lib/prisma');
-    await ensureSchemaSynced();
+    const { prisma } = await import('@/lib/prisma');
 
     const dbUsers = await prisma.user.findMany({
       include: {
-        company: true,
+        company: {
+          include: {
+            products: {
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -234,11 +253,22 @@ export async function syncClientsFromDatabase(): Promise<void> {
         continue;
       }
 
+      const mappedProducts: PasswordValidationProductItem[] = (matchedCompany?.products || []).map((p) => ({
+        id: p.id,
+        title: p.title,
+        category: p.category,
+        isPublished: Boolean(p.isPublished),
+        moderationStatus: String(p.moderationStatus || 'PENDING'),
+        externalLink: p.externalLink || matchedCompany?.website || null,
+        isLinkApproved: Boolean(p.isLinkApproved),
+      }));
+
       const existingReq = passwordRequestsStore.find((r) => r.email === cleanEmail);
       if (!existingReq) {
         passwordRequestsStore.push({
           id: `pwd-req-${u.id}`,
           userId: u.id,
+          companyId: matchedCompany?.id,
           email: cleanEmail,
           fullName,
           companyName,
@@ -256,12 +286,21 @@ export async function syncClientsFromDatabase(): Promise<void> {
               : undefined,
           reviewedBy: targetReqStatus !== 'PENDING' ? SUPER_ADMIN_EMAIL : undefined,
           rejectionReason: isRejected ? matchedCompany?.verificationNotes || undefined : undefined,
+          isCatalogueActive: matchedCompany ? Boolean(matchedCompany.isPublished) : true,
+          website: matchedCompany?.website || mappedProducts[0]?.externalLink || null,
+          products: mappedProducts,
         });
-      } else if (isVerified && existingReq.status !== 'APPROVED') {
-        existingReq.status = 'APPROVED';
-        existingReq.reviewedAt = (matchedCompany?.verifiedAt || new Date()).toISOString();
-        existingReq.reviewedBy = existingReq.reviewedBy || SUPER_ADMIN_EMAIL;
-        existingReq.rejectionReason = undefined;
+      } else {
+        existingReq.companyId = matchedCompany?.id;
+        existingReq.isCatalogueActive = matchedCompany ? Boolean(matchedCompany.isPublished) : true;
+        existingReq.website = matchedCompany?.website || mappedProducts[0]?.externalLink || null;
+        existingReq.products = mappedProducts;
+        if (isVerified && existingReq.status !== 'APPROVED') {
+          existingReq.status = 'APPROVED';
+          existingReq.reviewedAt = (matchedCompany?.verifiedAt || new Date()).toISOString();
+          existingReq.reviewedBy = existingReq.reviewedBy || SUPER_ADMIN_EMAIL;
+          existingReq.rejectionReason = undefined;
+        }
       }
     }
   } catch (err) {

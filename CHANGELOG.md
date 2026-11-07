@@ -4,6 +4,18 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.21.2] - 2026-11-07
+### Ajouté
+- **Contrôle complet par cases à cocher dans les « Validés / Vérifiés » de l'administration (`/admin` Onglets 1 & 2 et `/admin/mots-de-passe`)** :
+  - **Coche d'activation/désactivation du catalogue complet** : permet en 1 clic d'activer ou de désactiver la visibilité en ligne de l'ensemble du catalogue d'un client vérifié.
+  - **Coche d'activation/désactivation d'une partie du catalogue (produit par produit)** : chaque produit d'un catalogue validé dispose de sa propre case à cocher (`Produit actif au catalogue`) permettant de masquer ou réactiver individuellement une référence sans couper tout le catalogue.
+  - **Coche de validation du lien de site en ligne** : champ d'URL (avec détection automatique des liens présents dans les descriptions, ex. `https://appalacarte.fr`) et case à cocher (`Lien de site en ligne validé`) directement accessibles dans la fiche du client validé et sur chaque produit.
+
+### Corrigé
+- **Affichage garanti des catalogues déjà vérifiés dans « Total Demandes » et « Validés / Vérifiés »** :
+  - Suppression des requêtes DDL (`ALTER TABLE`) à chaud sur le pooler PgBouncer qui pouvaient ralentir ou bloquer le chargement initial des compteurs Admin.
+  - Fusion directe des dossiers `CompanyProfile` de Supabase dans `AdminPasswordValidationPanel` pour que tout catalogue déjà vérifié par Lougara Admin soit systématiquement comptabilisé dans **Total Demandes** et **Validés / Vérifiés**.
+
 ## [0.21.1] - 2026-11-07
 ### Corrigé
 - **Synchronisation permanente avec Supabase & Zéro client fictif** :

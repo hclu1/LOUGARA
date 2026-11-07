@@ -256,6 +256,20 @@ function CatalogProductCard({
             </div>
           </div>
 
+          {product.isLinkApproved && product.externalLink && (
+            <a
+              href={product.externalLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-extrabold text-amber-300 bg-amber-950/70 hover:bg-amber-900/80 border border-amber-500/40 transition-all shadow-sm"
+            >
+              <Globe className="w-3.5 h-3.5 text-amber-400" />
+              <span>Visiter le site en ligne</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+
           <button
             type="button"
             onClick={(e) => {

@@ -8,22 +8,35 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Lock,
   Search,
   RefreshCw,
   AlertCircle,
-  ShieldAlert,
   Building2,
   User,
   ArrowLeft,
   PlusCircle,
+  Globe,
+  ExternalLink,
+  Package,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { AdminRoleLoginGate } from '@/components/AdminRoleLoginGate';
+
+export interface PasswordValidationProductItem {
+  id: string;
+  title: string;
+  category: string;
+  isPublished: boolean;
+  moderationStatus: string;
+  externalLink?: string | null;
+  isLinkApproved: boolean;
+}
 
 export interface PasswordValidationRequestItem {
   id: string;
   userId: string;
+  companyId?: string;
   email: string;
   fullName: string;
   companyName: string;
@@ -37,6 +50,9 @@ export interface PasswordValidationRequestItem {
   reviewedAt?: string;
   reviewedBy?: string;
   rejectionReason?: string;
+  isCatalogueActive?: boolean;
+  website?: string | null;
+  products?: PasswordValidationProductItem[];
 }
 
 export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: boolean }) {
@@ -54,6 +70,10 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Edition des liens de site en ligne par entreprise ou produit
+  const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
+  const [updatingControlId, setUpdatingControlId] = useState<string | null>(null);
 
   // Refus avec motif
   const [rejectingItem, setRejectingItem] = useState<PasswordValidationRequestItem | null>(null);
@@ -73,31 +93,135 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
       setErrorMessage(null);
 
       try {
+        const ts = Date.now();
         const emailParam = user?.email ? `&adminEmail=${encodeURIComponent(user.email)}` : '';
-        const res = await fetch(
-          `/api/admin/password-validations?status=ALL${emailParam}&_t=${Date.now()}`,
-          {
+        const headers: Record<string, string> = user?.email ? { 'x-user-email': user.email } : {};
+
+        const [pwdRes, kybRes] = await Promise.allSettled([
+          fetch(`/api/admin/password-validations?status=ALL${emailParam}&_t=${ts}`, {
             cache: 'no-store',
-            headers: user?.email ? { 'x-user-email': user.email } : {},
+            headers,
+          }),
+          fetch(`/api/admin/verifications?status=ALL&_t=${ts}`, {
+            cache: 'no-store',
+          }),
+        ]);
+
+        let mergedRequests: PasswordValidationRequestItem[] = [];
+
+        if (pwdRes.status === 'fulfilled' && pwdRes.value.ok) {
+          const pwdData = await pwdRes.value.json();
+          if (pwdData.success && Array.isArray(pwdData.requests)) {
+            mergedRequests = [...pwdData.requests];
           }
-        );
-
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          setErrorMessage(
-            data.error || 'Impossible de charger les demandes de validation des mots de passe.'
-          );
-          setRequests([]);
-          return;
         }
 
-        setRequests(Array.isArray(data.requests) ? data.requests : []);
-        if (data.stats) {
-          setStats(data.stats);
+        // Fusionner systématiquement avec les catalogues fournisseurs vérifiés dans Supabase
+        // pour garantir que tout catalogue vérifié apparaît dans Total Demandes et Validés / Vérifiés
+        if (kybRes.status === 'fulfilled' && kybRes.value.ok) {
+          const kybData = await kybRes.value.json();
+          if (Array.isArray(kybData.companies)) {
+            for (const comp of kybData.companies) {
+              const compEmail = (comp.user?.email || '').trim().toLowerCase();
+              const compStatus: 'PENDING' | 'APPROVED' | 'REJECTED' =
+                comp.verificationStatus === 'VERIFIED'
+                  ? 'APPROVED'
+                  : comp.verificationStatus === 'REJECTED'
+                    ? 'REJECTED'
+                    : 'PENDING';
+
+              const compProducts: PasswordValidationProductItem[] = (comp.products || []).map(
+                (p: any) => ({
+                  id: p.id,
+                  title: p.title,
+                  category: p.category || 'Général',
+                  isPublished: Boolean(p.isPublished),
+                  moderationStatus: p.moderationStatus || 'PENDING',
+                  externalLink: p.externalLink || comp.website || null,
+                  isLinkApproved: Boolean(p.isLinkApproved),
+                })
+              );
+
+              const detectedWebsite =
+                comp.website ||
+                compProducts.find((p) => p.externalLink)?.externalLink ||
+                null;
+
+              const existingIdx = mergedRequests.findIndex(
+                (r) =>
+                  (compEmail && r.email.toLowerCase() === compEmail) ||
+                  (r.companyId && r.companyId === comp.id) ||
+                  r.companyName.toLowerCase() === String(comp.companyName || '').toLowerCase()
+              );
+
+              if (existingIdx >= 0) {
+                mergedRequests[existingIdx] = {
+                  ...mergedRequests[existingIdx],
+                  companyId: comp.id,
+                  companyName: comp.companyName || mergedRequests[existingIdx].companyName,
+                  status: compStatus === 'APPROVED' ? 'APPROVED' : mergedRequests[existingIdx].status,
+                  isCatalogueActive: Boolean(comp.isPublished),
+                  website: detectedWebsite,
+                  products: compProducts,
+                };
+              } else {
+                mergedRequests.push({
+                  id: `pwd-req-${comp.user?.id || comp.id}`,
+                  userId: comp.user?.id || comp.id,
+                  companyId: comp.id,
+                  email: compEmail || 'contact@entreprise.com',
+                  fullName:
+                    `${comp.user?.firstName || ''} ${comp.user?.lastName || ''}`.trim() ||
+                    comp.companyName ||
+                    'Dirigeant Vérifié',
+                  companyName: comp.companyName || 'Entreprise Vérifiée',
+                  clientRole: 'supplier',
+                  country: comp.country || 'France',
+                  requestType: 'CLIENT_REGISTRATION',
+                  passwordFingerprint: `scrypt:sha256:••••${String(comp.id).slice(-6)}`,
+                  passwordStrength: 'FORT',
+                  status: compStatus,
+                  requestedAt: comp.createdAt || new Date().toISOString(),
+                  reviewedAt: comp.verifiedAt || comp.updatedAt || undefined,
+                  reviewedBy: compStatus === 'APPROVED' ? 'Lougara Admin' : undefined,
+                  isCatalogueActive: Boolean(comp.isPublished),
+                  website: detectedWebsite,
+                  products: compProducts,
+                });
+              }
+            }
+          }
         }
+
+        // Initialiser les brouillons de liens externes
+        const drafts: Record<string, string> = {};
+        for (const reqItem of mergedRequests) {
+          if (reqItem.companyId) {
+            drafts[`comp-${reqItem.companyId}`] =
+              reqItem.website ||
+              reqItem.products?.find((p) => p.externalLink)?.externalLink ||
+              '';
+          }
+          for (const prod of reqItem.products || []) {
+            drafts[`prod-${prod.id}`] = prod.externalLink || reqItem.website || '';
+          }
+        }
+        setLinkDrafts((prev) => ({ ...drafts, ...prev }));
+
+        const pendingCount = mergedRequests.filter((r) => r.status === 'PENDING').length;
+        const approvedCount = mergedRequests.filter((r) => r.status === 'APPROVED').length;
+        const rejectedCount = mergedRequests.filter((r) => r.status === 'REJECTED').length;
+
+        setRequests(mergedRequests);
+        setStats({
+          total: mergedRequests.length,
+          pending: pendingCount,
+          approved: approvedCount,
+          rejected: rejectedCount,
+        });
       } catch {
         setErrorMessage(
-          'Erreur réseau lors du chargement des demandes de validation des mots de passe.'
+          'Erreur réseau lors du chargement des demandes et catalogues vérifiés.'
         );
       } finally {
         if (showLoader) setIsLoading(false);
@@ -113,6 +237,134 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
       setIsLoading(false);
     }
   }, [isModerator, fetchPasswordRequests]);
+
+  // Activer ou désactiver le catalogue complet d'un client validé
+  const handleToggleCatalogueActive = async (companyId: string, willBeActive: boolean, companyName: string) => {
+    setUpdatingControlId(`cat-${companyId}`);
+    setErrorMessage(null);
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'TOGGLE_PUBLICATION',
+          companyId,
+          isPublished: willBeActive,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.companyId === companyId ? { ...r, isCatalogueActive: willBeActive } : r
+          )
+        );
+        setSuccessMessage(
+          willBeActive
+            ? `Catalogue de « ${companyName} » activé et visible en ligne.`
+            : `Catalogue de « ${companyName} » désactivé (masqué du catalogue public).`
+        );
+      } else {
+        setErrorMessage(data.error || 'Impossible de modifier le statut du catalogue.');
+      }
+    } catch {
+      setErrorMessage('Erreur réseau lors de la mise à jour du catalogue.');
+    } finally {
+      setUpdatingControlId(null);
+    }
+  };
+
+  // Activer ou désactiver une partie du catalogue (un produit spécifique)
+  const handleToggleProductActive = async (
+    companyId: string,
+    productId: string,
+    willBeActive: boolean,
+    productTitle: string
+  ) => {
+    setUpdatingControlId(`prod-active-${productId}`);
+    setErrorMessage(null);
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'TOGGLE_PRODUCT_ACTIVE',
+          companyId,
+          productId,
+          isPublished: willBeActive,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.companyId === companyId
+              ? {
+                  ...r,
+                  products: (r.products || []).map((p) =>
+                    p.id === productId
+                      ? { ...p, isPublished: willBeActive, moderationStatus: willBeActive ? 'APPROVED' : p.moderationStatus }
+                      : p
+                  ),
+                }
+              : r
+          )
+        );
+        setSuccessMessage(
+          willBeActive
+            ? `Produit « ${productTitle} » activé dans le catalogue.`
+            : `Produit « ${productTitle} » désactivé (masqué du catalogue).`
+        );
+      } else {
+        setErrorMessage(data.error || 'Impossible de modifier la visibilité de ce produit.');
+      }
+    } catch {
+      setErrorMessage('Erreur réseau lors de la mise à jour du produit.');
+    } finally {
+      setUpdatingControlId(null);
+    }
+  };
+
+  // Valider / Activer ou désactiver le lien de site en ligne (par produit ou globalement pour le catalogue)
+  const handleToggleOnlineLink = async (params: {
+    companyId: string;
+    productId?: string;
+    externalLink: string;
+    isLinkApproved: boolean;
+  }) => {
+    const controlKey = params.productId ? `link-${params.productId}` : `link-comp-${params.companyId}`;
+    setUpdatingControlId(controlKey);
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch('/api/admin/verifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'UPDATE_ONLINE_LINK',
+          companyId: params.companyId,
+          productId: params.productId,
+          externalLink: params.externalLink,
+          isLinkApproved: params.isLinkApproved,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await fetchPasswordRequests(false);
+        setSuccessMessage(
+          params.isLinkApproved
+            ? 'Lien du site en ligne validé et activé sur le catalogue public.'
+            : 'Lien du site en ligne désactivé sur le catalogue public.'
+        );
+      } else {
+        setErrorMessage(data.error || 'Impossible de mettre à jour le lien en ligne.');
+      }
+    } catch {
+      setErrorMessage('Erreur réseau lors de la validation du lien.');
+    } finally {
+      setUpdatingControlId(null);
+    }
+  };
 
   const handleApprove = async (item: PasswordValidationRequestItem) => {
     setProcessingId(item.id);
@@ -248,7 +500,7 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
   const formatRequestType = (type: PasswordValidationRequestItem['requestType']) => {
     switch (type) {
       case 'CLIENT_REGISTRATION':
-        return 'Inscription Client & Mot de Passe';
+        return 'Inscription Client & Catalogue Vérifié';
       case 'INITIAL_PASSWORD':
         return 'Activation Mot de Passe Initial';
       case 'PASSWORD_RESET':
@@ -269,14 +521,14 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl sm:text-2xl font-black text-white">
-                Validation des Mots de Passe & Sécurité Comptes Clients
+                Validation des Mots de Passe, Catalogues & Liens en Ligne
               </h2>
               <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">
                 {isSuperAdmin ? 'Accès Super Admin' : 'Accès Modérateur'}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Vérifiez et validez les demandes de création ou de réinitialisation de mots de passe des clients inscrits (Entrepreneurs & Fournisseurs).
+              Gérez les clients validés, cochez l&apos;activation de leur lien de site en ligne, et activez ou désactivez leur catalogue complet ou produit par produit.
             </p>
           </div>
         </div>
@@ -393,7 +645,7 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
           }`}
         >
           <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-widest block">
-            Validés
+            Validés / Vérifiés
           </span>
           <span className="text-3xl font-black text-emerald-400 mt-1 block">{stats.approved}</span>
         </button>
@@ -429,12 +681,12 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
               }`}
             >
               {tab === 'ALL'
-                ? 'Toutes les demandes'
+                ? `Toutes les demandes (${stats.total})`
                 : tab === 'PENDING'
-                  ? 'À Valider'
+                  ? `À Valider (${stats.pending})`
                   : tab === 'APPROVED'
-                    ? 'Validées'
-                    : 'Refusées'}
+                    ? `Validés / Vérifiés (${stats.approved})`
+                    : `Refusés (${stats.rejected})`}
             </button>
           ))}
         </div>
@@ -456,14 +708,14 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
         <div className="glass-card rounded-3xl border border-slate-800 p-12 flex flex-col items-center justify-center gap-3 text-slate-300">
           <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
           <p className="text-xs font-bold">
-            Chargement des demandes de validation des mots de passe...
+            Chargement des demandes et catalogues vérifiés...
           </p>
         </div>
       ) : filteredRequests.length === 0 ? (
         <div className="glass-card rounded-3xl border border-slate-800 p-12 text-center space-y-3">
           <KeyRound className="w-10 h-10 text-slate-500 mx-auto" />
           <h3 className="text-sm font-black text-white">
-            Aucune demande de validation de mot de passe trouvée
+            Aucune demande trouvée
           </h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Il n&apos;y a actuellement aucune demande correspondant à votre filtre ou à votre recherche.
@@ -476,22 +728,29 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
             const isApproved = item.status === 'APPROVED';
             const isRejected = item.status === 'REJECTED';
             const isProcessing = processingId === item.id;
+            const companyId = item.companyId;
+            const products = item.products || [];
+            const isCatalogueActive = item.isCatalogueActive !== false;
+            const companyLinkDraft = companyId
+              ? linkDrafts[`comp-${companyId}`] ?? item.website ?? products[0]?.externalLink ?? ''
+              : '';
+            const isAnyLinkApproved = products.some((p) => p.isLinkApproved);
 
             return (
               <div
                 key={item.id}
-                className={`glass-card rounded-3xl border p-5 sm:p-6 transition-all ${
+                className={`glass-card rounded-3xl border p-5 sm:p-6 transition-all space-y-5 ${
                   isPending
                     ? 'border-amber-500/40 bg-slate-900/80'
                     : isApproved
-                      ? 'border-emerald-500/30 bg-slate-900/50'
+                      ? 'border-emerald-500/40 bg-slate-900/60'
                       : 'border-rose-500/30 bg-slate-900/50'
                 }`}
               >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base font-black text-white">{item.companyName}</span>
+                      <span className="text-lg font-black text-white">{item.companyName}</span>
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
                           item.clientRole === 'supplier'
@@ -513,9 +772,28 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
                         {isPending
                           ? '⏳ En attente de validation'
                           : isApproved
-                            ? '✓ Mot de passe validé'
+                            ? '✓ Catalogue & Compte Vérifié'
                             : '✗ Refusé'}
                       </span>
+                      {companyId && (
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border flex items-center gap-1 ${
+                            isCatalogueActive
+                              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                              : 'bg-amber-950/80 text-amber-300 border-amber-500/40'
+                          }`}
+                        >
+                          {isCatalogueActive ? (
+                            <>
+                              <Eye className="w-3 h-3" /> Catalogue en ligne
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="w-3 h-3" /> Catalogue désactivé
+                            </>
+                          )}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300">
@@ -541,13 +819,13 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
                       </span>
                       <span className="text-slate-500 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        Demandé le {new Date(item.requestedAt).toLocaleString('fr-FR')}
+                        Inscrit le {new Date(item.requestedAt).toLocaleString('fr-FR')}
                       </span>
                     </div>
 
                     {item.reviewedBy && (
                       <p className="text-[11px] text-slate-400 pt-1">
-                        Traité par <strong className="text-slate-200">{item.reviewedBy}</strong>
+                        Validé par <strong className="text-slate-200">{item.reviewedBy}</strong>
                         {item.reviewedAt &&
                           ` le ${new Date(item.reviewedAt).toLocaleString('fr-FR')}`}
                         {item.rejectionReason && (
@@ -571,7 +849,7 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
                         }}
                         className="px-4 py-2 rounded-xl text-xs font-bold text-rose-300 bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 transition-all disabled:opacity-50 cursor-pointer"
                       >
-                        Refuser
+                        Refuser / Suspendre
                       </button>
                     )}
 
@@ -584,12 +862,239 @@ export function AdminPasswordValidationPanel({ embedded = false }: { embedded?: 
                       >
                         <ShieldCheck className="w-4 h-4 text-slate-950" />
                         <span>
-                          {isProcessing ? 'Validation...' : 'Valider le mot de passe'}
+                          {isProcessing ? 'Validation...' : 'Valider le compte'}
                         </span>
                       </button>
                     )}
                   </div>
                 </div>
+
+                {/* PANNEAU DE CONTRÔLE POUR LES CATALOGUES VALIDÉS : COCHES LIEN SITE EN LIGNE + ACTIVATION CATALOGUE COMPLET OU PARTIEL */}
+                {companyId && (
+                  <div className="pt-4 border-t border-slate-800/90 space-y-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* 1. COCHE ACTIVATION / DÉSACTIVATION DU CATALOGUE COMPLET */}
+                      <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between gap-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h4 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                              <Package className="w-4 h-4 text-[#D4AF37]" />
+                              1. Visibilité du Catalogue Complet
+                            </h4>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              Cochez pour activer la vitrine de <strong>{item.companyName}</strong> dans le catalogue public, ou décochez pour la désactiver.
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 border ${
+                              isCatalogueActive
+                                ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
+                                : 'bg-amber-950 text-amber-300 border-amber-500/40'
+                            }`}
+                          >
+                            {isCatalogueActive ? 'Actif' : 'Désactivé'}
+                          </span>
+                        </div>
+
+                        <label className="inline-flex items-center gap-2.5 cursor-pointer select-none p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-[#D4AF37]/50 transition-all">
+                          <input
+                            type="checkbox"
+                            checked={isCatalogueActive}
+                            disabled={updatingControlId === `cat-${companyId}`}
+                            onChange={(e) =>
+                              handleToggleCatalogueActive(companyId, e.target.checked, item.companyName)
+                            }
+                            className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-950 border-slate-700 cursor-pointer accent-emerald-500"
+                          />
+                          <span className={`text-xs font-bold ${isCatalogueActive ? 'text-emerald-300' : 'text-amber-300'}`}>
+                            {isCatalogueActive
+                              ? '✓ Catalogue actif en ligne (visible par les visiteurs)'
+                              : 'Catalogue désactivé (cocher pour réactiver le catalogue)'}
+                          </span>
+                        </label>
+                      </div>
+
+                      {/* 2. COCHE POUR LE LIEN DE SITE EN LIGNE */}
+                      <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between gap-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h4 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                              <Globe className="w-4 h-4 text-[#D4AF37]" />
+                              2. Lien de Site en Ligne (Validation Admin)
+                            </h4>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              Renseignez ou vérifiez l&apos;adresse du site en ligne et cochez la case pour l&apos;afficher sur le catalogue.
+                            </p>
+                          </div>
+                          {companyLinkDraft && (
+                            <a
+                              href={
+                                companyLinkDraft.startsWith('http')
+                                  ? companyLinkDraft
+                                  : `https://${companyLinkDraft}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 hover:underline shrink-0"
+                            >
+                              <span>Ouvrir</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <input
+                            type="text"
+                            value={companyLinkDraft}
+                            onChange={(e) =>
+                              setLinkDrafts((prev) => ({
+                                ...prev,
+                                [`comp-${companyId}`]: e.target.value,
+                              }))
+                            }
+                            placeholder="https://appalacarte.fr"
+                            className="flex-1 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900 text-xs text-white font-mono focus:outline-none focus:border-[#D4AF37]"
+                          />
+                          <button
+                            type="button"
+                            disabled={updatingControlId === `link-comp-${companyId}`}
+                            onClick={() =>
+                              handleToggleOnlineLink({
+                                companyId,
+                                externalLink: companyLinkDraft,
+                                isLinkApproved: true,
+                              })
+                            }
+                            className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition-all cursor-pointer shrink-0"
+                          >
+                            Enregistrer & Valider
+                          </button>
+                        </div>
+
+                        <label className="inline-flex items-center gap-2.5 cursor-pointer select-none p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-[#D4AF37]/50 transition-all">
+                          <input
+                            type="checkbox"
+                            checked={isAnyLinkApproved}
+                            disabled={updatingControlId === `link-comp-${companyId}`}
+                            onChange={(e) =>
+                              handleToggleOnlineLink({
+                                companyId,
+                                externalLink: companyLinkDraft || 'https://appalacarte.fr',
+                                isLinkApproved: e.target.checked,
+                              })
+                            }
+                            className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-950 border-slate-700 cursor-pointer accent-emerald-500"
+                          />
+                          <span className={`text-xs font-bold ${isAnyLinkApproved ? 'text-emerald-300' : 'text-slate-300'}`}>
+                            {isAnyLinkApproved
+                              ? '✓ Lien de site en ligne validé et affiché au catalogue'
+                              : 'Cocher pour autoriser et afficher le lien du site en ligne'}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* 3. COCHES POUR ACTIVER OU DÉSACTIVER UNE PARTIE DU CATALOGUE (PRODUIT PAR PRODUIT) */}
+                    {products.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/90 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                            <Package className="w-4 h-4 text-emerald-400" />
+                            3. Activer / Désactiver une partie du catalogue ({products.filter((p) => p.isPublished).length}/{products.length} produit(s) actif(s))
+                          </h4>
+                          <span className="text-[11px] text-slate-400">
+                            Cochez ou décochez chaque référence pour activer ou masquer uniquement une partie du catalogue.
+                          </span>
+                        </div>
+
+                        <div className="divide-y divide-slate-800/80">
+                          {products.map((prod) => {
+                            const prodLinkDraft =
+                              linkDrafts[`prod-${prod.id}`] ?? prod.externalLink ?? companyLinkDraft ?? '';
+                            const isProdActive = Boolean(prod.isPublished);
+
+                            return (
+                              <div
+                                key={prod.id}
+                                className="py-3 first:pt-1 last:pb-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={isProdActive}
+                                      disabled={updatingControlId === `prod-active-${prod.id}`}
+                                      onChange={(e) =>
+                                        handleToggleProductActive(
+                                          companyId,
+                                          prod.id,
+                                          e.target.checked,
+                                          prod.title
+                                        )
+                                      }
+                                      className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-950 border-slate-700 cursor-pointer accent-emerald-500"
+                                    />
+                                    <div>
+                                      <span className="text-xs font-black text-white block">
+                                        {prod.title}
+                                      </span>
+                                      <span className="text-[11px] text-slate-400">
+                                        Catégorie : {prod.category} &bull;{' '}
+                                        <strong className={isProdActive ? 'text-emerald-400' : 'text-amber-400'}>
+                                          {isProdActive ? 'Produit actif au catalogue' : 'Produit masqué'}
+                                        </strong>
+                                      </span>
+                                    </div>
+                                  </label>
+                                </div>
+
+                                {/* Coche & Lien en ligne pour ce produit */}
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                  <input
+                                    type="text"
+                                    value={prodLinkDraft}
+                                    onChange={(e) =>
+                                      setLinkDrafts((prev) => ({
+                                        ...prev,
+                                        [`prod-${prod.id}`]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="https://..."
+                                    className="w-52 px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-900 text-[11px] text-white font-mono focus:outline-none focus:border-[#D4AF37]"
+                                  />
+                                  <label className="inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-400/50">
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(prod.isLinkApproved)}
+                                      disabled={updatingControlId === `link-${prod.id}`}
+                                      onChange={(e) =>
+                                        handleToggleOnlineLink({
+                                          companyId,
+                                          productId: prod.id,
+                                          externalLink: prodLinkDraft || 'https://appalacarte.fr',
+                                          isLinkApproved: e.target.checked,
+                                        })
+                                      }
+                                      className="w-3.5 h-3.5 rounded text-emerald-500 bg-slate-950 border-slate-700 cursor-pointer accent-emerald-500"
+                                    />
+                                    <span
+                                      className={`text-[11px] font-bold ${
+                                        prod.isLinkApproved ? 'text-emerald-300' : 'text-slate-300'
+                                      }`}
+                                    >
+                                      {prod.isLinkApproved ? 'Lien en ligne actif ✓' : 'Valider le lien'}
+                                    </span>
+                                  </label>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
