@@ -242,8 +242,14 @@ export async function syncClientsFromDatabase(): Promise<void> {
       const companyName = comp.companyName || fullName;
       const country = comp.country || 'France';
       const userId = ownerUser?.id || comp.userId || comp.id;
+      const storedCustomHash =
+        typeof ownerUser?.avatarUrl === 'string' && ownerUser.avatarUrl.startsWith('scrypt:')
+          ? ownerUser.avatarUrl.slice(7)
+          : null;
       const defaultPass = `Lougara-${cleanEmail.split('@')[0]}-2026`;
-      const defaultHash = hashPassword(defaultPass, `salt_${userId}`);
+      const defaultHash = storedCustomHash || hashPassword(defaultPass, `salt_${userId}`);
+      const effectiveAccountStatus: StoredAccountCredential['accountStatus'] =
+        storedCustomHash && !isRejected ? 'active' : targetAccountStatus;
 
       const existingAcc = accountsStore.get(cleanEmail);
       if (!existingAcc) {
@@ -256,13 +262,17 @@ export async function syncClientsFromDatabase(): Promise<void> {
           companyName,
           country,
           passwordHash: defaultHash,
-          accountStatus: targetAccountStatus,
-          mustChangePassword: Boolean(ownerUser?.mustChangePassword),
+          accountStatus: effectiveAccountStatus,
+          mustChangePassword: storedCustomHash ? false : Boolean(ownerUser?.mustChangePassword),
           updatedAt: new Date(comp.updatedAt || Date.now()).toISOString(),
         });
       } else {
-        if (isVerified && existingAcc.accountStatus !== 'active') {
+        if ((isVerified || storedCustomHash) && existingAcc.accountStatus !== 'active' && !isRejected) {
           existingAcc.accountStatus = 'active';
+        }
+        if (storedCustomHash && !existingAcc.pendingPasswordHash) {
+          existingAcc.passwordHash = storedCustomHash;
+          existingAcc.mustChangePassword = false;
         }
         existingAcc.role = 'supplier';
         existingAcc.companyName = companyName;
@@ -371,8 +381,14 @@ export async function syncClientsFromDatabase(): Promise<void> {
       const fullName = `${firstName} ${lastName}`.trim() || matchedCompany?.companyName || 'Client Lougara';
       const companyName = matchedCompany?.companyName || fullName;
       const country = matchedCompany?.country || 'France';
+      const storedCustomHash =
+        typeof u?.avatarUrl === 'string' && u.avatarUrl.startsWith('scrypt:')
+          ? u.avatarUrl.slice(7)
+          : null;
       const defaultPass = `Lougara-${cleanEmail.split('@')[0]}-2026`;
-      const defaultHash = hashPassword(defaultPass, `salt_${u.id}`);
+      const defaultHash = storedCustomHash || hashPassword(defaultPass, `salt_${u.id}`);
+      const effectiveAccountStatus: StoredAccountCredential['accountStatus'] =
+        storedCustomHash && !isRejected ? 'active' : targetAccountStatus;
 
       const existingAcc = accountsStore.get(cleanEmail);
       if (!existingAcc) {
@@ -385,13 +401,17 @@ export async function syncClientsFromDatabase(): Promise<void> {
           companyName,
           country,
           passwordHash: defaultHash,
-          accountStatus: targetAccountStatus,
-          mustChangePassword: Boolean(u.mustChangePassword),
+          accountStatus: effectiveAccountStatus,
+          mustChangePassword: storedCustomHash ? false : Boolean(u.mustChangePassword),
           updatedAt: new Date(u.updatedAt || Date.now()).toISOString(),
         });
       } else {
-        if (isVerified && existingAcc.accountStatus !== 'active') {
+        if ((isVerified || storedCustomHash) && existingAcc.accountStatus !== 'active' && !isRejected) {
           existingAcc.accountStatus = 'active';
+        }
+        if (storedCustomHash && !existingAcc.pendingPasswordHash) {
+          existingAcc.passwordHash = storedCustomHash;
+          existingAcc.mustChangePassword = false;
         }
         existingAcc.companyName = companyName;
         existingAcc.country = country;
@@ -589,6 +609,46 @@ export function authenticateAccount(params: {
 }
 
 /**
+ * Persiste le hachage scrypt du mot de passe client dans la table User de Supabase
+ * (champ avatarUrl préfixé par "scrypt:") afin que le mot de passe survive aux redémarrages serveur.
+ */
+export async function persistPasswordHashToDatabase(
+  email: string,
+  passwordHash: string
+): Promise<void> {
+  if (process.env.VITEST || process.env.NODE_ENV === 'test') {
+    return;
+  }
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail) return;
+  const encodedHash = `scrypt:${passwordHash}`;
+
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    await prisma.user.updateMany({
+      where: { email: { equals: cleanEmail, mode: 'insensitive' } },
+      data: {
+        avatarUrl: encodedHash,
+        mustChangePassword: false,
+      },
+    });
+    return;
+  } catch {
+    try {
+      const { supabaseAdmin } = await import('@/lib/supabase-storage');
+      await supabaseAdmin
+        .from('User')
+        .update({
+          avatarUrl: encodedHash,
+          mustChangePassword: false,
+          updatedAt: new Date().toISOString(),
+        })
+        .ilike('email', cleanEmail);
+    } catch {}
+  }
+}
+
+/**
  * Permet à un client inscrit (Entrepreneur ou Fournisseur) de créer ou réinitialiser son mot de passe.
  * Génère une demande dans la file de validation des mots de passe de l'espace /admin.
  */
@@ -600,6 +660,7 @@ export function submitClientPasswordRequest(params: {
   clientRole?: 'entrepreneur' | 'supplier';
   country?: string;
   requestType?: PasswordRequestType;
+  activateImmediately?: boolean;
 }): {
   success: boolean;
   request?: PasswordValidationRequest;
@@ -644,6 +705,7 @@ export function submitClientPasswordRequest(params: {
   const country = (params.country || '').trim() || existingAccount?.country || 'France';
   const requestType: PasswordRequestType =
     params.requestType || (existingAccount ? 'PASSWORD_RESET' : 'INITIAL_PASSWORD');
+  const shouldActivate = Boolean(params.activateImmediately);
 
   accountsStore.set(cleanEmail, {
     id: userId,
@@ -654,14 +716,19 @@ export function submitClientPasswordRequest(params: {
     companyName,
     country,
     passwordHash: pHash,
-    pendingPasswordHash: pHash,
-    accountStatus: 'pending',
+    pendingPasswordHash: shouldActivate ? undefined : pHash,
+    accountStatus: shouldActivate ? 'active' : 'pending',
+    mustChangePassword: false,
     updatedAt: new Date().toISOString(),
   });
 
-  // Vérifier s'il existe déjà une demande en attente pour cet email
+  if (shouldActivate) {
+    void persistPasswordHashToDatabase(cleanEmail, pHash);
+  }
+
+  // Vérifier s'il existe déjà une demande pour cet email
   const existingReqIndex = passwordRequestsStore.findIndex(
-    (r) => r.email === cleanEmail && r.status === 'PENDING'
+    (r) => r.email === cleanEmail && (r.status === 'PENDING' || shouldActivate)
   );
 
   const newReq: PasswordValidationRequest = {
@@ -676,12 +743,17 @@ export function submitClientPasswordRequest(params: {
     passwordHash: pHash,
     passwordFingerprint: buildFingerprint(pHash),
     passwordStrength: password.length >= 10 ? 'FORT' : 'CONFORME',
-    status: 'PENDING',
+    status: shouldActivate ? 'APPROVED' : 'PENDING',
     requestedAt: new Date().toISOString(),
+    reviewedAt: shouldActivate ? new Date().toISOString() : undefined,
+    reviewedBy: shouldActivate ? 'Création Contact 4/5' : undefined,
   };
 
   if (existingReqIndex >= 0) {
-    passwordRequestsStore[existingReqIndex] = newReq;
+    passwordRequestsStore[existingReqIndex] = {
+      ...passwordRequestsStore[existingReqIndex],
+      ...newReq,
+    };
   } else {
     passwordRequestsStore.unshift(newReq);
   }
@@ -779,10 +851,9 @@ export function reviewPasswordValidationRequest(params: {
         account.pendingPasswordHash = undefined;
       }
       account.accountStatus = 'active';
-      if (reqItem.requestType === 'INITIAL_PASSWORD' || reqItem.requestType === 'CLIENT_REGISTRATION') {
-        account.mustChangePassword = true;
-      }
+      account.mustChangePassword = false;
       account.updatedAt = new Date().toISOString();
+      void persistPasswordHashToDatabase(account.email, account.passwordHash);
     }
   } else if (params.action === 'REJECT') {
     const reason = (params.rejectionReason || '').trim() || 'Mot de passe ou compte non conforme aux règles de sécurité.';
@@ -983,10 +1054,12 @@ export function changeAccountPassword(params: {
   }
 
   // Désactiver l'ancien mot de passe fourni et valider le nouveau
-  account.passwordHash = hashPassword(newPass);
+  const newHash = hashPassword(newPass);
+  account.passwordHash = newHash;
   account.pendingPasswordHash = undefined;
   account.mustChangePassword = false;
   account.updatedAt = new Date().toISOString();
+  void persistPasswordHashToDatabase(account.email, newHash);
 
   const updatedUser: SessionUser = {
     id: account.id,

@@ -11,7 +11,7 @@ export async function fetchCompaniesViaSupabaseRest(options?: {
   let query = supabaseAdmin
     .from('CompanyProfile')
     .select(
-      '*, documents:VerificationDocument(*), products:Product(*), user:User(id, email, firstName, lastName, createdAt)'
+      '*, documents:VerificationDocument(*), products:Product(*), user:User(id, email, firstName, lastName, avatarUrl, mustChangePassword, createdAt)'
     )
     .order('createdAt', { ascending: false });
 
@@ -87,7 +87,7 @@ export async function fetchUsersAndCompaniesViaSupabaseRest() {
 export async function fetchPublishedProductsViaSupabaseRest() {
   const { data, error } = await supabaseAdmin
     .from('Product')
-    .select('*, company:CompanyProfile(*)')
+    .select('*, company:CompanyProfile(*, user:User(id, email, firstName, lastName))')
     .eq('isPublished', true)
     .eq('moderationStatus', 'APPROVED')
     .order('createdAt', { ascending: false })

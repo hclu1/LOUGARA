@@ -238,6 +238,32 @@ describe('Séparation Site Public / Espace Admin & Sécurité des Mots de Passe'
       const { requests } = listPasswordValidationRequests('REJECTED');
       expect(requests.some((r) => r.email === testEmail)).toBe(true);
     });
+
+    it('active immédiatement le mot de passe créé par le client à l’étape Contact 4/5 (activateImmediately: true) pour connexion directe depuis son catalogue', () => {
+      const contactEmail = `contact45-${Date.now()}@catalogue-client.sn`;
+      const submitRes = submitClientPasswordRequest({
+        email: contactEmail,
+        password: 'MonMotDePasseCatalogue2026!',
+        fullName: 'Fatou Diop',
+        companyName: 'Catalogue Client Sénégal',
+        country: 'Sénégal',
+        clientRole: 'supplier',
+        requestType: 'INITIAL_PASSWORD',
+        activateImmediately: true,
+      });
+
+      expect(submitRes.success).toBe(true);
+      expect(submitRes.request?.status).toBe('APPROVED');
+
+      // Le client peut immédiatement se connecter depuis son catalogue avec son e-mail pré-rempli et son mot de passe
+      const directCatalogLogin = authenticateAccount({
+        email: contactEmail,
+        password: 'MonMotDePasseCatalogue2026!',
+      });
+      expect(directCatalogLogin.success).toBe(true);
+      expect(directCatalogLogin.user?.email).toBe(contactEmail);
+      expect(directCatalogLogin.user?.mustChangePassword).toBe(false);
+    });
   });
 
   describe('3. Mode Maintenance & Remise en Service Immédiate', () => {

@@ -4,6 +4,17 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.22.0] - 2026-11-07
+### Ajouté
+- **Connexion directe du client depuis son catalogue avec e-mail pré-rempli (`/catalogue`, `/mon-catalogue`, `/connexion`)** :
+  - Ajout du bouton **« Connexion »** sur chaque carte de catalogue dans l'onglet « Catalogues Entreprises », dans la modale de catalogue fournisseur et dans la fiche produit du `/catalogue`.
+  - Au clic sur **« Connexion »** depuis un catalogue, une fenêtre de connexion directe s'ouvre avec **l'adresse e-mail du client automatiquement pré-remplie** : le client n'a plus qu'à renseigner son mot de passe pour accéder immédiatement à son espace `/mon-catalogue`.
+  - Ajout d'un sélecteur rapide de catalogue sur `/connexion` et `/mon-catalogue` permettant également de pré-remplir automatiquement l'adresse e-mail du propriétaire.
+- **Création du mot de passe et envoi automatique de message à l'étape Contact 4/5 (`/devenir-fournisseur`)** :
+  - Dès que le client renseigne son contact à l'étape **4/5 (Contact)**, un message (e-mail transactionnel + notification) lui est envoyé via `POST /api/auth/contact-password-notification` et `sendPasswordCreationEmail` pour créer son mot de passe.
+  - Intégration directe du bloc de création de mot de passe à l'étape **Contact 4/5** avec indicateur en temps réel des règles de sécurité (`src/lib/validation/password.ts`) et persistance chiffrée (`scrypt`) dans Supabase afin que le mot de passe fonctionne immédiatement lors de la connexion depuis le catalogue.
+  - Ajout de la route de confirmation OTP `src/app/auth/confirm/route.ts` et des schémas partagés de validation des mots de passe conformes aux standards Supabase Auth.
+
 ## [0.21.4] - 2026-11-07
 ### Ajouté
 - **Formulaire « Devenir Fournisseur » (`/devenir-fournisseur` — Étape 3/5 Catalogue)** :

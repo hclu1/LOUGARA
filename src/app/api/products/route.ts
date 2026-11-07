@@ -20,7 +20,17 @@ export async function GET() {
           },
         },
         include: {
-          company: true,
+          company: {
+            include: {
+              user: {
+                select: {
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',

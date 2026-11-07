@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Lock,
@@ -48,6 +48,59 @@ export default function ConnexionPage() {
 
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+
+  // Sélection rapide d'un catalogue client pour afficher automatiquement son e-mail
+  const [catalogOptions, setCatalogOptions] = useState<
+    Array<{ id: string; companyName: string; email: string }>
+  >([]);
+  const [selectedCatalogCompany, setSelectedCatalogCompany] = useState<string>('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const qEmail = params.get('email');
+      const qCompany = params.get('company');
+      const qName = params.get('name');
+      const qMode = params.get('mode');
+
+      if (qEmail) {
+        setEmailInput(qEmail.trim().toLowerCase());
+      }
+      if (qCompany) {
+        setCompanyNameInput(qCompany.trim());
+        setSelectedCatalogCompany(qCompany.trim());
+      }
+      if (qName) {
+        setNameInput(qName.trim());
+      }
+      if (qMode === 'register_password' || qMode === 'create_password') {
+        setMode('register_password');
+        setAccountType('supplier');
+      }
+    }
+
+    fetch(`/api/suppliers?_t=${Date.now()}`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.suppliers && Array.isArray(data.suppliers)) {
+          const mapped = data.suppliers
+            .filter((s: any) => s.isPublished !== false)
+            .map((s: any) => ({
+              id: s.id,
+              companyName: s.companyName,
+              email: (
+                s.user?.email ||
+                s.email ||
+                `contact@${String(s.companyName || 'entreprise').toLowerCase().replace(/[^a-z0-9]/g, '')}.fr`
+              )
+                .trim()
+                .toLowerCase(),
+            }));
+          setCatalogOptions(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Soumission Connexion
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -299,22 +352,32 @@ export default function ConnexionPage() {
           companyName: companyNameInput.trim(),
           country: countryInput.trim() || 'France',
           role: accountType,
-          requestType: 'INITIAL_CREATION',
+          requestType: 'CLIENT_REGISTRATION',
+          activateImmediately: true,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        setErrorNotice(data.error || 'Erreur lors de la demande de validation du mot de passe.');
+        setErrorNotice(data.error || 'Erreur lors de la création du mot de passe.');
         return;
       }
 
+      const pwdToLogin = passwordInput;
       setPasswordInput('');
       setConfirmPasswordInput('');
-      setSuccessNotice(
-        data.message ||
-          'Votre mot de passe chiffré a été transmis pour validation de sécurité. Il sera actif dès validation.'
-      );
-      setMode('login');
+
+      const loginAttempt = await loginWithPassword(cleanEmail, pwdToLogin);
+      if (loginAttempt.success) {
+        setSuccessNotice(
+          `Votre mot de passe a été créé avec succès et vous êtes désormais connecté sous ${cleanEmail} !`
+        );
+      } else {
+        setSuccessNotice(
+          data.message ||
+            'Votre mot de passe a été enregistré avec succès. Vous pouvez maintenant vous connecter.'
+        );
+        setMode('login');
+      }
     } catch {
       setErrorNotice('Erreur réseau lors de la soumission sécurisée.');
     } finally {
@@ -574,6 +637,41 @@ export default function ConnexionPage() {
                   aria-hidden="true"
                   autoComplete="off"
                 />
+
+                {/* Sélecteur rapide de Catalogue Client : affiche automatiquement l'e-mail du client */}
+                {catalogOptions.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-[#D4AF37]/30 space-y-2">
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-[#E5A93C]">
+                      Accès rapide par Catalogue Client :
+                    </label>
+                    <select
+                      value={selectedCatalogCompany}
+                      onChange={(e) => {
+                        const chosenName = e.target.value;
+                        setSelectedCatalogCompany(chosenName);
+                        const match = catalogOptions.find((c) => c.companyName === chosenName);
+                        if (match) {
+                          setEmailInput(match.email);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    >
+                      <option value="">— Choisir mon catalogue pour afficher mon e-mail —</option>
+                      {catalogOptions.map((c) => (
+                        <option key={c.id} value={c.companyName}>
+                          {c.companyName} ({c.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {selectedCatalogCompany && emailInput && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-[#D4AF37]/40 text-xs text-amber-200">
+                    Catalogue sélectionné : <strong className="text-white">{selectedCatalogCompany}</strong>.
+                    Votre e-mail (<strong className="text-amber-300">{emailInput}</strong>) est affiché, renseignez simplement votre mot de passe ci-dessous.
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">

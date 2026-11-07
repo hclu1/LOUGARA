@@ -24,11 +24,17 @@ import {
   Plus,
   Trash2,
   Tag,
+  Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  KeyRound,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { DocumentDropzone } from '@/components/DocumentDropzone';
 import { parseKbisOcrText, ParsedKbisData } from '@/features/ocr/kbis-parser';
 import { useLanguage } from '@/context/LanguageContext';
+import { passwordRules } from '@/lib/validation/password';
 
 const MAX_IMAGES_PER_PRODUCT = 4;
 
@@ -79,10 +85,16 @@ export default function DevenirFournisseurPage() {
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
 
-  // Contact
+  // Contact (Étape 4/5) & Création du Mot de Passe
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordInviteSentTo, setPasswordInviteSentTo] = useState<string | null>(null);
+  const [isSendingPasswordInvite, setIsSendingPasswordInvite] = useState(false);
+  const [passwordInviteNotice, setPasswordInviteNotice] = useState<string | null>(null);
 
   const [subscriptionPlan, setSubscriptionPlan] = useState<'STANDARD' | 'PREMIUM' | 'VIP'>('PREMIUM');
   const [hasCatalogAdSpace, setHasCatalogAdSpace] = useState(true);
@@ -254,8 +266,63 @@ export default function DevenirFournisseurPage() {
     }
     setUploadingProductId(null);
   };
+  const handleSendPasswordCreationMessage = async (targetEmail?: string, includePassword = false) => {
+    const cleanEmail = (targetEmail ?? email).trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      return;
+    }
+    if (!includePassword && passwordInviteSentTo === cleanEmail) {
+      return;
+    }
+
+    setIsSendingPasswordInvite(true);
+    try {
+      const res = await fetch('/api/auth/contact-password-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          contactName: contactName.trim() || companyName.trim() || 'Responsable Commercial',
+          companyName: companyName.trim() || 'Catalogue Fournisseur',
+          country,
+          ...(includePassword && password.trim().length >= 6 ? { password: password.trim() } : {}),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        setPasswordInviteSentTo(cleanEmail);
+        setPasswordInviteNotice(
+          data.message ||
+            `Un message vous a été envoyé à ${cleanEmail} pour créer votre mot de passe client.`
+        );
+      }
+    } catch {
+      // Non bloquant
+    } finally {
+      setIsSendingPasswordInvite(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setDocError('Veuillez renseigner une adresse e-mail professionnelle valide à l’étape 4/5.');
+      setCurrentStep(4);
+      return;
+    }
+    if (!password || password.trim().length < 6) {
+      setDocError(
+        'Veuillez créer votre mot de passe client (minimum 6 caractères) à l’étape Contact 4/5.'
+      );
+      setCurrentStep(4);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setDocError('La confirmation de votre mot de passe ne correspond pas.');
+      setCurrentStep(4);
+      return;
+    }
     if (!cniStoragePath) {
       setDocError("La pièce d'identité du dirigeant est obligatoire : téléversez un fichier (JPG, PNG, WEBP ou PDF).");
       return;
@@ -263,6 +330,7 @@ export default function DevenirFournisseurPage() {
     setDocError(null);
     setIsSubmitting(true);
     try {
+      await handleSendPasswordCreationMessage(cleanEmail, true);
       const res = await fetch('/api/suppliers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -273,7 +341,8 @@ export default function DevenirFournisseurPage() {
           sector,
           registrationNumber: regNumber,
           contactName,
-          email,
+          email: cleanEmail,
+          password: password.trim(),
           phone,
           subscriptionPlan,
           hasCatalogAdSpace,
@@ -351,7 +420,7 @@ export default function DevenirFournisseurPage() {
         {/* FORM CONTAINER */}
         <div className="glass-card p-8 sm:p-10 rounded-3xl border border-[#D4AF37]/30 shadow-2xl">
           {isSubmitted ? (
-            <div className="py-12 text-center space-y-4 max-w-md mx-auto">
+            <div className="py-12 text-center space-y-5 max-w-lg mx-auto">
               <div className="w-16 h-16 rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.3)]">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
@@ -361,13 +430,32 @@ export default function DevenirFournisseurPage() {
               <p className="text-sm text-slate-300">
                 {t.becomeSupplier.successMsg}
               </p>
-              <div className="pt-4">
+
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-[#D4AF37]/40 text-left space-y-2">
+                <div className="flex items-center gap-2 text-xs font-black text-amber-300">
+                  <KeyRound className="w-4 h-4 text-[#D4AF37]" />
+                  <span>Accès client &amp; Mot de passe activés (Contact 4/5)</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Un message de confirmation a été envoyé à <strong className="text-amber-300">{email}</strong>.
+                  Lorsque vous allez sur votre catalogue et cliquez sur <strong>« Connexion »</strong>, votre e-mail (<strong className="text-white">{email}</strong>) s&apos;affichera automatiquement et il vous suffira de saisir le mot de passe que vous venez de créer.
+                </p>
+              </div>
+
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  href={`/connexion?email=${encodeURIComponent(email.trim().toLowerCase())}&company=${encodeURIComponent(companyName.trim())}`}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] shadow-md"
+                >
+                  <Lock className="w-4 h-4 text-slate-950" />
+                  <span>Se connecter à mon catalogue</span>
+                </Link>
                 <Link
                   href="/catalogue"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] shadow-md"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-slate-200 bg-slate-900 border border-slate-700 hover:border-amber-400/60"
                 >
                   <span>{t.nav.catalog}</span>
-                  <ArrowRight className="w-4 h-4 text-slate-950" />
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
@@ -723,9 +811,11 @@ export default function DevenirFournisseurPage() {
                 <div className="space-y-6">
                   <div className="border-b border-slate-800 pb-3">
                     <span className="text-xs font-black uppercase text-[#D4AF37] tracking-wider">
-                      Étape {currentStep} sur 5 &bull; Finalisation
+                      Étape {currentStep} sur 5 &bull; Contact 4/5 &amp; Création du Mot de Passe
                     </span>
-                    <h2 className="text-xl font-black text-white mt-1">Contact Commercial & Validation</h2>
+                    <h2 className="text-xl font-black text-white mt-1">
+                      Contact Commercial &amp; Mot de Passe de Connexion au Catalogue
+                    </h2>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -740,18 +830,151 @@ export default function DevenirFournisseurPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">E-mail Direct *</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">E-mail Direct (affiché lors de la connexion au catalogue) *</label>
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        onBlur={(e) => handleSendPasswordCreationMessage(e.target.value, false)}
+                        placeholder="contact@votre-entreprise.com"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm text-white focus:ring-2 focus:ring-[#D4AF37]"
                       />
                     </div>
                   </div>
 
-                  {/* Pièce d'identité ou justificatif dirigeant (Optionnel) */}
+                  {/* BLOC CRÉATION DU MOT DE PASSE À L'ÉTAPE CONTACT 4/5 + MESSAGE ENVOYÉ AU CLIENT */}
+                  <div className="p-5 rounded-2xl bg-slate-900/90 border border-[#D4AF37]/40 space-y-4 shadow-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm font-black text-[#E5A93C]">
+                          <KeyRound className="w-4 h-4 text-[#D4AF37]" />
+                          <span>Création de votre mot de passe client (Étape Contact 4/5)</span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          Dès la création de votre contact 4/5, un message vous est envoyé pour créer votre mot de passe.
+                          Lorsque vous irez sur votre catalogue et cliquerez sur <strong>« Connexion »</strong>, votre adresse e-mail apparaîtra automatiquement et vous n&apos;aurez qu&apos;à renseigner ce mot de passe.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={!email.includes('@') || isSendingPasswordInvite}
+                        onClick={() => handleSendPasswordCreationMessage(email, false)}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-[#D4AF37]/20 text-amber-300 border border-[#D4AF37]/40 hover:bg-[#D4AF37]/30 disabled:opacity-40 transition-all cursor-pointer"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>
+                          {isSendingPasswordInvite
+                            ? 'Envoi du message...'
+                            : passwordInviteSentTo === email.trim().toLowerCase() && email.trim()
+                            ? 'Message envoyé ✓ (Renvoyer)'
+                            : 'Recevoir le message par e-mail'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Message automatique affiché dès que le client renseigne son contact 4/5 */}
+                    {email.trim().includes('@') && (
+                      <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-xs text-emerald-200 flex items-start gap-2.5">
+                        <Mail className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-black text-emerald-300">
+                            {passwordInviteNotice ||
+                              `📩 Message de création de mot de passe envoyé à ${email.trim().toLowerCase()}`}
+                          </p>
+                          <p className="text-[11px] text-slate-300">
+                            Identifiant associé à votre catalogue : <strong className="text-white font-mono">{email.trim().toLowerCase()}</strong>.
+                            Créez votre mot de passe ci-dessous pour activer votre accès direct.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">
+                          Créer votre mot de passe client *
+                        </label>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            minLength={6}
+                            autoComplete="new-password"
+                            aria-describedby="step4-password-rules"
+                            placeholder="Minimum 6 caractères"
+                            value={password}
+                            onFocus={() => {
+                              if (email.includes('@')) {
+                                handleSendPasswordCreationMessage(email, false);
+                              }
+                            }}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                            aria-pressed={showPassword}
+                            className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">
+                          Confirmer votre mot de passe *
+                        </label>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            minLength={6}
+                            autoComplete="new-password"
+                            placeholder="Retapez votre mot de passe"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      id="step4-password-rules"
+                      className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex flex-wrap items-center gap-x-4 gap-y-1.5"
+                    >
+                      <span className="font-bold text-slate-300">Sécurité du mot de passe :</span>
+                      <span className={password.length >= 6 ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                        {password.length >= 6 ? '✓' : '○'} 6 caractères minimum
+                      </span>
+                      {passwordRules.slice(1).map((rule) => {
+                        const ok = rule.test(password);
+                        return (
+                          <span key={rule.label} className={ok ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                            {ok ? '✓' : '○'} {rule.label}
+                          </span>
+                        );
+                      })}
+                      <span
+                        className={
+                          password.length >= 6 && password === confirmPassword
+                            ? 'text-emerald-400 font-bold'
+                            : 'text-slate-500'
+                        }
+                      >
+                        {password.length >= 6 && password === confirmPassword ? '✓' : '○'} Confirmation identique
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pièce d'identité ou justificatif dirigeant */}
                   <div className="pt-2">
                     <DocumentDropzone
                       id="supplier-cni-dropzone"
@@ -786,16 +1009,28 @@ export default function DevenirFournisseurPage() {
                   </div>
 
                   {docError && (
-                    <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-300">{docError}</div>
+                    <div role="alert" className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-300">{docError}</div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-4 rounded-xl text-sm font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all"
-                  >
-                    Soumettre mon dossier Fournisseur pour Audit KYB
-                  </button>
+                  <div className="flex items-center justify-between gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(3)}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                    >
+                      &larr; Retour au Catalogue
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 py-4 rounded-xl text-sm font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all"
+                    >
+                      {isSubmitting
+                        ? 'Enregistrement du contact, du mot de passe & du catalogue...'
+                        : 'Enregistrer mon Contact (4/5), mon Mot de Passe & Soumettre mon Catalogue'}
+                    </button>
+                  </div>
                 </div>
               )}
             </form>

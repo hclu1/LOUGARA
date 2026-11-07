@@ -6,7 +6,18 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { email, password, fullName, name, companyName, clientRole, role, country, requestType } = body;
+    const {
+      email,
+      password,
+      fullName,
+      name,
+      companyName,
+      clientRole,
+      role,
+      country,
+      requestType,
+      activateImmediately,
+    } = body;
 
     await syncClientsFromDatabase();
     const result = submitClientPasswordRequest({
@@ -17,6 +28,7 @@ export async function POST(req: Request) {
       clientRole: clientRole || role,
       country,
       requestType: requestType === 'INITIAL_CREATION' ? 'INITIAL_PASSWORD' : requestType,
+      activateImmediately: Boolean(activateImmediately),
     });
 
     if (!result.success) {

@@ -22,6 +22,9 @@ import {
   X,
   Upload,
   Image as ImageIcon,
+  Mail,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -69,13 +72,76 @@ interface CatalogData {
 }
 
 export default function MonCataloguePage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loginWithPassword, isLoading: authLoading } = useAuth();
   const { t, locale } = useLanguage();
 
   const [catalogData, setCatalogData] = useState<CatalogData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+
+  // Connexion directe sur Mon Catalogue (e-mail pré-rempli)
+  const [availableCatalogs, setAvailableCatalogs] = useState<
+    Array<{ id: string; companyName: string; email: string }>
+  >([]);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPwd, setShowLoginPwd] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const qEmail = params.get('email');
+      if (qEmail) {
+        setLoginEmail(qEmail.trim().toLowerCase());
+      }
+    }
+    fetch(`/api/suppliers?_t=${Date.now()}`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.suppliers && Array.isArray(data.suppliers)) {
+          const list = data.suppliers
+            .filter((s: any) => s.isPublished !== false)
+            .map((s: any) => ({
+              id: s.id,
+              companyName: s.companyName,
+              email: (
+                s.user?.email ||
+                s.email ||
+                `contact@${String(s.companyName || 'entreprise').toLowerCase().replace(/[^a-z0-9]/g, '')}.fr`
+              )
+                .trim()
+                .toLowerCase(),
+            }));
+          setAvailableCatalogs(list);
+          setLoginEmail((prev) => prev || (list.length === 1 ? list[0].email : ''));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleDirectCatalogLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    if (!cleanEmail || !loginPassword) {
+      setLoginError('Veuillez renseigner votre mot de passe.');
+      return;
+    }
+    setIsLoggingIn(true);
+    try {
+      const res = await loginWithPassword(cleanEmail, loginPassword);
+      if (!res.success) {
+        setLoginError(res.error || 'Mot de passe incorrect.');
+        return;
+      }
+      setLoginPassword('');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
 
   // Modale Ajout / Modification
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -267,22 +333,109 @@ export default function MonCataloguePage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#0B132B] text-slate-100 flex items-center justify-center p-4">
-        <div className="glass-card gold-glow-border p-8 rounded-3xl max-w-md w-full text-center space-y-6">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto">
-            <Lock className="w-7 h-7" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-white">Espace Vitrine & Catalogue</h1>
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              Veuillez vous connecter avec vos identifiants professionnels validés pour accéder à la gestion de votre vitrine et de vos produits.
+        <div className="glass-card gold-glow-border p-8 rounded-3xl max-w-md w-full space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto">
+              <Lock className="w-7 h-7" />
+            </div>
+            <h1 className="text-2xl font-black text-white">Connexion à Mon Catalogue</h1>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Sélectionnez votre catalogue : votre adresse e-mail s&apos;affiche automatiquement et il vous suffit de renseigner le mot de passe créé lors de votre contact 4/5.
             </p>
           </div>
-          <Link
-            href="/connexion"
-            className="w-full py-3.5 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 transition-all text-center block shadow-lg"
-          >
-            Se connecter à mon compte
-          </Link>
+
+          {loginError && (
+            <div
+              role="alert"
+              className="p-3.5 rounded-xl bg-rose-950/90 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-start gap-2.5"
+            >
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleDirectCatalogLogin} className="space-y-4">
+            {availableCatalogs.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-amber-300 mb-1">
+                  Sélectionner mon catalogue
+                </label>
+                <select
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4AF37]/40 bg-slate-900 text-xs font-bold text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                >
+                  <option value="">— Choisir mon catalogue —</option>
+                  {availableCatalogs.map((c) => (
+                    <option key={c.id} value={c.email}>
+                      {c.companyName} ({c.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Votre adresse e-mail *
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-[#D4AF37] absolute left-3.5 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="contact@entreprise.com"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-sm font-bold text-amber-300 focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Votre mot de passe *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type={showLoginPwd ? 'text' : 'password'}
+                  required
+                  autoComplete="current-password"
+                  placeholder="Renseignez votre mot de passe"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPwd((prev) => !prev)}
+                  aria-label={showLoginPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-pressed={showLoginPwd}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
+                >
+                  {showLoginPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full py-3.5 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] hover:opacity-95 transition-all text-center block shadow-lg disabled:opacity-50 cursor-pointer"
+            >
+              {isLoggingIn ? 'Connexion en cours...' : 'Se connecter à mon catalogue'}
+            </button>
+          </form>
+
+          <div className="pt-2 border-t border-slate-800 text-center">
+            <Link
+              href={loginEmail ? `/connexion?mode=register_password&email=${encodeURIComponent(loginEmail)}` : '/connexion'}
+              className="text-xs font-bold text-amber-400 hover:underline"
+            >
+              Créer ou réinitialiser mon mot de passe &rarr;
+            </Link>
+          </div>
         </div>
       </div>
     );

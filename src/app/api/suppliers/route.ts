@@ -185,9 +185,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cleanEmail = String(email).trim().toLowerCase();
+    const { hashPassword, submitClientPasswordRequest } = await import('@/features/auth/service');
+    const hasCustomPassword = typeof body.password === 'string' && body.password.trim().length >= 6;
+    const rawPassword = hasCustomPassword
+      ? body.password.trim()
+      : `Lougara-${cleanEmail.split('@')[0]}-2026`;
+    const encodedPasswordHash = hasCustomPassword ? `scrypt:${hashPassword(rawPassword)}` : null;
+
     // Recherche ou création de l'utilisateur associé
     let user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: cleanEmail },
     });
 
     if (!user) {
@@ -198,11 +206,20 @@ export async function POST(req: NextRequest) {
 
       user = await prisma.user.create({
         data: {
-          email,
+          email: cleanEmail,
           supabaseUid: fakeUid,
           firstName,
           lastName,
           role: 'SUPPLIER',
+          ...(encodedPasswordHash ? { avatarUrl: encodedPasswordHash, mustChangePassword: false } : {}),
+        },
+      });
+    } else if (encodedPasswordHash) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          avatarUrl: encodedPasswordHash,
+          mustChangePassword: false,
         },
       });
     }
@@ -250,21 +267,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Enregistrement sécurisé du mot de passe fournisseur dans la file de validation Admin
+    // Enregistrement sécurisé du mot de passe fournisseur et envoi du message de création (Étape 4/5)
     try {
-      const { submitClientPasswordRequest } = await import('@/features/auth/service');
-      const rawPassword =
-        typeof body.password === 'string' && body.password.trim().length >= 4
-          ? body.password.trim()
-          : `Lougara-${String(email).split('@')[0]}-2026`;
       submitClientPasswordRequest({
-        email,
+        email: cleanEmail,
         password: rawPassword,
         fullName: contactName || companyName,
         companyName,
         country: country || 'Sénégal',
         clientRole: 'supplier',
         requestType: 'CLIENT_REGISTRATION',
+        activateImmediately: true,
+      });
+
+      const { sendPasswordCreationEmail } = await import('@/features/payment/services/email.service');
+      await sendPasswordCreationEmail({
+        to: cleanEmail,
+        contactName: contactName || companyName,
+        companyName,
       });
     } catch {
       // Non bloquant

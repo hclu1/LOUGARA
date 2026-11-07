@@ -32,9 +32,14 @@ import {
   Maximize2,
   Minimize2,
   Columns,
+  Lock,
+  EyeOff,
+  KeyRound,
+  AlertCircle,
 } from 'lucide-react';
 import { BadgeVerified } from '@/components/BadgeVerified';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   getLocalizedCountry,
   getLocalizedSector,
@@ -312,6 +317,7 @@ interface MockProduct {
   company: {
     id: string;
     companyName: string;
+    email?: string;
     country: string;
     city: string;
     isVerified: boolean;
@@ -344,6 +350,8 @@ interface SponsoredBuyer {
 interface SupplierCatalog {
   id: string;
   companyName: string;
+  email?: string;
+  contactName?: string;
   country: string;
   city: string;
   sector: string;
@@ -354,10 +362,9 @@ interface SupplierCatalog {
   products: MockProduct[];
 }
 
-
-
 export default function CataloguePage() {
   const { t, locale } = useLanguage();
+  const { user, loginWithPassword } = useAuth();
   const [activeTab, setActiveTab] = useState<'catalogues' | 'products' | 'buyers'>('catalogues');
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -389,6 +396,120 @@ export default function CataloguePage() {
   const [viewProduct, setViewProduct] = useState<MockProduct | null>(null);
   const [isForcedFullScreen, setIsForcedFullScreen] = useState<boolean>(false);
   const [viewProductImageIndex, setViewProductImageIndex] = useState<number>(0);
+
+  // Modale de Connexion directe depuis un Catalogue Client (e-mail pré-rempli)
+  const [catalogLoginTarget, setCatalogLoginTarget] = useState<{
+    companyName: string;
+    email: string;
+    contactName?: string;
+    country?: string;
+  } | null>(null);
+  const [catalogLoginMode, setCatalogLoginMode] = useState<'login' | 'create_password'>('login');
+  const [catalogLoginEmail, setCatalogLoginEmail] = useState<string>('');
+  const [catalogLoginPassword, setCatalogLoginPassword] = useState<string>('');
+  const [catalogLoginConfirmPassword, setCatalogLoginConfirmPassword] = useState<string>('');
+  const [showCatalogLoginPwd, setShowCatalogLoginPwd] = useState<boolean>(false);
+  const [isCatalogLoggingIn, setIsCatalogLoggingIn] = useState<boolean>(false);
+  const [catalogLoginError, setCatalogLoginError] = useState<string | null>(null);
+  const [catalogLoginSuccess, setCatalogLoginSuccess] = useState<string | null>(null);
+
+  const handleOpenCatalogLogin = (target: {
+    companyName: string;
+    email: string;
+    contactName?: string;
+    country?: string;
+  }) => {
+    setCatalogLoginTarget(target);
+    setCatalogLoginEmail((target.email || '').trim().toLowerCase());
+    setCatalogLoginPassword('');
+    setCatalogLoginConfirmPassword('');
+    setCatalogLoginMode('login');
+    setCatalogLoginError(null);
+    setCatalogLoginSuccess(null);
+  };
+
+  const handleCatalogLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCatalogLoginError(null);
+    setCatalogLoginSuccess(null);
+
+    const cleanEmail = catalogLoginEmail.trim().toLowerCase();
+    if (!cleanEmail || !catalogLoginPassword) {
+      setCatalogLoginError('Veuillez renseigner votre mot de passe.');
+      return;
+    }
+
+    setIsCatalogLoggingIn(true);
+    try {
+      const res = await loginWithPassword(cleanEmail, catalogLoginPassword);
+      if (!res.success) {
+        setCatalogLoginError(res.error || 'Mot de passe incorrect pour ce catalogue.');
+        return;
+      }
+      setCatalogLoginPassword('');
+      setCatalogLoginSuccess(`Connexion réussie au catalogue ${catalogLoginTarget?.companyName || ''} !`);
+    } finally {
+      setIsCatalogLoggingIn(false);
+    }
+  };
+
+  const handleCatalogCreatePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCatalogLoginError(null);
+    setCatalogLoginSuccess(null);
+
+    const cleanEmail = catalogLoginEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setCatalogLoginError('Adresse e-mail invalide.');
+      return;
+    }
+    if (!catalogLoginPassword || catalogLoginPassword.trim().length < 6) {
+      setCatalogLoginError('Le mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+    if (catalogLoginPassword !== catalogLoginConfirmPassword) {
+      setCatalogLoginError('La confirmation du mot de passe ne correspond pas.');
+      return;
+    }
+
+    setIsCatalogLoggingIn(true);
+    try {
+      const res = await fetch('/api/auth/contact-password-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          contactName: catalogLoginTarget?.contactName || catalogLoginTarget?.companyName || 'Client Lougara',
+          companyName: catalogLoginTarget?.companyName || 'Catalogue Client',
+          country: catalogLoginTarget?.country || 'Sénégal',
+          password: catalogLoginPassword.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setCatalogLoginError(data.error || 'Impossible de créer le mot de passe.');
+        return;
+      }
+
+      const loginRes = await loginWithPassword(cleanEmail, catalogLoginPassword.trim());
+      setCatalogLoginPassword('');
+      setCatalogLoginConfirmPassword('');
+      if (loginRes.success) {
+        setCatalogLoginSuccess(
+          `Votre mot de passe a été créé, un message de confirmation vous a été envoyé à ${cleanEmail}, et vous êtes désormais connecté !`
+        );
+      } else {
+        setCatalogLoginMode('login');
+        setCatalogLoginSuccess(
+          data.message || `Mot de passe enregistré et message envoyé à ${cleanEmail}. Vous pouvez maintenant vous connecter.`
+        );
+      }
+    } catch {
+      setCatalogLoginError('Erreur réseau lors de la création du mot de passe.');
+    } finally {
+      setIsCatalogLoggingIn(false);
+    }
+  };
 
   // Tous les produits du même fournisseur que le produit sélectionné
   const sameSupplierProducts = useMemo(() => {
@@ -445,6 +566,7 @@ export default function CataloguePage() {
                 company: {
                   id: p.company?.id || 'comp-unknown',
                   companyName: p.company?.companyName || 'Entreprise Partenaire',
+                  email: (p.company?.user?.email || p.company?.email || '').trim().toLowerCase(),
                   country: p.company?.country || p.originCountry,
                   city: p.company?.city || '',
                   isVerified: p.company?.verificationStatus === 'VERIFIED',
@@ -462,6 +584,17 @@ export default function CataloguePage() {
           if (dataSupp.suppliers && Array.isArray(dataSupp.suppliers)) {
             const publishedSuppliers = dataSupp.suppliers.filter((s: any) => s.isPublished !== false);
             const mappedCatalogs: SupplierCatalog[] = publishedSuppliers.map((s: any) => {
+              const supplierEmail = (
+                s.user?.email ||
+                s.email ||
+                `contact@${String(s.companyName || 'entreprise').toLowerCase().replace(/[^a-z0-9]/g, '')}.fr`
+              )
+                .trim()
+                .toLowerCase();
+              const supplierContactName = s.user
+                ? `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim()
+                : s.companyName;
+
               const supplierProds: MockProduct[] = (s.products || [])
                 .filter((p: any) => p.isPublished !== false)
                 .slice(0, 10)
@@ -483,6 +616,7 @@ export default function CataloguePage() {
                   company: {
                     id: s.id,
                     companyName: s.companyName,
+                    email: supplierEmail,
                     country: s.country,
                     city: s.city,
                     isVerified: s.verificationStatus === 'VERIFIED',
@@ -499,6 +633,8 @@ export default function CataloguePage() {
               return {
                 id: s.id,
                 companyName: s.companyName,
+                email: supplierEmail,
+                contactName: supplierContactName,
                 country: s.country,
                 city: s.city,
                 sector: s.sector,
@@ -930,7 +1066,7 @@ export default function CataloguePage() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800">
+                  <div className="pt-3 border-t border-slate-800 space-y-2">
                     <button
                       onClick={() => setSelectedSupplierCatalog(cat)}
                       className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:from-[#E5A93C] hover:to-[#D4AF37] transition-all shadow-md"
@@ -939,6 +1075,32 @@ export default function CataloguePage() {
                       {t.catalogue.viewFullCatalog} ({cat.productsCount}{' '}
                       {cat.productsCount > 1 ? t.catalogue.productUnit : t.catalogue.productUnitSingular})
                     </button>
+
+                    {user && cat.email && user.email.toLowerCase() === cat.email.toLowerCase() ? (
+                      <Link
+                        href="/mon-catalogue"
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-extrabold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/40 transition-all"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Gérer mon catalogue (Connecté)</span>
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleOpenCatalogLogin({
+                            companyName: cat.companyName,
+                            email: cat.email || '',
+                            contactName: cat.contactName,
+                            country: cat.country,
+                          })
+                        }
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-extrabold text-amber-300 bg-slate-950/90 hover:bg-slate-900 border border-[#D4AF37]/40 hover:border-[#D4AF37] transition-all cursor-pointer"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>Connexion (Propriétaire du catalogue)</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1084,25 +1246,57 @@ export default function CataloguePage() {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="border-b border-slate-800 pb-5 mb-6 pr-10">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] text-slate-950 flex items-center gap-1 shadow-sm">
-                  <Sparkles className="w-3.5 h-3.5" /> {t.catalogue.officialShowcase}
-                </span>
-                {selectedSupplierCatalog.isVerified && (
-                  <BadgeVerified />
-                )}
+            <div className="border-b border-slate-800 pb-5 mb-6 pr-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#D4AF37] to-[#E5A93C] text-slate-950 flex items-center gap-1 shadow-sm">
+                    <Sparkles className="w-3.5 h-3.5" /> {t.catalogue.officialShowcase}
+                  </span>
+                  {selectedSupplierCatalog.isVerified && (
+                    <BadgeVerified />
+                  )}
+                </div>
+
+                <h2 className="text-2xl font-black text-white mt-2">
+                  {selectedSupplierCatalog.companyName}
+                </h2>
+                <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-emerald-400" />
+                  <span>{selectedSupplierCatalog.city ? `${selectedSupplierCatalog.city}, ` : ''}{getLocalizedCountry(selectedSupplierCatalog.country, locale)}</span>
+                  <span className="text-slate-600">&bull;</span>
+                  <span className="font-semibold text-amber-300">{getLocalizedSector(selectedSupplierCatalog.sector, locale)}</span>
+                </p>
               </div>
 
-              <h2 className="text-2xl font-black text-white mt-2">
-                {selectedSupplierCatalog.companyName}
-              </h2>
-              <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-emerald-400" />
-                <span>{selectedSupplierCatalog.city ? `${selectedSupplierCatalog.city}, ` : ''}{getLocalizedCountry(selectedSupplierCatalog.country, locale)}</span>
-                <span className="text-slate-600">&bull;</span>
-                <span className="font-semibold text-amber-300">{getLocalizedSector(selectedSupplierCatalog.sector, locale)}</span>
-              </p>
+              <div>
+                {user &&
+                selectedSupplierCatalog.email &&
+                user.email.toLowerCase() === selectedSupplierCatalog.email.toLowerCase() ? (
+                  <Link
+                    href="/mon-catalogue"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black text-emerald-300 bg-emerald-950/90 border border-emerald-500/40 hover:bg-emerald-900"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Gérer mon catalogue</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleOpenCatalogLogin({
+                        companyName: selectedSupplierCatalog.companyName,
+                        email: selectedSupplierCatalog.email || '',
+                        contactName: selectedSupplierCatalog.contactName,
+                        country: selectedSupplierCatalog.country,
+                      })
+                    }
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black text-amber-300 bg-slate-900 hover:bg-slate-800 border border-[#D4AF37]/50 hover:border-[#D4AF37] transition-all cursor-pointer shadow-md"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <span>Connexion</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {selectedSupplierCatalog.products.length === 0 ? (
@@ -1168,6 +1362,21 @@ export default function CataloguePage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleOpenCatalogLogin({
+                      companyName: viewProduct.company.companyName,
+                      email: viewProduct.company.email || '',
+                      country: viewProduct.company.country,
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-[#D4AF37]/50 hover:border-[#D4AF37] text-xs font-black text-amber-300 hover:text-amber-200 transition-all cursor-pointer"
+                >
+                  <Lock className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span>Connexion</span>
+                </button>
+
                 {/* BOUTON BASCULE PLEIN ÉCRAN / ÉCRAN PARTAGÉ (SI PLUSIEURS PRODUITS) */}
                 {sameSupplierProducts.length > 1 && (
                   <button
@@ -1675,6 +1884,233 @@ export default function CataloguePage() {
                   >
                     <Send className="w-3.5 h-3.5 text-slate-950" />
                     {t.catalogue.sendProposalBtn}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODALE DE CONNEXION CLIENT DIRECTE DEPUIS SON CATALOGUE (E-MAIL PRÉ-REMPLI) */}
+      {catalogLoginTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="glass-card gold-glow-border rounded-3xl max-w-md w-full p-6 sm:p-8 border border-[#D4AF37]/50 shadow-2xl relative animate-in fade-in zoom-in duration-200 space-y-5">
+            <button
+              type="button"
+              onClick={() => setCatalogLoginTarget(null)}
+              className="absolute top-5 right-5 p-1.5 rounded-xl bg-slate-900 text-slate-400 hover:text-white border border-slate-800 cursor-pointer"
+              aria-label="Fermer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="text-center space-y-2 pr-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#D4AF37] to-[#B8860B] text-slate-950 flex items-center justify-center mx-auto shadow-md">
+                <Lock className="w-6 h-6" />
+              </div>
+              <span className="inline-block px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#D4AF37]/15 text-[#E5A93C] border border-[#D4AF37]/30">
+                Accès Client Catalogue
+              </span>
+              <h3 className="text-xl font-black text-white">
+                {catalogLoginTarget.companyName}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {catalogLoginMode === 'login'
+                  ? 'Votre adresse e-mail est pré-remplie. Renseignez simplement le mot de passe créé lors de votre contact 4/5.'
+                  : 'Créez ou définissez votre mot de passe pour ce catalogue. Un message de confirmation vous sera envoyé.'}
+              </p>
+            </div>
+
+            {catalogLoginError && (
+              <div
+                role="alert"
+                className="p-3.5 rounded-xl bg-rose-950/90 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-start gap-2.5"
+              >
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <span>{catalogLoginError}</span>
+              </div>
+            )}
+
+            {catalogLoginSuccess ? (
+              <div className="space-y-4 text-center py-2">
+                <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs font-bold flex items-start gap-2.5 text-left">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{catalogLoginSuccess}</span>
+                </div>
+
+                {user ? (
+                  <div className="flex flex-col gap-2.5">
+                    <Link
+                      href="/mon-catalogue"
+                      className="w-full py-3.5 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 shadow-lg text-center block"
+                    >
+                      Gérer ma Vitrine &amp; Mon Catalogue
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setCatalogLoginTarget(null)}
+                      className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-slate-300 bg-slate-900 border border-slate-700 hover:text-white cursor-pointer"
+                    >
+                      Rester sur le catalogue public
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : catalogLoginMode === 'login' ? (
+              <form onSubmit={handleCatalogLoginSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Votre adresse e-mail (Catalogue) *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-[#D4AF37] absolute left-3.5 top-3" />
+                    <input
+                      type="email"
+                      required
+                      value={catalogLoginEmail}
+                      onChange={(e) => setCatalogLoginEmail(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#D4AF37]/50 bg-slate-900 text-sm font-bold text-amber-300 focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Votre mot de passe *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showCatalogLoginPwd ? 'text' : 'password'}
+                      required
+                      autoFocus
+                      autoComplete="current-password"
+                      placeholder="Renseignez votre mot de passe"
+                      value={catalogLoginPassword}
+                      onChange={(e) => setCatalogLoginPassword(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCatalogLoginPwd((prev) => !prev)}
+                      aria-label={showCatalogLoginPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      aria-pressed={showCatalogLoginPwd}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    >
+                      {showCatalogLoginPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCatalogLoggingIn}
+                  className="w-full py-3.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isCatalogLoggingIn ? 'Connexion en cours...' : 'Se connecter à mon catalogue'}
+                </button>
+
+                <div className="pt-3 border-t border-slate-800 text-center space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatalogLoginMode('create_password');
+                      setCatalogLoginError(null);
+                      setCatalogLoginSuccess(null);
+                    }}
+                    className="text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Créer mon mot de passe / Recevoir le message</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleCatalogCreatePasswordSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Votre adresse e-mail (Catalogue) *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-[#D4AF37] absolute left-3.5 top-3" />
+                    <input
+                      type="email"
+                      required
+                      value={catalogLoginEmail}
+                      onChange={(e) => setCatalogLoginEmail(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-[#D4AF37]/50 bg-slate-900 text-sm font-bold text-amber-300 focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Créer votre mot de passe (min. 6 caractères) *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showCatalogLoginPwd ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      placeholder="Choisissez votre mot de passe"
+                      value={catalogLoginPassword}
+                      onChange={(e) => setCatalogLoginPassword(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCatalogLoginPwd((prev) => !prev)}
+                      aria-label={showCatalogLoginPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      aria-pressed={showCatalogLoginPwd}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    >
+                      {showCatalogLoginPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Confirmer votre mot de passe *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type={showCatalogLoginPwd ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      placeholder="Retapez votre mot de passe"
+                      value={catalogLoginConfirmPassword}
+                      onChange={(e) => setCatalogLoginConfirmPassword(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-sm text-white focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCatalogLoggingIn}
+                  className="w-full py-3.5 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-[#D4AF37] via-[#E5A93C] to-[#B8860B] hover:opacity-95 shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isCatalogLoggingIn
+                    ? 'Enregistrement & Envoi du message...'
+                    : 'Enregistrer mon mot de passe & Me connecter'}
+                </button>
+
+                <div className="pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatalogLoginMode('login');
+                      setCatalogLoginError(null);
+                    }}
+                    className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    &larr; Retour à la connexion avec mon mot de passe
                   </button>
                 </div>
               </form>

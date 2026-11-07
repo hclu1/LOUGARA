@@ -6,7 +6,7 @@ export interface EmailLogEntry {
   id: string;
   to: string;
   subject: string;
-  type: 'TRANSFER_INSTRUCTIONS' | 'PAYMENT_CONFIRMED' | 'PAYMENT_FAILED';
+  type: 'TRANSFER_INSTRUCTIONS' | 'PAYMENT_CONFIRMED' | 'PAYMENT_FAILED' | 'PASSWORD_CREATION_INVITE';
   orderReference: string;
   sentViaApi: boolean;
   createdAt: string;
@@ -214,5 +214,62 @@ export async function sendPaymentFailedEmail(params: {
     html,
     type: 'PAYMENT_FAILED',
     orderReference: params.orderReference,
+  });
+}
+
+/**
+ * 4. Email envoyé au client lors de la création de son contact (Étape 4/5) pour créer son mot de passe
+ */
+export async function sendPasswordCreationEmail(params: {
+  to: string;
+  contactName: string;
+  companyName?: string;
+}) {
+  const cleanEmail = params.to.trim().toLowerCase();
+  const displayName = params.contactName.trim() || params.companyName || 'Partenaire Lougara';
+  const companyLabel = params.companyName?.trim() || 'Votre Catalogue Professionnel';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lougara.com';
+  const createPasswordUrl = `${appUrl}/connexion?mode=register_password&email=${encodeURIComponent(
+    cleanEmail
+  )}&company=${encodeURIComponent(companyLabel)}&name=${encodeURIComponent(displayName)}`;
+  const loginCatalogUrl = `${appUrl}/connexion?email=${encodeURIComponent(
+    cleanEmail
+  )}&company=${encodeURIComponent(companyLabel)}`;
+
+  const subject = `[Lougara] Créez votre mot de passe pour votre catalogue (${companyLabel})`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; background: #0B132B; color: #F8FAFC; padding: 32px; border-radius: 16px; border: 1px solid #D4AF37;">
+      <h2 style="color: #D4AF37; margin-top: 0;">Création de votre mot de passe client — Lougara B2B</h2>
+      <p>Bonjour <strong>${displayName}</strong>,</p>
+      <p>Votre contact commercial (Étape 4/5) pour le catalogue <strong>${companyLabel}</strong> a bien été enregistré sur la plateforme <strong>Lougara B2B</strong>.</p>
+      <p>Pour faciliter votre connexion lorsque vous cliquez sur <strong>« Connexion »</strong> depuis votre catalogue, votre adresse e-mail (<strong style="color: #FBBF24;">${cleanEmail}</strong>) s'affichera automatiquement et il vous suffira de renseigner votre mot de passe.</p>
+      
+      <div style="background: #1E293B; padding: 20px; border-radius: 12px; border-left: 4px solid #D4AF37; margin: 20px 0;">
+        <p style="margin: 6px 0;"><strong>Entreprise / Catalogue :</strong> ${companyLabel}</p>
+        <p style="margin: 6px 0;"><strong>Identifiant (pré-rempli sur votre catalogue) :</strong> <code style="color: #FBBF24; font-size: 14px;">${cleanEmail}</code></p>
+      </div>
+
+      <p style="margin: 22px 0;">
+        <a href="${createPasswordUrl}" style="background: #D4AF37; color: #0B132B; padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Créer ou définir mon mot de passe
+        </a>
+      </p>
+
+      <p style="font-size: 13px; color: #94A3B8;">
+        Si vous avez déjà défini votre mot de passe à l'étape 4/5, vous pouvez vous connecter directement en un clic depuis votre catalogue ou via <a href="${loginCatalogUrl}" style="color: #FBBF24;">votre espace de connexion</a>.
+      </p>
+      <p style="font-size: 12px; color: #64748B; margin-top: 24px;">
+        ${LOUGARA_RIB_CONFIG.companyBrandName} — ${LOUGARA_RIB_CONFIG.legalOwnerName} — ${LOUGARA_RIB_CONFIG.ownerAddress}
+      </p>
+    </div>
+  `;
+
+  return dispatchEmail({
+    to: cleanEmail,
+    subject,
+    html,
+    type: 'PASSWORD_CREATION_INVITE',
+    orderReference: `PWD-${Date.now()}`,
   });
 }
