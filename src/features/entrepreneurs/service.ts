@@ -205,12 +205,19 @@ export async function getRegisteredEntrepreneurs(): Promise<StoredEntrepreneur[]
   const memByEmail = new Map(memoryEntrepreneurs.map((m) => [m.email, m]));
 
   try {
-    const dbBuyers = await prisma.user.findMany({
-      where: { role: UserRole.BUYER },
-      include: { company: true },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    });
+    let dbBuyers: any[] = [];
+    try {
+      dbBuyers = await prisma.user.findMany({
+        where: { role: UserRole.BUYER },
+        include: { company: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      });
+    } catch {
+      const { fetchUsersAndCompaniesViaSupabaseRest } = await import('@/lib/supabase-db');
+      const fallback = await fetchUsersAndCompaniesViaSupabaseRest();
+      dbBuyers = fallback.users.filter((u: any) => u.role === 'BUYER');
+    }
 
     if (dbBuyers && dbBuyers.length > 0) {
       const mapped: StoredEntrepreneur[] = dbBuyers.map((b) => {
@@ -231,7 +238,7 @@ export async function getRegisteredEntrepreneurs(): Promise<StoredEntrepreneur[]
           isKbisVerified: Boolean(b.company?.registrationNumber),
           subscriptionPlan: mem?.subscriptionPlan || 'STANDARD',
           hasCatalogAdSpace: mem?.hasCatalogAdSpace ?? false,
-          createdAt: b.createdAt.toISOString(),
+          createdAt: new Date(b.createdAt || Date.now()).toISOString(),
         };
       });
 

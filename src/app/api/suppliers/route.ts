@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, ensureSchemaSynced } from '@/lib/prisma';
 import { getKybDocumentUrl, getCatalogImagePublicPrefix } from '@/lib/supabase-storage';
+import { fetchCompaniesViaSupabaseRest } from '@/lib/supabase-db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -16,10 +17,19 @@ function buildKycDocument(
   storagePath: string | null
 ) {
   if (!storagePath) return null;
-  const fileName = typeof displayName === 'string' && displayName.trim() ? displayName.trim().slice(0, 200) : storagePath.split('/').pop()!;
+  const fileName =
+    typeof displayName === 'string' && displayName.trim()
+      ? displayName.trim().slice(0, 200)
+      : storagePath.split('/').pop()!;
   const ext = fileName.toLowerCase().split('.').pop();
   const mimeType =
-    ext === 'pdf' ? 'application/pdf' : ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    ext === 'pdf'
+      ? 'application/pdf'
+      : ext === 'png'
+        ? 'image/png'
+        : ext === 'webp'
+          ? 'image/webp'
+          : 'image/jpeg';
   return {
     documentType,
     filePath: getKybDocumentUrl(storagePath, fileName),
@@ -28,6 +38,7 @@ function buildKycDocument(
     mimeType,
   };
 }
+
 const MAX_PRODUCTS = 10;
 const MAX_IMAGES_PER_PRODUCT = 4;
 
@@ -56,40 +67,68 @@ function sanitizeProducts(raw: any[], sector?: string) {
     }))
     .filter((prod) => prod.title.length > 0 && prod.description.length > 0);
 }
+
 export async function GET(req: NextRequest) {
   try {
     await ensureSchemaSynced();
     const { searchParams } = new URL(req.url);
     const includeUnpublished = searchParams.get('includeUnpublished') === 'true';
 
-    const suppliers = await prisma.companyProfile.findMany({
-      where: includeUnpublished ? {} : { isPublished: true, verificationStatus: 'VERIFIED' },
-      include: {
-        products: {
-          where: { isPublished: true, moderationStatus: 'APPROVED' },
-          take: 10,
-        },
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
+    let suppliers: any[] = [];
+    try {
+      suppliers = await prisma.companyProfile.findMany({
+        where: includeUnpublished ? {} : { isPublished: true, verificationStatus: 'VERIFIED' },
+        include: {
+          products: {
+            where: { isPublished: true, moderationStatus: 'APPROVED' },
+            take: 10,
+          },
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 50,
-    });
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 50,
+      });
+    } catch {
+      const all = await fetchCompaniesViaSupabaseRest(
+        includeUnpublished ? {} : { status: 'VERIFIED', isPublished: true }
+      );
+      suppliers = all.map((c: any) => ({
+        ...c,
+        products: (c.products || []).filter(
+          (p: any) => p.isPublished === true && p.moderationStatus === 'APPROVED'
+        ),
+      }));
+    }
+
+    if (suppliers.length === 0) {
+      try {
+        const all = await fetchCompaniesViaSupabaseRest(
+          includeUnpublished ? {} : { status: 'VERIFIED', isPublished: true }
+        );
+        suppliers = all.map((c: any) => ({
+          ...c,
+          products: (c.products || []).filter(
+            (p: any) => p.isPublished === true && p.moderationStatus === 'APPROVED'
+          ),
+        }));
+      } catch {}
+    }
 
     return NextResponse.json(
       { success: true, suppliers },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          Pragma: 'no-cache',
+          Expires: '0',
         },
       }
     );
@@ -168,12 +207,10 @@ export async function POST(req: NextRequest) {
         sector: sector || 'Négoce & Commerce Général',
         registrationNumber: registrationNumber || null,
         phone: phone || null,
-        verificationStatus: 'PENDING', // Placé en attente de vérification pour la modération
-        isPublished: false, // Ne pas publier le site tant que le modérateur ne l'a pas validé/publié
+        verificationStatus: 'PENDING',
+        isPublished: false,
         verifiedAt: null,
         documents: kycDocuments.length > 0 ? { create: kycDocuments } : undefined,
-        // Produits crees EN ATTENTE de moderation : texte et images ne sont visibles
-        // au catalogue qu'apres validation explicite par Lougara.
         products: {
           create: cleanProducts.map((prod, idx) => ({
             title: prod.title,
@@ -226,7 +263,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Erreur API /api/suppliers POST :', error);
     return NextResponse.json(
-      { success: false, error: 'Impossible d\'enregistrer le fournisseur : ' + error.message },
+      { success: false, error: "Impossible d'enregistrer le fournisseur : " + error.message },
       { status: 500 }
     );
   }

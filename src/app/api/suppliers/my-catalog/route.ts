@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, ensureSchemaSynced } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase-storage';
 import { getSessionFromRequest } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +10,7 @@ export const revalidate = 0;
  * Recherche uniquement une entreprise existante dans Supabase sans JAMAIS créer de client fictif.
  * Gère également la correspondance d'adresse (ex: contact@appalacarte / contact@appalacarte.fr).
  */
-async function findExistingCompany(email: string) {
+async function findExistingCompany(email: string): Promise<any | null> {
   await ensureSchemaSynced();
   const cleanEmail = email.trim().toLowerCase();
   const emailCandidates = [cleanEmail];
@@ -19,27 +20,51 @@ async function findExistingCompany(email: string) {
     emailCandidates.push(`${cleanEmail}.fr`);
   }
 
-  for (const candidate of emailCandidates) {
-    const user = await prisma.user.findFirst({
-      where: {
-        email: { equals: candidate, mode: 'insensitive' },
-      },
-      include: {
-        company: {
-          include: {
-            products: {
-              orderBy: { createdAt: 'desc' },
-            },
-            subscription: {
-              include: { plan: true },
+  try {
+    for (const candidate of emailCandidates) {
+      const user = await prisma.user.findFirst({
+        where: {
+          email: { equals: candidate, mode: 'insensitive' },
+        },
+        include: {
+          company: {
+            include: {
+              products: {
+                orderBy: { createdAt: 'desc' },
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    if (user?.company) {
-      return user.company;
+      if (user?.company) {
+        return user.company;
+      }
+    }
+  } catch {
+    // Fallback REST Supabase
+  }
+
+  for (const candidate of emailCandidates) {
+    const { data: userRow } = await supabaseAdmin
+      .from('User')
+      .select('id, email')
+      .ilike('email', candidate)
+      .maybeSingle();
+
+    if (userRow?.id) {
+      const { data: compRow } = await supabaseAdmin
+        .from('CompanyProfile')
+        .select('*, products:Product(*)')
+        .eq('userId', userRow.id)
+        .maybeSingle();
+
+      if (compRow) {
+        return {
+          ...compRow,
+          products: Array.isArray(compRow.products) ? compRow.products : [],
+        };
+      }
     }
   }
 

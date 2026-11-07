@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, ensureSchemaSynced } from '@/lib/prisma';
+import { fetchPublishedProductsViaSupabaseRest } from '@/lib/supabase-db';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -7,23 +8,34 @@ export const revalidate = 0;
 export async function GET() {
   try {
     await ensureSchemaSynced();
-    const products = await prisma.product.findMany({
-      where: {
-        isPublished: true,
-        moderationStatus: 'APPROVED',
-        company: {
+    let products: any[] = [];
+    try {
+      products = await prisma.product.findMany({
+        where: {
           isPublished: true,
-          verificationStatus: 'VERIFIED',
+          moderationStatus: 'APPROVED',
+          company: {
+            isPublished: true,
+            verificationStatus: 'VERIFIED',
+          },
         },
-      },
-      include: {
-        company: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 60,
-    });
+        include: {
+          company: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 60,
+      });
+    } catch {
+      products = await fetchPublishedProductsViaSupabaseRest();
+    }
+
+    if (products.length === 0) {
+      try {
+        products = await fetchPublishedProductsViaSupabaseRest();
+      } catch {}
+    }
 
     return NextResponse.json(
       { success: true, products },

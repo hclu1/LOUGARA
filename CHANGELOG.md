@@ -4,6 +4,13 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.21.3] - 2026-11-07
+### Corrigé
+- **Prise en compte garantie des données existantes dans Supabase en production (Vercel & Local)** :
+  - **Normalisation dynamique de `DATABASE_URL` dans `src/lib/prisma.ts`** : conversion automatique à l'exécution du port `5432` (Session Mode Pooler) vers `6543` (`?pgbouncer=true&connection_limit=1`) pour empêcher toute erreur `EMAXCONNSESSION` sur Vercel lorsque la variable d'environnement distante n'a pas été mise à jour manuellement.
+  - **Passerelle directe Supabase HTTPS REST (`src/lib/supabase-db.ts`)** : ajout d'une lecture et écriture de secours via `@supabase/supabase-js` (`PostgREST`) sur `/api/admin/verifications` (`GET` & `PATCH`), `/api/products`, `/api/suppliers`, `/api/admin/products`, `/api/admin/products/[id]/link-approval`, `/api/suppliers/my-catalog`, `src/features/auth/service.ts` et `src/features/entrepreneurs/service.ts`.
+  - **Suppression de la jointure sur la table non existante `Subscription`** dans `/api/admin/products` et `/api/suppliers/my-catalog` qui bloquait la remontée des produits déjà présents dans Supabase.
+
 ## [0.21.2] - 2026-11-07
 ### Ajouté
 - **Contrôle complet par cases à cocher dans les « Validés / Vérifiés » de l'administration (`/admin` Onglets 1 & 2 et `/admin/mots-de-passe`)** :

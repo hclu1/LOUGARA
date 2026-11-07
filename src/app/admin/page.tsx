@@ -101,7 +101,12 @@ export default function AdminHubPage() {
     if (!isModerator) return;
     setLoadingAdminProducts(true);
     try {
-      const res = await fetch(`/api/admin/products?_t=${Date.now()}`, { cache: 'no-store' });
+      const emailParam = user?.email ? `&adminEmail=${encodeURIComponent(user.email)}` : '';
+      const headers: Record<string, string> = user?.email ? { 'x-user-email': user.email } : {};
+      const res = await fetch(`/api/admin/products?_t=${Date.now()}${emailParam}`, {
+        cache: 'no-store',
+        headers,
+      });
       const data = await res.json();
       if (data.success && Array.isArray(data.products)) {
         setAdminProducts(data.products);
@@ -111,7 +116,7 @@ export default function AdminHubPage() {
     } finally {
       setLoadingAdminProducts(false);
     }
-  }, [isModerator]);
+  }, [isModerator, user?.email]);
 
   useEffect(() => {
     if (activeTab === 'catalogs') {
@@ -122,10 +127,14 @@ export default function AdminHubPage() {
   const handleToggleLinkApproval = async (productId: string, currentStatus: boolean) => {
     setLinkApprovalUpdatingId(productId);
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(user?.email ? { 'x-user-email': user.email } : {}),
+      };
       const res = await fetch(`/api/admin/products/${productId}/link-approval`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isLinkApproved: !currentStatus }),
+        headers,
+        body: JSON.stringify({ isLinkApproved: !currentStatus, adminEmail: user?.email }),
       });
       const data = await res.json();
       if (data.success) {

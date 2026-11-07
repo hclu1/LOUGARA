@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, ensureSchemaSynced } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase-storage';
 import { isRequestAdminAuthorized } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +10,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authCheck = isRequestAdminAuthorized(req);
+    const body = await req.json().catch(() => ({}));
+    const { isLinkApproved, adminEmail } = body;
+
+    const authCheck = isRequestAdminAuthorized(req, adminEmail);
     if (!authCheck.authorized) {
       return NextResponse.json(
         { success: false, error: 'Accès refusé. Rôle administrateur requis.' },
@@ -19,8 +23,6 @@ export async function PATCH(
 
     await ensureSchemaSynced();
     const { id } = await params;
-    const body = await req.json().catch(() => ({}));
-    const { isLinkApproved } = body;
 
     if (typeof isLinkApproved !== 'boolean') {
       return NextResponse.json(
@@ -29,12 +31,23 @@ export async function PATCH(
       );
     }
 
-    const updatedProduct = await prisma.product.update({
-      where: { id },
-      data: {
-        isLinkApproved,
-      },
-    });
+    let updatedProduct: any;
+    try {
+      updatedProduct = await prisma.product.update({
+        where: { id },
+        data: {
+          isLinkApproved,
+        },
+      });
+    } catch {
+      const { data } = await supabaseAdmin
+        .from('Product')
+        .update({ isLinkApproved })
+        .eq('id', id)
+        .select()
+        .single();
+      updatedProduct = data;
+    }
 
     return NextResponse.json({
       success: true,

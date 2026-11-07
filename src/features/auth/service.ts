@@ -161,23 +161,173 @@ export async function syncClientsFromDatabase(): Promise<void> {
   }
 
   try {
-    const { prisma } = await import('@/lib/prisma');
+    let dbUsers: any[] = [];
+    let dbCompanies: any[] = [];
 
-    const dbUsers = await prisma.user.findMany({
-      include: {
-        company: {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      const [usersResult, companiesResult] = await Promise.all([
+        prisma.user.findMany({
+          include: {
+            company: {
+              include: {
+                products: {
+                  orderBy: { createdAt: 'asc' },
+                },
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+        prisma.companyProfile.findMany({
           include: {
             products: {
               orderBy: { createdAt: 'asc' },
             },
+            user: true,
           },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+      ]);
+      dbUsers = usersResult;
+      dbCompanies = companiesResult;
+    } catch {
+      const { fetchUsersAndCompaniesViaSupabaseRest } = await import('@/lib/supabase-db');
+      const fallback = await fetchUsersAndCompaniesViaSupabaseRest();
+      dbUsers = fallback.users;
+      dbCompanies = fallback.companies;
+    }
 
+    if (dbUsers.length === 0 && dbCompanies.length === 0) {
+      try {
+        const { fetchUsersAndCompaniesViaSupabaseRest } = await import('@/lib/supabase-db');
+        const fallback = await fetchUsersAndCompaniesViaSupabaseRest();
+        dbUsers = fallback.users;
+        dbCompanies = fallback.companies;
+      } catch {}
+    }
+
+    // 1. Synchroniser en priorité toutes les fiches CompanyProfile existantes dans Supabase
+    for (const comp of dbCompanies) {
+      const ownerUser =
+        comp.user ||
+        dbUsers.find((u: any) => u.id === comp.userId) ||
+        null;
+      const cleanEmail = (ownerUser?.email || `contact@${String(comp.companyName || 'entreprise').toLowerCase().replace(/[^a-z0-9]/g, '')}.fr`)
+        .trim()
+        .toLowerCase();
+
+      const isVerified = comp.verificationStatus === 'VERIFIED';
+      const isRejected = comp.verificationStatus === 'REJECTED';
+
+      const targetReqStatus: PasswordRequestStatus = isVerified
+        ? 'APPROVED'
+        : isRejected
+          ? 'REJECTED'
+          : 'PENDING';
+
+      const targetAccountStatus: StoredAccountCredential['accountStatus'] = isVerified
+        ? 'active'
+        : isRejected
+          ? 'rejected'
+          : 'pending';
+
+      const firstName = ownerUser?.firstName || 'Dirigeant';
+      const lastName = ownerUser?.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim() || comp.companyName || 'Client Lougara';
+      const companyName = comp.companyName || fullName;
+      const country = comp.country || 'France';
+      const userId = ownerUser?.id || comp.userId || comp.id;
+      const defaultPass = `Lougara-${cleanEmail.split('@')[0]}-2026`;
+      const defaultHash = hashPassword(defaultPass, `salt_${userId}`);
+
+      const existingAcc = accountsStore.get(cleanEmail);
+      if (!existingAcc) {
+        accountsStore.set(cleanEmail, {
+          id: userId,
+          email: cleanEmail,
+          role: 'supplier',
+          firstName,
+          lastName,
+          companyName,
+          country,
+          passwordHash: defaultHash,
+          accountStatus: targetAccountStatus,
+          mustChangePassword: Boolean(ownerUser?.mustChangePassword),
+          updatedAt: new Date(comp.updatedAt || Date.now()).toISOString(),
+        });
+      } else {
+        if (isVerified && existingAcc.accountStatus !== 'active') {
+          existingAcc.accountStatus = 'active';
+        }
+        existingAcc.role = 'supplier';
+        existingAcc.companyName = companyName;
+        existingAcc.country = country;
+      }
+
+      const mappedProducts: PasswordValidationProductItem[] = (comp.products || []).map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        category: p.category || 'Général',
+        isPublished: Boolean(p.isPublished),
+        moderationStatus: String(p.moderationStatus || 'PENDING'),
+        externalLink: p.externalLink || comp.website || null,
+        isLinkApproved: Boolean(p.isLinkApproved),
+      }));
+
+      const existingReq = passwordRequestsStore.find(
+        (r) => r.companyId === comp.id || r.email === cleanEmail
+      );
+      const requestedAtIso = new Date(comp.createdAt || ownerUser?.createdAt || Date.now()).toISOString();
+      const reviewedAtIso =
+        targetReqStatus !== 'PENDING'
+          ? new Date(comp.verifiedAt || comp.updatedAt || Date.now()).toISOString()
+          : undefined;
+
+      if (!existingReq) {
+        passwordRequestsStore.push({
+          id: `pwd-req-${userId}`,
+          userId,
+          companyId: comp.id,
+          email: cleanEmail,
+          fullName,
+          companyName,
+          clientRole: 'supplier',
+          country,
+          requestType: 'CLIENT_REGISTRATION',
+          passwordHash: existingAcc?.passwordHash || defaultHash,
+          passwordFingerprint: buildFingerprint(existingAcc?.passwordHash || defaultHash),
+          passwordStrength: 'FORT',
+          status: targetReqStatus,
+          requestedAt: requestedAtIso,
+          reviewedAt: reviewedAtIso,
+          reviewedBy: targetReqStatus !== 'PENDING' ? SUPER_ADMIN_EMAIL : undefined,
+          rejectionReason: isRejected ? comp.verificationNotes || undefined : undefined,
+          isCatalogueActive: Boolean(comp.isPublished),
+          website: comp.website || mappedProducts[0]?.externalLink || null,
+          products: mappedProducts,
+        });
+      } else {
+        existingReq.companyId = comp.id;
+        existingReq.companyName = companyName;
+        existingReq.clientRole = 'supplier';
+        existingReq.isCatalogueActive = Boolean(comp.isPublished);
+        existingReq.website = comp.website || mappedProducts[0]?.externalLink || null;
+        existingReq.products = mappedProducts;
+        if (isVerified && existingReq.status !== 'APPROVED') {
+          existingReq.status = 'APPROVED';
+          existingReq.reviewedAt = reviewedAtIso;
+          existingReq.reviewedBy = existingReq.reviewedBy || SUPER_ADMIN_EMAIL;
+          existingReq.rejectionReason = undefined;
+        }
+      }
+    }
+
+    // 2. Synchroniser également les comptes utilisateurs sans fiche société directe
     for (const u of dbUsers) {
       const cleanEmail = (u.email || '').trim().toLowerCase();
       if (!cleanEmail || MODERATOR_EMAILS.includes(cleanEmail) || u.role === 'ADMIN') {
@@ -187,17 +337,16 @@ export async function syncClientsFromDatabase(): Promise<void> {
       const clientRole: 'entrepreneur' | 'supplier' =
         u.role === 'SUPPLIER' || Boolean(u.company) ? 'supplier' : 'entrepreneur';
 
-      // Rattacher la société correspondante si un compte secondaire pointe vers la même adresse (ex: contact@appalacarte.fr / contact@appalacarte)
-      let matchedCompany = u.company;
+      let matchedCompany = u.company || dbCompanies.find((c: any) => c.userId === u.id);
       if (!matchedCompany) {
         const altEmail = cleanEmail.endsWith('.fr')
           ? cleanEmail.slice(0, -3)
           : `${cleanEmail}.fr`;
         const altUser = dbUsers.find(
-          (other) => other.email.trim().toLowerCase() === altEmail && other.company
+          (other: any) => (other.email || '').trim().toLowerCase() === altEmail
         );
-        if (altUser?.company) {
-          matchedCompany = altUser.company;
+        if (altUser) {
+          matchedCompany = altUser.company || dbCompanies.find((c: any) => c.userId === altUser.id);
         }
       }
 
@@ -238,7 +387,7 @@ export async function syncClientsFromDatabase(): Promise<void> {
           passwordHash: defaultHash,
           accountStatus: targetAccountStatus,
           mustChangePassword: Boolean(u.mustChangePassword),
-          updatedAt: u.updatedAt.toISOString(),
+          updatedAt: new Date(u.updatedAt || Date.now()).toISOString(),
         });
       } else {
         if (isVerified && existingAcc.accountStatus !== 'active') {
@@ -248,15 +397,18 @@ export async function syncClientsFromDatabase(): Promise<void> {
         existingAcc.country = country;
       }
 
-      // Éviter de dupliquer la demande si l'utilisateur possède un alias sans fiche société dédiée
-      if (!u.company && matchedCompany) {
+      // Si l'utilisateur est déjà représenté par sa fiche société dans passwordRequestsStore, ne pas dupliquer
+      if (
+        matchedCompany &&
+        passwordRequestsStore.some((r) => r.companyId === matchedCompany.id)
+      ) {
         continue;
       }
 
-      const mappedProducts: PasswordValidationProductItem[] = (matchedCompany?.products || []).map((p) => ({
+      const mappedProducts: PasswordValidationProductItem[] = (matchedCompany?.products || []).map((p: any) => ({
         id: p.id,
         title: p.title,
-        category: p.category,
+        category: p.category || 'Général',
         isPublished: Boolean(p.isPublished),
         moderationStatus: String(p.moderationStatus || 'PENDING'),
         externalLink: p.externalLink || matchedCompany?.website || null,
@@ -279,10 +431,10 @@ export async function syncClientsFromDatabase(): Promise<void> {
           passwordFingerprint: buildFingerprint(existingAcc?.passwordHash || defaultHash),
           passwordStrength: 'FORT',
           status: targetReqStatus,
-          requestedAt: (matchedCompany?.createdAt || u.createdAt).toISOString(),
+          requestedAt: new Date(matchedCompany?.createdAt || u.createdAt || Date.now()).toISOString(),
           reviewedAt:
             targetReqStatus !== 'PENDING'
-              ? (matchedCompany?.verifiedAt || matchedCompany?.updatedAt || u.updatedAt).toISOString()
+              ? new Date(matchedCompany?.verifiedAt || matchedCompany?.updatedAt || u.updatedAt || Date.now()).toISOString()
               : undefined,
           reviewedBy: targetReqStatus !== 'PENDING' ? SUPER_ADMIN_EMAIL : undefined,
           rejectionReason: isRejected ? matchedCompany?.verificationNotes || undefined : undefined,
@@ -290,17 +442,6 @@ export async function syncClientsFromDatabase(): Promise<void> {
           website: matchedCompany?.website || mappedProducts[0]?.externalLink || null,
           products: mappedProducts,
         });
-      } else {
-        existingReq.companyId = matchedCompany?.id;
-        existingReq.isCatalogueActive = matchedCompany ? Boolean(matchedCompany.isPublished) : true;
-        existingReq.website = matchedCompany?.website || mappedProducts[0]?.externalLink || null;
-        existingReq.products = mappedProducts;
-        if (isVerified && existingReq.status !== 'APPROVED') {
-          existingReq.status = 'APPROVED';
-          existingReq.reviewedAt = (matchedCompany?.verifiedAt || new Date()).toISOString();
-          existingReq.reviewedBy = existingReq.reviewedBy || SUPER_ADMIN_EMAIL;
-          existingReq.rejectionReason = undefined;
-        }
       }
     }
   } catch (err) {
