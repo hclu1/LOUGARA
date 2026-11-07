@@ -4,6 +4,7 @@ import {
   createSessionToken,
   getSessionFromRequest,
   SESSION_COOKIE_NAME,
+  syncClientsFromDatabase,
 } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ export async function POST(req: Request) {
       );
     }
 
+    await syncClientsFromDatabase();
     const result = changeAccountPassword({
       email: targetEmail,
       currentPassword: currentPassword || undefined,

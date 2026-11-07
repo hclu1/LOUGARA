@@ -1,4 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Isolation stricte : aucun test unitaire ne doit jamais insérer de client dans la base Supabase réelle
+vi.mock('../../src/lib/prisma', () => ({
+  prisma: {
+    user: {
+      upsert: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    companyProfile: {
+      upsert: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
+    verificationDocument: {
+      create: vi.fn(),
+    },
+    conversation: {
+      create: vi.fn(),
+    },
+  },
+}));
+
 import {
   registerEntrepreneur,
   getRegisteredEntrepreneurs,

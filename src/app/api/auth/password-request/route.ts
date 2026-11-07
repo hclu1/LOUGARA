@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { submitClientPasswordRequest } from '@/features/auth/service';
+import { submitClientPasswordRequest, syncClientsFromDatabase } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +8,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { email, password, fullName, name, companyName, clientRole, role, country, requestType } = body;
 
+    await syncClientsFromDatabase();
     const result = submitClientPasswordRequest({
       email,
       password,

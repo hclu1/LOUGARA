@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensureSchemaSynced } from '@/lib/prisma';
 import { isRequestAdminAuthorized } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,7 @@ export async function PATCH(
       );
     }
 
+    await ensureSchemaSynced();
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
     const { isLinkApproved } = body;

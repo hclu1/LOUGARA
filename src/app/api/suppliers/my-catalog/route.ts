@@ -1,89 +1,49 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensureSchemaSynced } from '@/lib/prisma';
 import { getSessionFromRequest } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-async function getOrCreateCompany(email: string, userSessionName?: string) {
-  let user = await prisma.user.findUnique({
-    where: { email },
-    include: {
-      company: {
-        include: {
-          products: {
-            orderBy: { createdAt: 'desc' },
-          },
-          subscription: {
-            include: { plan: true },
-          },
-        },
-      },
-    },
-  });
-
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email,
-        supabaseUid: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        role: 'SUPPLIER',
-        firstName: userSessionName || 'Fournisseur',
-        company: {
-          create: {
-            companyName: userSessionName || 'Entreprise Fournisseur',
-            country: 'France',
-            city: 'Paris',
-            sector: 'Commerce B2B',
-            isPublished: true,
-            verificationStatus: 'PENDING',
-          },
-        },
-      },
-      include: {
-        company: {
-          include: {
-            products: {
-              orderBy: { createdAt: 'desc' },
-            },
-            subscription: {
-              include: { plan: true },
-            },
-          },
-        },
-      },
-    });
-  } else if (!user.company) {
-    await prisma.companyProfile.create({
-      data: {
-        userId: user.id,
-        companyName: user.firstName || 'Entreprise Fournisseur',
-        country: 'France',
-        city: 'Paris',
-        sector: 'Commerce B2B',
-        isPublished: true,
-        verificationStatus: 'PENDING',
-      },
-    });
-
-    user = await prisma.user.findUnique({
-      where: { email },
-      include: {
-        company: {
-          include: {
-            products: {
-              orderBy: { createdAt: 'desc' },
-            },
-            subscription: {
-              include: { plan: true },
-            },
-          },
-        },
-      },
-    });
+/**
+ * Recherche uniquement une entreprise existante dans Supabase sans JAMAIS créer de client fictif.
+ * Gère également la correspondance d'adresse (ex: contact@appalacarte / contact@appalacarte.fr).
+ */
+async function findExistingCompany(email: string) {
+  await ensureSchemaSynced();
+  const cleanEmail = email.trim().toLowerCase();
+  const emailCandidates = [cleanEmail];
+  if (cleanEmail.endsWith('.fr')) {
+    emailCandidates.push(cleanEmail.slice(0, -3));
+  } else if (!cleanEmail.includes('.', cleanEmail.indexOf('@'))) {
+    emailCandidates.push(`${cleanEmail}.fr`);
   }
 
-  return user!.company!;
+  for (const candidate of emailCandidates) {
+    const user = await prisma.user.findFirst({
+      where: {
+        email: { equals: candidate, mode: 'insensitive' },
+      },
+      include: {
+        company: {
+          include: {
+            products: {
+              orderBy: { createdAt: 'desc' },
+            },
+            subscription: {
+              include: { plan: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (user?.company) {
+      return user.company;
+    }
+  }
+
+  return null;
 }
 
 export async function GET(req: Request) {
@@ -100,7 +60,16 @@ export async function GET(req: Request) {
       );
     }
 
-    const company = await getOrCreateCompany(targetEmail, session?.companyName || session?.firstName);
+    const company = await findExistingCompany(targetEmail);
+    if (!company) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Aucun profil fournisseur ou catalogue enregistré pour ce compte dans la base de données.',
+        },
+        { status: 404 }
+      );
+    }
 
     // Déterminer la limite de produits selon l'abonnement
     const maxProducts = company.subscription?.plan?.maxProducts ?? 4; // 4 par défaut pour le forfait gratuit
@@ -158,7 +127,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const company = await getOrCreateCompany(targetEmail, session?.companyName || session?.firstName);
+    const company = await findExistingCompany(targetEmail);
+    if (!company) {
+      return NextResponse.json(
+        { success: false, error: 'Aucun profil fournisseur enregistré pour ce compte.' },
+        { status: 404 }
+      );
+    }
     const maxProducts = company.subscription?.plan?.maxProducts ?? 4;
 
     if (maxProducts !== -1 && company.products.length >= maxProducts) {
@@ -242,7 +217,13 @@ export async function PUT(req: Request) {
       );
     }
 
-    const company = await getOrCreateCompany(targetEmail);
+    const company = await findExistingCompany(targetEmail);
+    if (!company) {
+      return NextResponse.json(
+        { success: false, error: 'Aucun profil fournisseur enregistré pour ce compte.' },
+        { status: 404 }
+      );
+    }
     const { id, title, description, category, priceMin, priceMax, currency, moq, unit, originCountry, images, externalLink } = body;
 
     if (!id) {
@@ -314,7 +295,13 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const company = await getOrCreateCompany(targetEmail);
+    const company = await findExistingCompany(targetEmail);
+    if (!company) {
+      return NextResponse.json(
+        { success: false, error: 'Aucun profil fournisseur enregistré pour ce compte.' },
+        { status: 404 }
+      );
+    }
 
     const existing = await prisma.product.findFirst({
       where: { id: productId, companyId: company.id },

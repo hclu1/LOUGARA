@@ -4,6 +4,7 @@ import {
   createSessionToken,
   getSessionFromRequest,
   SESSION_COOKIE_NAME,
+  syncClientsFromDatabase,
 } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { email, password, requireAdmin } = body;
 
+    await syncClientsFromDatabase();
     const result = authenticateAccount({
       email,
       password,

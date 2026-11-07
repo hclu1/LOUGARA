@@ -3,6 +3,7 @@ import {
   isRequestAdminAuthorized,
   listPasswordValidationRequests,
   reviewPasswordValidationRequest,
+  syncClientsFromDatabase,
 } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,7 @@ export async function GET(req: Request) {
       );
     }
 
+    await syncClientsFromDatabase();
     const data = listPasswordValidationRequests(status);
 
     return NextResponse.json(
@@ -75,6 +77,7 @@ export async function PATCH(req: Request) {
       );
     }
 
+    await syncClientsFromDatabase();
     const result = reviewPasswordValidationRequest({
       requestId,
       action,

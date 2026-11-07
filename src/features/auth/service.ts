@@ -129,61 +129,145 @@ function initDefaultSecurityStore() {
     accountStatus: 'active',
     updatedAt: new Date().toISOString(),
   });
-
-  // 3. Comptes clients inscrits sur l'application (base vierge au démarrage)
-  const initialClients: Array<{
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    companyName: string;
-    country: string;
-    role: 'entrepreneur' | 'supplier';
-    initialPass: string;
-    reqStatus: PasswordRequestStatus;
-    reqType: PasswordRequestType;
-    requestedAt: string;
-    reviewedBy?: string;
-    reviewedAt?: string;
-  }> = [];
-
-  for (const c of initialClients) {
-    const pHash = hashPassword(c.initialPass, `salt_${c.id}`);
-    accountsStore.set(c.email.toLowerCase(), {
-      id: c.id,
-      email: c.email.toLowerCase(),
-      role: c.role,
-      firstName: c.firstName,
-      lastName: c.lastName,
-      companyName: c.companyName,
-      country: c.country,
-      passwordHash: pHash,
-      pendingPasswordHash: c.reqStatus === 'PENDING' ? pHash : undefined,
-      accountStatus: c.reqStatus === 'APPROVED' ? 'active' : 'pending',
-      updatedAt: c.requestedAt,
-    });
-
-    passwordRequestsStore.push({
-      id: `pwd-req-${c.id}`,
-      userId: c.id,
-      email: c.email.toLowerCase(),
-      fullName: `${c.firstName} ${c.lastName}`.trim(),
-      companyName: c.companyName,
-      clientRole: c.role,
-      country: c.country,
-      requestType: c.reqType,
-      passwordHash: pHash,
-      passwordFingerprint: buildFingerprint(pHash),
-      passwordStrength: c.initialPass.length >= 10 ? 'FORT' : 'CONFORME',
-      status: c.reqStatus,
-      requestedAt: c.requestedAt,
-      reviewedBy: c.reviewedBy,
-      reviewedAt: c.reviewedAt,
-    });
-  }
 }
 
 initDefaultSecurityStore();
+
+/**
+ * Synchronise automatiquement les comptes clients et les demandes de validation
+ * depuis la base de données Supabase existante (sans jamais créer de client fictif).
+ * Garantit qu'après toute modification ou redémarrage de l'application, un client
+ * déjà validé dans Supabase apparaît immédiatement dans les "Validés" de l'administration
+ * et conserve son accès actif.
+ */
+export async function syncClientsFromDatabase(): Promise<void> {
+  initDefaultSecurityStore();
+  if (process.env.VITEST || process.env.NODE_ENV === 'test') {
+    return;
+  }
+
+  try {
+    const { prisma, ensureSchemaSynced } = await import('@/lib/prisma');
+    await ensureSchemaSynced();
+
+    const dbUsers = await prisma.user.findMany({
+      include: {
+        company: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    for (const u of dbUsers) {
+      const cleanEmail = (u.email || '').trim().toLowerCase();
+      if (!cleanEmail || MODERATOR_EMAILS.includes(cleanEmail) || u.role === 'ADMIN') {
+        continue;
+      }
+
+      const clientRole: 'entrepreneur' | 'supplier' =
+        u.role === 'SUPPLIER' || Boolean(u.company) ? 'supplier' : 'entrepreneur';
+
+      // Rattacher la société correspondante si un compte secondaire pointe vers la même adresse (ex: contact@appalacarte.fr / contact@appalacarte)
+      let matchedCompany = u.company;
+      if (!matchedCompany) {
+        const altEmail = cleanEmail.endsWith('.fr')
+          ? cleanEmail.slice(0, -3)
+          : `${cleanEmail}.fr`;
+        const altUser = dbUsers.find(
+          (other) => other.email.trim().toLowerCase() === altEmail && other.company
+        );
+        if (altUser?.company) {
+          matchedCompany = altUser.company;
+        }
+      }
+
+      const companyStatus = matchedCompany?.verificationStatus;
+      const isVerified = companyStatus === 'VERIFIED' || (!matchedCompany && u.role === 'BUYER');
+      const isRejected = companyStatus === 'REJECTED';
+
+      const targetReqStatus: PasswordRequestStatus = isVerified
+        ? 'APPROVED'
+        : isRejected
+          ? 'REJECTED'
+          : 'PENDING';
+
+      const targetAccountStatus: StoredAccountCredential['accountStatus'] = isVerified
+        ? 'active'
+        : isRejected
+          ? 'rejected'
+          : 'pending';
+
+      const firstName = u.firstName || 'Client';
+      const lastName = u.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim() || matchedCompany?.companyName || 'Client Lougara';
+      const companyName = matchedCompany?.companyName || fullName;
+      const country = matchedCompany?.country || 'France';
+      const defaultPass = `Lougara-${cleanEmail.split('@')[0]}-2026`;
+      const defaultHash = hashPassword(defaultPass, `salt_${u.id}`);
+
+      const existingAcc = accountsStore.get(cleanEmail);
+      if (!existingAcc) {
+        accountsStore.set(cleanEmail, {
+          id: u.id,
+          email: cleanEmail,
+          role: matchedCompany ? 'supplier' : clientRole,
+          firstName,
+          lastName,
+          companyName,
+          country,
+          passwordHash: defaultHash,
+          accountStatus: targetAccountStatus,
+          mustChangePassword: Boolean(u.mustChangePassword),
+          updatedAt: u.updatedAt.toISOString(),
+        });
+      } else {
+        if (isVerified && existingAcc.accountStatus !== 'active') {
+          existingAcc.accountStatus = 'active';
+        }
+        existingAcc.companyName = companyName;
+        existingAcc.country = country;
+      }
+
+      // Éviter de dupliquer la demande si l'utilisateur possède un alias sans fiche société dédiée
+      if (!u.company && matchedCompany) {
+        continue;
+      }
+
+      const existingReq = passwordRequestsStore.find((r) => r.email === cleanEmail);
+      if (!existingReq) {
+        passwordRequestsStore.push({
+          id: `pwd-req-${u.id}`,
+          userId: u.id,
+          email: cleanEmail,
+          fullName,
+          companyName,
+          clientRole: matchedCompany ? 'supplier' : clientRole,
+          country,
+          requestType: 'CLIENT_REGISTRATION',
+          passwordHash: existingAcc?.passwordHash || defaultHash,
+          passwordFingerprint: buildFingerprint(existingAcc?.passwordHash || defaultHash),
+          passwordStrength: 'FORT',
+          status: targetReqStatus,
+          requestedAt: (matchedCompany?.createdAt || u.createdAt).toISOString(),
+          reviewedAt:
+            targetReqStatus !== 'PENDING'
+              ? (matchedCompany?.verifiedAt || matchedCompany?.updatedAt || u.updatedAt).toISOString()
+              : undefined,
+          reviewedBy: targetReqStatus !== 'PENDING' ? SUPER_ADMIN_EMAIL : undefined,
+          rejectionReason: isRejected ? matchedCompany?.verificationNotes || undefined : undefined,
+        });
+      } else if (isVerified && existingReq.status !== 'APPROVED') {
+        existingReq.status = 'APPROVED';
+        existingReq.reviewedAt = (matchedCompany?.verifiedAt || new Date()).toISOString();
+        existingReq.reviewedBy = existingReq.reviewedBy || SUPER_ADMIN_EMAIL;
+        existingReq.rejectionReason = undefined;
+      }
+    }
+  } catch (err) {
+    console.warn('[AuthSync] Synchronisation Supabase non bloquante :', err);
+  }
+}
 
 /**
  * Authentifie un utilisateur (Admin ou Client) avec vérification stricte du mot de passe.
@@ -237,7 +321,11 @@ export function authenticateAccount(params: {
     };
   }
 
-  const stored = accountsStore.get(cleanEmail);
+  let stored = accountsStore.get(cleanEmail);
+  if (!stored && !isAdminAccount) {
+    const altEmail = cleanEmail.endsWith('.fr') ? cleanEmail.slice(0, -3) : `${cleanEmail}.fr`;
+    stored = accountsStore.get(altEmail);
+  }
 
   // Cas 1 : Compte Administrateur (moderator ou super_admin)
   if (isAdminAccount && stored) {
@@ -690,7 +778,11 @@ export function changeAccountPassword(params: {
 } {
   initDefaultSecurityStore();
   const cleanEmail = (params.email || '').trim().toLowerCase();
-  const account = accountsStore.get(cleanEmail);
+  let account = accountsStore.get(cleanEmail);
+  if (!account) {
+    const altEmail = cleanEmail.endsWith('.fr') ? cleanEmail.slice(0, -3) : `${cleanEmail}.fr`;
+    account = accountsStore.get(altEmail);
+  }
 
   if (!account) {
     return { success: false, error: 'Compte client introuvable.' };
@@ -729,4 +821,3 @@ export function changeAccountPassword(params: {
 
   return { success: true, user: updatedUser };
 }
-

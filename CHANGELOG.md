@@ -4,6 +4,14 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.21.1] - 2026-11-07
+### Corrigé
+- **Synchronisation permanente avec Supabase & Zéro client fictif** :
+  - Isolation stricte des tests unitaires (`tests/unit/entrepreneurs.test.ts` et `src/features/entrepreneurs/service.ts`) : aucune exécution de test ne peut plus jamais insérer de clients fictifs dans la base de données Supabase de production.
+  - Suppression de l'auto-création implicite dans `/api/suppliers/my-catalog` : seules les entreprises réellement enregistrées dans Supabase sont chargées.
+  - Synchronisation automatique (`syncClientsFromDatabase` dans `src/features/auth/service.ts`) entre la table `User` / `CompanyProfile` de Supabase et le module d'authentification / validation des mots de passe : tout client déjà validé dans Supabase (`verificationStatus: VERIFIED`) apparaît systématiquement et immédiatement dans le `/catalogue` public ET dans toutes les vues « Validés » de l'administration (`/admin` Onglets 1, 2, 3 et `/admin/mots-de-passe`), même après une modification du code ou un redémarrage du serveur.
+  - Auto-synchronisation défensive du schéma PostgreSQL (`ensureSchemaSynced` dans `src/lib/prisma.ts`) garantissant que les évolutions de colonnes n'interrompent jamais l'affichage des clients et produits existants dans Supabase.
+
 ## [0.21.0] - 2026-11-07
 ### Ajouté
 - **Espace Vitrine & Gestion du Catalogue Fournisseur (`/mon-catalogue`)** :

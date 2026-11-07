@@ -87,8 +87,9 @@ export default function AdminHubPage() {
   } | null>(null);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
 
-  // Dossiers KYB en attente : badge sur l'onglet + ouverture automatique de l'onglet KYB
+  // Dossiers KYB en attente et vérifiés : badges sur l'onglet + synchronisation des utilisateurs inscrits
   const [pendingKybCount, setPendingKybCount] = useState(0);
+  const [verifiedKybCount, setVerifiedKybCount] = useState(0);
   const [kybAutoOpened, setKybAutoOpened] = useState(false);
 
   // Modération des produits et validation des liens externes
@@ -144,24 +145,73 @@ export default function AdminHubPage() {
   useEffect(() => {
     if (!isModerator) return;
     let cancelled = false;
-    const loadPendingKyb = async () => {
+    const loadKybAndUsers = async () => {
       try {
-        const res = await fetch(`/api/admin/verifications?status=PENDING&_t=${Date.now()}`, { cache: 'no-store' });
+        const res = await fetch(`/api/admin/verifications?status=ALL&_t=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
-        const count = Array.isArray(data.companies) ? data.companies.length : 0;
+        const companies = Array.isArray(data.companies) ? data.companies : [];
         if (cancelled) return;
-        setPendingKybCount(count);
-        if (count > 0 && !kybAutoOpened) {
+
+        const pending = companies.filter((c: any) => c.verificationStatus === 'PENDING').length;
+        const verified = companies.filter((c: any) => c.verificationStatus === 'VERIFIED').length;
+        setPendingKybCount(pending);
+        setVerifiedKybCount(verified);
+
+        if (pending > 0 && !kybAutoOpened) {
           setKybAutoOpened(true);
           setActiveTab('verifications');
         }
+
+        // Synchroniser la liste des utilisateurs (Onglet 3) avec les clients réels présents dans Supabase
+        const clientUsers: UserAccount[] = companies.map((c: any) => ({
+          id: c.user?.id || c.id,
+          email: c.user?.email || 'contact@entreprise.com',
+          role: 'supplier',
+          name:
+            `${c.user?.firstName || ''} ${c.user?.lastName || ''}`.trim() ||
+            c.companyName ||
+            'Client Vérifié',
+          companyName: c.companyName || 'Entreprise',
+          country: c.country || 'France',
+          status:
+            c.verificationStatus === 'VERIFIED'
+              ? 'active'
+              : c.verificationStatus === 'REJECTED'
+                ? 'rejected'
+                : 'pending',
+          registeredAt: c.createdAt ? new Date(c.createdAt).toISOString().slice(0, 10) : '2026-11-07',
+        }));
+
+        setUsersList([
+          {
+            id: 'usr-4',
+            email: 'asherilla4@gmail.com',
+            role: 'moderator',
+            name: 'Asherilla Modérateur',
+            companyName: 'Équipe Modération Lougara',
+            country: 'France',
+            status: 'active',
+            registeredAt: '2026-09-01',
+          },
+          {
+            id: 'usr-5',
+            email: 'champagcrypt@gmail.com',
+            role: 'super_admin',
+            name: 'Hervé SuperAdmin',
+            companyName: 'Administration Système Lougara',
+            country: 'France',
+            status: 'active',
+            registeredAt: '2026-09-01',
+          },
+          ...clientUsers,
+        ]);
       } catch {
         // non bloquant
       }
     };
-    loadPendingKyb();
-    const interval = setInterval(loadPendingKyb, 30000);
+    loadKybAndUsers();
+    const interval = setInterval(loadKybAndUsers, 30000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -467,6 +517,11 @@ export default function AdminHubPage() {
             2. Audits KYB & Pièces Légales
             {pendingKybCount > 0 && (
               <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950">{pendingKybCount}</span>
+            )}
+            {verifiedKybCount > 0 && (
+              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                ✓ {verifiedKybCount} validé{verifiedKybCount > 1 ? 's' : ''}
+              </span>
             )}
           </button>
 

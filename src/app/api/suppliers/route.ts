@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensureSchemaSynced } from '@/lib/prisma';
 import { getKybDocumentUrl, getCatalogImagePublicPrefix } from '@/lib/supabase-storage';
 
 export const dynamic = 'force-dynamic';
@@ -58,6 +58,7 @@ function sanitizeProducts(raw: any[], sector?: string) {
 }
 export async function GET(req: NextRequest) {
   try {
+    await ensureSchemaSynced();
     const { searchParams } = new URL(req.url);
     const includeUnpublished = searchParams.get('includeUnpublished') === 'true';
 

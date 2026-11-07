@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensureSchemaSynced } from '@/lib/prisma';
 import { VerificationStatus, DocumentStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -7,6 +7,7 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
+    await ensureSchemaSynced();
     const { searchParams } = new URL(req.url);
     const filterStatus = searchParams.get('status');
     const filterPublished = searchParams.get('isPublished');

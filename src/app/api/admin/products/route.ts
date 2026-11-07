@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensureSchemaSynced } from '@/lib/prisma';
 import { isRequestAdminAuthorized } from '@/features/auth/service';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +15,7 @@ export async function GET(req: Request) {
       );
     }
 
+    await ensureSchemaSynced();
     const products = await prisma.product.findMany({
       include: {
         company: {

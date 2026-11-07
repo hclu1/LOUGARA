@@ -69,6 +69,10 @@ const memorySourcingRequests: StoredSourcingRequest[] = [];
 
 const memoryInquiries: StoredInquiry[] = [];
 
+function isTestEnvironment(): boolean {
+  return Boolean(process.env.VITEST || process.env.NODE_ENV === 'test');
+}
+
 /**
  * Enregistrement officiel d'un entrepreneur / acheteur en base de données
  */
@@ -120,6 +124,11 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
       destinationCountry: validated.country || 'France',
       createdAt: new Date().toISOString(),
     });
+  }
+
+  // En environnement de test unitaire, ne jamais écrire de clients de test dans Supabase
+  if (isTestEnvironment()) {
+    return newEntrepreneur;
   }
 
   // 2. Persistance relationnelle en base de données PostgreSQL via Prisma
@@ -189,6 +198,10 @@ export async function registerEntrepreneur(input: EntrepreneurRegistrationInput)
  * Récupération de la liste des entrepreneurs enregistrés
  */
 export async function getRegisteredEntrepreneurs(): Promise<StoredEntrepreneur[]> {
+  if (isTestEnvironment()) {
+    return memoryEntrepreneurs;
+  }
+
   const memByEmail = new Map(memoryEntrepreneurs.map((m) => [m.email, m]));
 
   try {
@@ -293,6 +306,10 @@ export async function contactSupplier(input: ContactSupplierInput): Promise<Stor
   };
 
   memoryInquiries.unshift(inquiry);
+
+  if (isTestEnvironment()) {
+    return inquiry;
+  }
 
   try {
     const buyer = await prisma.user.upsert({
