@@ -4,6 +4,11 @@ Toutes les modifications notables apportées à ce projet sont consignées dans 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.20.1] - 2026-11-07
+### Corrigé
+- Suppression définitive du cache navigateur parasite (`lougara_hidden_companies` dans `localStorage`) qui masquait à tort les entreprises validées dans le catalogue du client.
+- Seule la base de données PostgreSQL / Supabase (`isPublished` & `verificationStatus`) fait désormais foi pour la visibilité du catalogue. Aucun dossier validé ne peut disparaître sans action explicite d'un administrateur ou modification directe dans Supabase.
+- Connexion base de données : basculement vers le Transaction Pooler PgBouncer de Supabase (port 6543) pour éradiquer les saturations de connexions session (`EMAXCONNSESSION`) qui provoquaient des erreurs 500 temporaires vidant la liste des produits.
 ## [0.20.0] - 2026-11-07
 ### Ajouté
 - Catalogue : galerie multi-photos interactive sur chaque fiche produit pour visualiser l'ensemble des photos validées (vignettes cliquables, flèches précédent/suivant, compteur de photos).

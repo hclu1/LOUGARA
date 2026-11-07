@@ -242,14 +242,6 @@ export default function AdminVerificationsPage() {
         const data = await res.json();
         if (data.companies && Array.isArray(data.companies)) {
           setSuppliers(data.companies);
-          if (typeof window !== 'undefined') {
-            try {
-              const hiddenIds = data.companies
-                .filter((c: any) => c.isPublished === false)
-                .map((c: any) => c.id);
-              localStorage.setItem('lougara_hidden_companies', JSON.stringify(hiddenIds));
-            } catch (e) {}
-          }
         }
       }
     } catch (err) {
@@ -408,15 +400,7 @@ export default function AdminVerificationsPage() {
       )
     );
 
-    try {
-      if (typeof window !== 'undefined') {
-        const hiddenList: string[] = JSON.parse(localStorage.getItem('lougara_hidden_companies') || '[]');
-        const updatedHidden = willBePublished
-          ? hiddenList.filter((id) => id !== companyId)
-          : Array.from(new Set([...hiddenList, companyId]));
-        localStorage.setItem('lougara_hidden_companies', JSON.stringify(updatedHidden));
-      }
-    } catch (e) {}
+
 
     try {
       const res = await fetch('/api/admin/verifications', {

@@ -351,6 +351,11 @@ export default function CataloguePage() {
 
     async function loadData() {
       try {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('lougara_hidden_companies');
+          } catch (e) {}
+        }
         // Chargement parallèle non bloquant des 3 sources de données avec horodatage anti-cache
         const timestamp = Date.now();
         const [prodResult, suppResult, buyersResult] = await Promise.allSettled([
@@ -480,16 +485,9 @@ export default function CataloguePage() {
   };
 
   const filteredCatalogs = useMemo(() => {
-    let localHidden: string[] = [];
-    if (typeof window !== 'undefined') {
-      try {
-        localHidden = JSON.parse(localStorage.getItem('lougara_hidden_companies') || '[]');
-      } catch (e) {}
-    }
-
     return suppliersCatalogList.filter((cat) => {
+      // Seule la base de données Supabase / l'état de publication réel fait foi
       if (cat.isPublished === false) return false;
-      if (localHidden.includes(cat.id)) return false;
       if (onlyVerified && !cat.isVerified) return false;
       if (selectedCategory !== 'all' && !cat.sector.toLowerCase().includes(selectedCategory.toLowerCase())) return false;
       if (selectedCountry !== 'all' && cat.country !== selectedCountry) return false;
@@ -506,16 +504,9 @@ export default function CataloguePage() {
   }, [suppliersCatalogList, onlyVerified, selectedCategory, selectedCountry, selectedCorridor, query]);
 
   const filteredProducts = useMemo(() => {
-    let localHidden: string[] = [];
-    if (typeof window !== 'undefined') {
-      try {
-        localHidden = JSON.parse(localStorage.getItem('lougara_hidden_companies') || '[]');
-      } catch (e) {}
-    }
-
     return productsList.filter((prod) => {
+      // Seule la base de données Supabase / l'état de publication réel fait foi
       if (prod.company?.isPublished === false) return false;
-      if (localHidden.includes(prod.company.id)) return false;
       if (!prod.company.hasCatalogAdSpace) return false;
       if (onlyVerified && !prod.company.isVerified) return false;
       if (selectedCategory !== 'all' && !prod.category.toLowerCase().includes(selectedCategory.toLowerCase())) return false;
